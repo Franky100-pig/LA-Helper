@@ -51,13 +51,14 @@ def _rank(A):
     return len(piv)
 
 
-def left_inverse(A, record_steps=True):
+def left_inverse(A, record_steps=True, rank=None):
     """(AᵀA)⁻¹ Aᵀ, valid when A has full column rank."""
     m, n = A.shape
     if m < n:
         return None, f"A is {m}×{n}: needs m ≥ n for a left inverse"
-    if _rank(A) != n:
-        return None, f"A has rank {_rank(A)} < {n} (not full column rank)"
+    r = _rank(A) if rank is None else rank
+    if r != n:
+        return None, f"A has rank {r} < {n} (not full column rank)"
     AT = A.transpose()
     ATA = ops.mul(AT, A)
     ATA_inv, _ = inverse(ATA, record_steps=False)
@@ -66,13 +67,14 @@ def left_inverse(A, record_steps=True):
     return L, (steps if record_steps else [])
 
 
-def right_inverse(A, record_steps=True):
+def right_inverse(A, record_steps=True, rank=None):
     """Aᵀ (A Aᵀ)⁻¹, valid when A has full row rank."""
     m, n = A.shape
     if m > n:
         return None, f"A is {m}×{n}: needs m ≤ n for a right inverse"
-    if _rank(A) != m:
-        return None, f"A has rank {_rank(A)} < {m} (not full row rank)"
+    r = _rank(A) if rank is None else rank
+    if r != m:
+        return None, f"A has rank {r} < {m} (not full row rank)"
     AT = A.transpose()
     AAT = ops.mul(A, AT)
     AAT_inv, _ = inverse(AAT, record_steps=False)
@@ -87,10 +89,10 @@ def pseudo_inverse(A, record_steps=True):
     r = _rank(A)
     try:
         if r == n and m >= n:
-            L, _ = left_inverse(A, record_steps=False)
+            L, _ = left_inverse(A, record_steps=False, rank=r)
             return L, ["Full column rank → pinv = left inverse (AᵀA)⁻¹Aᵀ"]
         if r == m and n >= m:
-            R, _ = right_inverse(A, record_steps=False)
+            R, _ = right_inverse(A, record_steps=False, rank=r)
             return R, ["Full row rank → pinv = right inverse Aᵀ(AAᵀ)⁻¹"]
     except ValueError:
         pass
