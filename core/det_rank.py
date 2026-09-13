@@ -16,24 +16,26 @@ def rref_wrap(A, record_steps=True):
 
 
 def determinant(A, record_steps=True):
-    """det(A) via LU: det = det(P)·det(L)·det(U) = (±1)·1·(∏ diag U)."""
+    """det(A). The value comes from SymPy (correct for singular and symbolic
+    matrices); LU decomposition is used to *explain* the value in steps.
+    """
     if not A.is_square():
         raise ValueError(f"determinant needs a square matrix, got {A.shape}")
-    try:
-        P, L, U, swaps, _ = lu_decomposition(A, pivot=True, record_steps=False)
-    except ValueError:
-        return sp.Integer(0), (["Matrix is singular → det = 0"]
-                              if record_steps else [])
-    prod = sp.Integer(1)
-    for i in range(A.rows):
-        prod = prod * U.data[i][i]
-    det = prod if swaps % 2 == 0 else -prod
-    det = sp.simplify(det)
+
+    det = sp.simplify(A.to_sympy().det())
+    if not record_steps:
+        return det, []
+
     steps = []
-    if record_steps:
-        sign = 1 if swaps % 2 == 0 else -1
-        steps.append(
-            "det(A) = det(P)·det(L)·det(U) = (%+d)·1·(product of U diagonal)"
-            % sign
-        )
+    try:
+        P, L, U, swaps, lu_steps = lu_decomposition(
+            A, pivot=True, record_steps=True)
+        steps.extend(lu_steps)
+        steps.append("由 P·A = L·U 得 det(A) = det(P)·det(L)·det(U)")
+    except ValueError:
+        steps.append("消元时出现了零主元 → 矩阵奇异（不可逆）")
+    if det == 0:
+        steps.append("det(A) = 0，矩阵奇异")
+    else:
+        steps.append(f"det(A) = {sp.sstr(det)}")
     return det, steps
