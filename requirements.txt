@@ -1,2 +1,1 @@
 sympy>=1.13
-pytest>=8.0
