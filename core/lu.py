@@ -3,6 +3,21 @@ from .matrix import Matrix, fmt_expr
 import sympy as sp
 
 
+def _pick_pivot(U, k, n):
+    """Index of the pivot row for column k.
+
+    Partial pivoting needs a magnitude comparison, which is only meaningful
+    for numbers. With symbolic entries we fall back to "first non-zero row"
+    instead of crashing on ``Abs(c) > Abs(a)``.
+    """
+    if all(U[i][k].is_number for i in range(k, n)):
+        return max(range(k, n), key=lambda i: abs(U[i][k]))
+    for i in range(k, n):
+        if not U[i][k].equals(0):
+            return i
+    return k
+
+
 def lu_decomposition(A, pivot=True, record_steps=True):
     """Factor square A into P·A = L·U (L unit-lower-triangular, U upper-triangular).
 
@@ -19,7 +34,7 @@ def lu_decomposition(A, pivot=True, record_steps=True):
 
     for k in range(n):
         if pivot:
-            piv = max(range(k, n), key=lambda i: abs(U[i][k]))
+            piv = _pick_pivot(U, k, n)
             if piv != k:
                 U[k], U[piv] = U[piv], U[k]
                 perm[k], perm[piv] = perm[piv], perm[k]
@@ -39,6 +54,8 @@ def lu_decomposition(A, pivot=True, record_steps=True):
             L[i][k] = factor
             for j in range(k, n):
                 U[i][j] = sp.simplify(U[i][j] - factor * U[k][j])
+            # Do not rely on exact cancellation to produce the structural zero.
+            U[i][k] = sp.Integer(0)
             if record_steps and not factor.equals(0):
                 steps.append(
                     f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{k + 1}"
