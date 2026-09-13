@@ -2,30 +2,57 @@
 from .matrix import Matrix
 from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod
 
+# Hard upper bound on input size: exact arithmetic on a 100x100 would happily
+# burn the (single-threaded) server for minutes.
+MAX_DIM = 16
+
 
 def _mat(M):
     return M.to_list()
 
 
-def compute(op, A_data, B_data=None, show_steps=True):
+def _parse(name, data, allow_symbols=False):
+    """Parse + validate one matrix. Returns (Matrix, error_message)."""
     try:
-        A = Matrix(A_data)
+        M = Matrix(data, allow_symbols=allow_symbols)
     except Exception as e:
-        return {"ok": False, "error": f"Invalid matrix A: {e}"}
+        return None, f"矩阵 {name} 输入有误：{e}"
+    if M.is_empty():
+        return None, f"矩阵 {name} 为空，请至少填写一个元素"
+    if M.rows > MAX_DIM or M.cols > MAX_DIM:
+        return None, (
+            f"矩阵 {name} 是 {M.rows}×{M.cols}，超过上限 {MAX_DIM}×{MAX_DIM}"
+        )
+    return M, None
 
+
+def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
     try:
-        need_B = op in ("add", "sub", "multiply", "solve")
+        A, err = _parse("A", A_data, allow_symbols)
+        if err:
+            return {"ok": False, "error": err}
+
+        need_B = op in ("add", "sub", "multiply", "solve", "scalar")
         if need_B and B_data is None:
             return {"ok": False, "error": "This operation needs a second matrix B / b."}
 
-        if op == "add":
-            R = ops.add(A, Matrix(B_data))
+        def B_matrix():
+            return _parse("B", B_data, allow_symbols)
+
+        if op in ("add", "sub", "multiply"):
+            B, err = B_matrix()
+            if err:
+                return {"ok": False, "error": err}
+            R = {"add": ops.add, "sub": ops.sub, "multiply": ops.mul}[op](A, B)
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": []}
-        elif op == "sub":
-            R = ops.sub(A, Matrix(B_data))
-            return {"ok": True, "type": "matrix", "data": _mat(R), "steps": []}
-        elif op == "multiply":
-            R = ops.mul(A, Matrix(B_data))
+        elif op == "scalar":
+            B, err = B_matrix()
+            if err:
+                return {"ok": False, "error": err}
+            if B.shape != (1, 1):
+                return {"ok": False,
+                        "error": "标量乘法需要在 B 中填 1×1 的常数（把 B 设成 1 行 1 列）"}
+            R = ops.scalar_mul(A, B.data[0][0])
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": []}
         elif op == "transpose":
             R = ops.transpose(A)
@@ -56,7 +83,10 @@ def compute(op, A_data, B_data=None, show_steps=True):
             return {"ok": True, "type": "lu",
                     "P": _mat(P), "L": _mat(L), "U": _mat(U), "steps": steps}
         elif op == "solve":
-            sol = solve.solve_augmented(A, Matrix(B_data), record_steps=show_steps)
+            B, err = B_matrix()
+            if err:
+                return {"ok": False, "error": err}
+            sol = solve.solve_augmented(A, B, record_steps=show_steps)
             return {"ok": True, "type": "solve",
                     "status": sol["status"],
                     "particular": _mat(sol["particular"]) if sol["particular"] is not None else None,
@@ -75,7 +105,11 @@ def compute(op, A_data, B_data=None, show_steps=True):
         elif op == "eigen":
             pairs = eig_mod.eigen(A)
             return {"ok": True, "type": "eigen",
-                    "pairs": [{"value": p["value"], "multiplicity": p["multiplicity"],
+                    "pairs": [{"value": p["value"], "exact": p["exact"],
+                               "approx": p["approx"],
+                               "multiplicity": p["multiplicity"],
+                               "geometric": p["geometric"],
+                               "defective": p["defective"],
                                "vectors": [_mat(v) for v in p["vectors"]]}
                               for p in pairs], "steps": []}
         else:
