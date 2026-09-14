@@ -9,6 +9,11 @@ venv/
 .mypy_cache/
 .ruff_cache/
 
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
+
 # OS / editor
 .DS_Store
 Thumbs.db
