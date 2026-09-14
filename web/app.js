@@ -37,7 +37,8 @@ function buildGrid(prefix) {
 
   const grid = document.getElementById(gridId(prefix));
   grid.innerHTML = "";
-  grid.style.gridTemplateColumns = `repeat(${cols}, 64px)`;
+  // 列宽交给 CSS 变量 --cell-w，媒体查询即可在手机上整体缩小（.cell 同源）
+  grid.style.gridTemplateColumns = `repeat(${cols}, var(--cell-w))`;
   grid.dataset.rows = rows;
   grid.dataset.cols = cols;
   for (let r = 0; r < rows; r++) {
