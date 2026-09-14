@@ -1,0 +1,104 @@
+name: Release
+
+# Windows 的 .exe 无法在 macOS 上交叉编译，所以两个平台的安装包都在这里构建。
+# 触发方式：
+#   1) push tag（形如 v0.2.0）→ 构建并自动创建 GitHub Release，附件为两个安装包
+#   2) Actions 页面手动 Run workflow → 只产出构建工件（Artifacts），不发 Release
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.label }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: Windows-x64
+            artifact: LA-Helper-Windows-x64
+          - os: macos-14
+            label: macOS-arm64
+            artifact: LA-Helper-macOS-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          # Windows / macOS 的官方 Python 构建都自带 tkinter，桌面版开箱可打包
+          python-version: "3.12"
+          cache: pip
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      # 打包前先跑测试：装出来的包必须是全绿的版本
+      - name: 测试
+        run: |
+          pip install -r requirements-dev.txt
+          pytest
+
+      - name: PyInstaller 打包
+        run: >
+          python -m PyInstaller
+          --name "LA Helper"
+          --windowed
+          --noconfirm
+          --clean
+          --paths .
+          --hidden-import core
+          --hidden-import core.engine
+          --hidden-import core.matrix
+          --hidden-import core.ops
+          --hidden-import core.inverse
+          --hidden-import core.lu
+          --hidden-import core.solve
+          --hidden-import core.det_rank
+          --hidden-import core.eigen
+          desktop/app.py
+
+      - name: 打包成 zip（macOS）
+        if: runner.os == 'macOS'
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "dist/LA Helper.app" "${{ matrix.artifact }}.zip"
+          ls -lh "${{ matrix.artifact }}.zip"
+
+      - name: 打包成 zip（Windows）
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "dist\LA Helper" -DestinationPath "${{ matrix.artifact }}.zip"
+          Get-Item "${{ matrix.artifact }}.zip" | Format-List Name, Length
+
+      - name: 上传构建工件
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: ${{ matrix.artifact }}.zip
+          if-no-files-found: error
+
+      - name: 附加到 Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.artifact }}.zip
+          generate_release_notes: true
+          body: |
+            ### 下载
+
+            | 你的系统 | 下载 | 说明 |
+            |---|---|---|
+            | macOS（Apple 芯片 / M 系列） | `LA-Helper-macOS-arm64.zip` | 解压后双击 `LA Helper.app`。未做签名，首次打开需**右键 → 打开**，或在「系统设置 → 隐私与安全性」里点「仍要打开」 |
+            | Windows 10 / 11（64 位） | `LA-Helper-Windows-x64.zip` | 解压后双击 `LA Helper.exe`。SmartScreen 可能提示，点「更多信息 → 仍要运行」 |
+
+            不想下载安装包？在线预览版（无需安装，浏览器直接跑）：
+            https://27f263035b214ac598c05e6f0dc76cff.app.workbuddy.host
