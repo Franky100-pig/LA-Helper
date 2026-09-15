@@ -1,19 +1,76 @@
 "use strict";
 
+// 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
+// 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
 const OPS_NEED_B = new Set(["multiply", "add", "sub", "solve", "scalar"]);
 const MIN_DIM = 1;
 const MAX_DIM = 16;
 const REQUEST_TIMEOUT_MS = 30000;
+const DEFAULT_NAMES = ["A", "B", "C", "D"];
+const NAME_RE = /^[A-Za-z][A-Za-z0-9_]{0,7}$/;
+const NUM_RE = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
 
-const opSelect = document.getElementById("op");
-const showSteps = document.getElementById("showSteps");
-const showDecimals = document.getElementById("showDecimals");
-const panelB = document.getElementById("panelB");
-const resultEl = document.getElementById("result");
-const resultCard = resultEl.querySelector(".result-card");
+const el = (id) => document.getElementById(id);
+const opSelect = el("op");
+const leftSel = el("leftSel");
+const rightSel = el("rightSel");
+const rightWrap = el("rightWrap");
+const showSteps = el("showSteps");
+const showDecimals = el("showDecimals");
+const resultCard = document.querySelector(".result-card");
+const chipsBox = el("libChips");
+const grid = el("grid");
+const rowsIn = el("rowsIn");
+const colsIn = el("colsIn");
+const editNameEl = el("editName");
+const editorMsg = el("editorMsg");
+const exprIn = el("exprIn");
+const exprHint = el("exprHint");
+const previewName = el("previewName");
+const previewBox = el("previewBox");
 
 let inFlight = null;
 let lastResult = null;
+
+const state = { lib: {}, editing: "A" };
+
+// --- 矩阵模型 ---------------------------------------------------------------
+
+function blankCells(rows, cols) {
+  return Array.from({ length: rows },
+    () => Array.from({ length: cols }, () => ""));
+}
+
+function newMatrix(rows, cols) {
+  return { rows: rows, cols: cols, cells: blankCells(rows, cols) };
+}
+
+/** 变尺寸时保留重叠部分的数据（旧版直接重建网格，填过的全丢）。 */
+function resizeMatrix(m, rows, cols) {
+  const cells = Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: cols }, (_, c) =>
+      (m.cells[r] && m.cells[r][c] !== undefined) ? m.cells[r][c] : ""));
+  m.rows = rows;
+  m.cols = cols;
+  m.cells = cells;
+}
+
+function nameList() { return Object.keys(state.lib).sort(); }
+
+function nextName() {
+  for (let i = 0; i < 26; i++) {
+    const n = String.fromCharCode(65 + i);
+    if (!state.lib[n]) return n;
+  }
+  let k = 1;
+  while (state.lib["M" + k]) k++;
+  return "M" + k;
+}
+
+function setMsg(text, kind) {
+  editorMsg.textContent = text || "";
+  editorMsg.className = "msg" + (kind ? " " + kind : "");
+}
 
 function clampDim(value) {
   const n = parseInt(value, 10);
@@ -21,46 +78,101 @@ function clampDim(value) {
   return Math.min(MAX_DIM, Math.max(MIN_DIM, n));
 }
 
-function gridId(prefix) { return prefix === "A" ? "gridA" : "gridB"; }
-function rowsId(prefix) { return prefix === "A" ? "rowsA" : "rowsB"; }
-function colsId(prefix) { return prefix === "A" ? "colsA" : "colsB"; }
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
 
-function buildGrid(prefix) {
-  // Clamp once, then write the clamped value back: the number inputs and the
-  // grid must never disagree (otherwise readMatrix silently pads with zeros).
-  const rowsInput = document.getElementById(rowsId(prefix));
-  const colsInput = document.getElementById(colsId(prefix));
-  const rows = clampDim(rowsInput.value);
-  const cols = clampDim(colsInput.value);
-  rowsInput.value = rows;
-  colsInput.value = cols;
+// --- 渲染：库、编辑器、预览 --------------------------------------------------
 
-  const grid = document.getElementById(gridId(prefix));
+function refreshAll() {
+  renderChips();
+  refreshOperandOptions();
+  renderEditor();
+  updateExprHint();
+}
+
+function renderChips() {
+  chipsBox.innerHTML = "";
+  for (const name of nameList()) {
+    const m = state.lib[name];
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip" + (name === state.editing ? " on" : "");
+    chip.dataset.name = name;
+    const b = document.createElement("b");
+    b.textContent = name;
+    const s = document.createElement("span");
+    s.className = "chip-shape";
+    s.textContent = m.rows + "×" + m.cols;
+    chip.append(b, s);
+    chip.addEventListener("click", () => {
+      state.editing = name;
+      setMsg("");
+      renderChips();
+      renderEditor();
+    });
+    chipsBox.appendChild(chip);
+  }
+}
+
+function renderEditor() {
+  const m = state.lib[state.editing];
+  if (!m) return;
+  editNameEl.textContent = state.editing;
+  rowsIn.value = m.rows;
+  colsIn.value = m.cols;
+  buildGrid();
+}
+
+function buildGrid() {
+  const m = state.lib[state.editing];
   grid.innerHTML = "";
   // 列宽交给 CSS 变量 --cell-w，媒体查询即可在手机上整体缩小（.cell 同源）
-  grid.style.gridTemplateColumns = `repeat(${cols}, var(--cell-w))`;
-  grid.dataset.rows = rows;
-  grid.dataset.cols = cols;
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
+  grid.style.gridTemplateColumns = `repeat(${m.cols}, var(--cell-w))`;
+  grid.dataset.rows = m.rows;
+  grid.dataset.cols = m.cols;
+  for (let r = 0; r < m.rows; r++) {
+    for (let c = 0; c < m.cols; c++) {
       const inp = document.createElement("input");
       inp.type = "text";
       inp.className = "cell";
       inp.dataset.r = r;
       inp.dataset.c = c;
+      inp.value = m.cells[r][c];
+      inp.inputMode = "decimal";
+      inp.addEventListener("input", onCellInput);
       inp.addEventListener("keydown", cellKeyNav);
+      // 单格快速改错：聚焦即全选，Esc 撤销这一格的改动
+      inp.addEventListener("focus", () => {
+        inp.select();
+        inp.dataset.prev = inp.value;
+      });
       grid.appendChild(inp);
     }
   }
+  renderPreview();
+}
+
+function onCellInput(e) {
+  const m = state.lib[state.editing];
+  m.cells[+e.target.dataset.r][+e.target.dataset.c] = e.target.value;
+  renderPreview();
 }
 
 function cellKeyNav(e) {
-  const el = e.target;
-  const r = parseInt(el.dataset.r, 10);
-  const c = parseInt(el.dataset.c, 10);
-  const grid = el.parentElement;
-  const cols = parseInt(grid.dataset.cols, 10);
+  const node = e.target;
+  if (e.key === "Escape") {
+    node.value = node.dataset.prev === undefined ? "" : node.dataset.prev;
+    const cur = state.lib[state.editing];
+    cur.cells[+node.dataset.r][+node.dataset.c] = node.value;
+    renderPreview();
+    return;
+  }
+  const r = parseInt(node.dataset.r, 10);
+  const c = parseInt(node.dataset.c, 10);
   const rows = parseInt(grid.dataset.rows, 10);
+  const cols = parseInt(grid.dataset.cols, 10);
   let nr = r, nc = c;
   if (e.key === "ArrowRight") { nc++; }
   else if (e.key === "ArrowLeft") { nc--; }
@@ -77,30 +189,233 @@ function cellKeyNav(e) {
   if (next) next.focus();
 }
 
-function readMatrix(prefix) {
-  // Read what is actually on screen, not what the number inputs claim.
-  const grid = document.getElementById(gridId(prefix));
-  const rows = parseInt(grid.dataset.rows, 10);
-  const cols = parseInt(grid.dataset.cols, 10);
-  const data = [];
-  for (let r = 0; r < rows; r++) {
-    const row = [];
-    for (let c = 0; c < cols; c++) {
-      const el = grid.querySelector(`input[data-r="${r}"][data-c="${c}"]`);
-      const v = el && el.value.trim() !== "" ? el.value.trim() : "0";
-      row.push(v);
+/** 旁边的小字预览：显示引擎实际会用的数字，空格补的 0 用灰字区分。 */
+function renderPreview() {
+  const m = state.lib[state.editing];
+  if (!m) return;
+  previewName.textContent = state.editing;
+  let body = "";
+  for (let r = 0; r < m.rows; r++) {
+    let row = "";
+    for (let c = 0; c < m.cols; c++) {
+      const raw = (m.cells[r][c] || "").trim();
+      const auto = raw === "";
+      row += `<td class="${auto ? "auto" : ""}">` +
+             (auto ? "0" : escapeHtml(fmtCell(raw))) + "</td>";
     }
-    data.push(row);
+    body += "<tr>" + row + "</tr>";
   }
-  return data;
+  previewBox.innerHTML =
+    `<span class="br">[</span><table>${body}</table><span class="br">]</span>`;
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// --- 尺寸 / 粘贴 -------------------------------------------------------------
+
+function onDimChange() {
+  const m = state.lib[state.editing];
+  const rows = clampDim(rowsIn.value);
+  const cols = clampDim(colsIn.value);
+  rowsIn.value = rows;
+  colsIn.value = cols;
+  if (rows === m.rows && cols === m.cols) return;
+  const hadAny = m.cells.some(row => row.some(v => v !== ""));
+  resizeMatrix(m, rows, cols);
+  buildGrid();
+  renderChips();
+  setMsg(hadAny ? `已改为 ${rows}×${cols}，原有数据保留` : `已改为 ${rows}×${cols}`,
+         "good");
 }
 
-// --- display formatting -----------------------------------------------------
+function numbersIn(text) { return text.match(NUM_RE) || []; }
+
+/** 多行且每行数字个数一致 -> 采用这个原始形状。 */
+function rowStructure(text) {
+  const lines = text.split(/\r?\n/).map(s => s.trim()).filter(s => s.length);
+  if (lines.length < 2) return null;
+  const counts = lines.map(l => numbersIn(l).length);
+  if (counts.some(n => n === 0)) return null;
+  if (!counts.every(n => n === counts[0])) return null;
+  return {
+    rows: lines.length,
+    cols: counts[0],
+    values: lines.flatMap(l => numbersIn(l)),
+  };
+}
+
+function reshape(values, rows, cols) {
+  return Array.from({ length: rows }, (_, r) =>
+    Array.from({ length: cols }, (_, c) => {
+      const v = values[r * cols + c];
+      return v === undefined ? "" : v;
+    }));
+}
+
+function onPaste(e) {
+  const text = (e.clipboardData || window.clipboardData).getData("text");
+  if (!text || !text.trim()) return;
+  e.preventDefault();
+  const m = state.lib[state.editing];
+
+  // 1) 多行同宽（Excel / 带换行的文本）-> 直接采用这个形状
+  const structured = rowStructure(text);
+  if (structured) {
+    const rows = Math.min(MAX_DIM, structured.rows);
+    const cols = Math.min(MAX_DIM, structured.cols);
+    resizeMatrix(m, rows, cols);
+    m.cells = reshape(structured.values, rows, cols);
+    finishPaste(`已按粘贴内容识别为 ${rows}×${cols}，共 ${rows * cols} 个数`);
+    return;
+  }
+
+  const nums = numbersIn(text);
+  if (nums.length === 0) { setMsg("剪贴板里没找到数字", "bad"); return; }
+
+  // 2) 只有一个数字 -> 只填当前这一格
+  if (nums.length === 1 && e.target && e.target.dataset &&
+      e.target.dataset.r !== undefined) {
+    const r = +e.target.dataset.r, c = +e.target.dataset.c;
+    m.cells[r][c] = nums[0];
+    e.target.value = nums[0];
+    renderPreview();
+    setMsg("");
+    return;
+  }
+
+  // 3) 一长串空格分隔的数字 -> 按当前行列识别
+  //    用户已经用「行」告诉过我们大小，所以优先沿用行数去凑列数
+  let rows = m.rows, cols = m.cols;
+  if (nums.length === rows * cols) {
+    /* 刚好匹配当前形状 */
+  } else if (nums.length % rows === 0 && nums.length / rows <= MAX_DIM) {
+    cols = nums.length / rows;
+  } else {
+    const side = Math.sqrt(nums.length);
+    if (Number.isInteger(side) && side <= MAX_DIM) {
+      rows = side;
+      cols = side;
+    } else {
+      setMsg(`读到 ${nums.length} 个数：排不满当前的 ${m.rows} 行，也不是方阵。` +
+             `请先在上面设置行列，或粘贴带换行的矩阵`, "bad");
+      return;
+    }
+  }
+  resizeMatrix(m, rows, cols);
+  m.cells = reshape(nums, rows, cols);
+  finishPaste(`已识别为 ${rows}×${cols}，共 ${nums.length} 个数`);
+}
+
+function finishPaste(msg) {
+  const m = state.lib[state.editing];
+  rowsIn.value = m.rows;
+  colsIn.value = m.cols;
+  buildGrid();
+  renderChips();
+  setMsg(msg, "good");
+  const first = grid.querySelector("input.cell");
+  if (first) first.focus();
+}
+
+// --- 库操作：新增 / 改名 / 清空 / 删除 --------------------------------------
+
+function addMatrix() {
+  const name = nextName();
+  state.lib[name] = newMatrix(3, 3);
+  state.editing = name;
+  refreshAll();
+  setMsg(`已新增 ${name}`, "good");
+}
+
+function deleteMatrix() {
+  if (nameList().length <= 1) { setMsg("至少要保留一个矩阵", "bad"); return; }
+  const old = state.editing;
+  delete state.lib[old];
+  state.editing = nameList()[0];
+  refreshAll();
+  setMsg(`已删除 ${old}`, "good");
+}
+
+function clearMatrix() {
+  const m = state.lib[state.editing];
+  m.cells = blankCells(m.rows, m.cols);
+  buildGrid();
+  setMsg(`已清空 ${state.editing}`, "good");
+}
+
+function startRename() {
+  if (editNameEl.tagName === "INPUT") return;
+  const old = state.editing;
+  const input = document.createElement("input");
+  input.value = old;
+  input.maxLength = 8;
+  editNameEl.replaceWith(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = (commit) => {
+    if (done) return;
+    done = true;
+    const v = input.value.trim();
+    if (commit && v && v !== old) {
+      if (!NAME_RE.test(v)) {
+        setMsg("名称要以字母开头，最多 8 位字母或数字", "bad");
+      } else if (state.lib[v]) {
+        setMsg(`已经有一个叫 ${v} 的矩阵了`, "bad");
+      } else {
+        state.lib[v] = state.lib[old];
+        delete state.lib[old];
+        if (state.editing === old) state.editing = v;
+        setMsg(`已改名为 ${v}`, "good");
+      }
+    }
+    input.replaceWith(editNameEl);
+    renderChips();
+    refreshOperandOptions();
+    renderEditor();
+  };
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); finish(true); }
+    else if (e.key === "Escape") { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener("blur", () => finish(true));
+}
+
+// --- 操作数 / 表达式 ---------------------------------------------------------
+
+function refreshOperandOptions() {
+  const names = nameList();
+  const prevL = leftSel.value, prevR = rightSel.value;
+  for (const sel of [leftSel, rightSel]) {
+    sel.innerHTML = "";
+    for (const n of names) {
+      const o = document.createElement("option");
+      o.value = n;
+      o.textContent = n;
+      sel.appendChild(o);
+    }
+  }
+  leftSel.value = names.indexOf(prevL) >= 0 ? prevL : names[0];
+  rightSel.value = names.indexOf(prevR) >= 0 ? prevR : (names[1] || names[0]);
+  rightWrap.style.display = OPS_NEED_B.has(opSelect.value) ? "" : "none";
+}
+
+function dataOf(name) {
+  const m = state.lib[name];
+  if (!m) return null;
+  return m.cells.map(row =>
+    row.map(v => (v && v.trim() !== "" ? v.trim() : "0")));
+}
+
+function matrixData() {
+  const out = {};
+  for (const n of nameList()) out[n] = dataOf(n);
+  return out;
+}
+
+function updateExprHint() {
+  exprHint.textContent = "可用矩阵：" + nameList().join("、");
+}
+
+// --- 显示格式化 -------------------------------------------------------------
 
 const FRACTION_RE = /^([+-]?\d+)\/([+-]?\d+)$/;
 
@@ -186,13 +501,9 @@ function renderResult(res) {
   resultCard.innerHTML = html || "<div class='muted-line'>计算完成，无额外输出。</div>";
 }
 
-// --- request ----------------------------------------------------------------
+// --- 请求：两条入口共用，保证结果一致 ---------------------------------------
 
-async function compute() {
-  const op = opSelect.value;
-  const payload = { op, A: readMatrix("A"), showSteps: showSteps.checked };
-  if (OPS_NEED_B.has(op)) payload.B = readMatrix("B");
-
+async function request(payload) {
   if (inFlight) inFlight.abort();
   const controller = new AbortController();
   inFlight = controller;
@@ -207,7 +518,7 @@ async function compute() {
       signal: controller.signal,
     });
     const res = await resp.json();
-    renderResult(res);
+    return res;
   } catch (e) {
     if (e.name === "AbortError") {
       resultCard.innerHTML =
@@ -215,29 +526,56 @@ async function compute() {
     } else {
       resultCard.innerHTML = `<div class="error">⚠️ 请求失败：${escapeHtml(e)}</div>`;
     }
+    return null;
   } finally {
     clearTimeout(timer);
     if (inFlight === controller) inFlight = null;
   }
 }
 
-function refreshB() {
-  panelB.style.display = OPS_NEED_B.has(opSelect.value) ? "" : "none";
+/** 下拉框路径（主路径）。 */
+async function compute() {
+  const op = opSelect.value;
+  const payload = { op: op, A: dataOf(leftSel.value), showSteps: showSteps.checked };
+  if (OPS_NEED_B.has(op)) payload.B = dataOf(rightSel.value);
+  const res = await request(payload);
+  if (res) renderResult(res);
 }
 
-opSelect.addEventListener("change", refreshB);
-document.getElementById("compute").addEventListener("click", compute);
+/** 表达式路径：同一个 request，只是换了载荷。 */
+async function runExpr() {
+  const text = exprIn.value.trim();
+  if (!text) { exprIn.focus(); return; }
+  const res = await request({
+    expr: text,
+    matrices: matrixData(),
+    showSteps: showSteps.checked,
+  });
+  if (res) renderResult(res);
+}
+
+// --- 绑定 -------------------------------------------------------------------
+
+opSelect.addEventListener("change", refreshOperandOptions);
+el("compute").addEventListener("click", compute);
+el("runExpr").addEventListener("click", runExpr);
+exprIn.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); runExpr(); }
+});
+rowsIn.addEventListener("change", onDimChange);
+colsIn.addEventListener("change", onDimChange);
+grid.addEventListener("paste", onPaste);
+el("addMat").addEventListener("click", addMatrix);
+el("renameMat").addEventListener("click", startRename);
+el("clearMat").addEventListener("click", clearMatrix);
+el("delMat").addEventListener("click", deleteMatrix);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
+    renderPreview();
     if (lastResult) renderResult(lastResult);
   });
 }
-["A", "B"].forEach(p => {
-  ["rows", "cols"].forEach(d => {
-    document.getElementById(d + p).addEventListener("change", () => buildGrid(p));
-  });
-});
 
-buildGrid("A");
-buildGrid("B");
-refreshB();
+DEFAULT_NAMES.forEach(n => { state.lib[n] = newMatrix(3, 3); });
+state.editing = "A";
+refreshAll();
