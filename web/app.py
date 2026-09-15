@@ -14,7 +14,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
-from core.engine import compute  # noqa: E402
+from core.engine import dispatch  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -94,9 +94,9 @@ class Handler(BaseHTTPRequestHandler):
         if not isinstance(req, dict):
             self._send(400, {"ok": False, "error": "bad request"})
             return
-        result = compute(req.get("op"), req.get("A"),
-                         req.get("B"), bool(req.get("showSteps", True)))
-        self._send(200, result)
+        # One route for both entry points: {"op": ...} from the dropdown,
+        # {"expr": ...} from the expression box.
+        self._send(200, dispatch(req))
 
     def log_message(self, fmt, *args):
         if "--verbose" in sys.argv:
