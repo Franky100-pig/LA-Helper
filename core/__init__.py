@@ -9,7 +9,7 @@ from . import eigen
 from .engine import compute, dispatch, MAX_DIM
 from . import expr
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"
 
 __all__ = [
     "Matrix",
