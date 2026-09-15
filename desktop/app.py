@@ -191,6 +191,18 @@ class LAApp:
             n = MIN_DIM
         return max(MIN_DIM, min(MAX_DIM, n))
 
+    def _raw_grid(self, prefix):
+        """(行, 列) -> 用户实际输入的原文，用于改尺寸时保留数据。
+
+        直接按子控件的 grid 坐标取值，不依赖 dim_vars，这样即使行列刚被
+        改成超范围值也读得对。
+        """
+        out = {}
+        for ch in self.grids[prefix].winfo_children():
+            info = ch.grid_info()
+            out[(int(info["row"]), int(info["column"]))] = ch.get()
+        return out
+
     def build_grid(self, prefix):
         rv, cv = self.dim_vars[prefix]
         rows, cols = self.clamp(rv.get()), self.clamp(cv.get())
@@ -198,6 +210,8 @@ class LAApp:
         if self._rebuilding:
             return
         self._rebuilding = True
+        # 改行列时保留已填数据：旧网格内容先记下，重建后再按坐标填回去
+        prev = self._raw_grid(prefix)
         rv.set(rows)
         cv.set(cols)
         grid = self.grids[prefix]
@@ -210,6 +224,8 @@ class LAApp:
                              bg="#0e1620", fg=self.colors["text"],
                              insertbackground=self.colors["accent"],
                              relief="solid", bd=1, highlightthickness=0)
+                if (r, c) in prev:
+                    e.insert(0, prev[(r, c)])
                 e.grid(row=r, column=c, padx=3, pady=3, sticky="nsew")
                 e.bind("<KeyPress>", lambda ev, p=prefix, rr=r, cc=c: self._nav(ev, p, rr, cc))
         grid.grid_propagate(False)
