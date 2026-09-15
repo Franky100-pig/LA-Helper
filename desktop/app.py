@@ -14,6 +14,7 @@
 import os
 import sys
 import tkinter as tk
+import tkinter.font as tkFont
 from tkinter import ttk, scrolledtext, simpledialog, messagebox
 
 # 让 core / desktop 包可被导入：仓库根目录 = 本文件的上两级目录
@@ -46,6 +47,37 @@ OPS = [
 OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
 
 
+# 结果区默认最小行数（比原先更高）；内容超过视口时整窗滚动，结果框本身不内滚
+MIN_RESULT_LINES = 20
+MAX_RESULT_LINES = 200
+
+
+class ScrollableFrame(ttk.Frame):
+    """整窗可滚动容器：内容超过视口时，整个页面（而非结果框）上下滚动。"""
+    def __init__(self, parent, bg, **kw):
+        super().__init__(parent, **kw)
+        self.canvas = tk.Canvas(self, bg=bg, highlightthickness=0)
+        self.vsb = ttk.Scrollbar(self, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.vsb.set)
+        self.canvas.pack(side="left", fill="both", expand=True)
+        self.vsb.pack(side="right", fill="y")
+        self.inner = ttk.Frame(self.canvas)
+        self._win = self.canvas.create_window((0, 0), window=self.inner, anchor="nw")
+        self.inner.bind("<Configure>",
+                        lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _on_canvas_configure(self, event):
+        self.canvas.itemconfig(self._win, width=event.width)
+
+    def _on_mousewheel(self, event):
+        if sys.platform == "darwin":
+            self.canvas.yview_scroll(-event.delta, "units")
+        else:
+            self.canvas.yview_scroll(int(-event.delta / 120), "units")
+
+
 # --------------------------------------------------------------------------
 # 主窗口
 # --------------------------------------------------------------------------
@@ -60,6 +92,11 @@ class LAApp:
             pass
         root.geometry("960x780")
         root.minsize(720, 560)
+
+        # 整窗可滚动容器：结果区不再内滚，超出的内容由整窗滚动查看
+        self.scroll = ScrollableFrame(root, bg=self.colors["bg"])
+        self.scroll.pack(fill="both", expand=True)
+        self.inner = self.scroll.inner
 
         self.model = LibraryModel()
         self.grids = {}          # name -> editor grid (only the editing one is live)
@@ -109,7 +146,7 @@ class LAApp:
 
     # ---- 顶部控制栏（下拉框路径）-------------------------------------------
     def _build_controls(self):
-        bar = ttk.Frame(self.root)
+        bar = ttk.Frame(self.inner)
         bar.pack(fill="x", padx=12, pady=(12, 6))
 
         ttk.Label(bar, text="操作").pack(side="left", padx=(0, 4))
@@ -160,7 +197,7 @@ class LAApp:
 
     # ---- 矩阵库 --------------------------------------------------------------
     def _build_library(self):
-        outer = ttk.LabelFrame(self.root, text="矩阵库（命名矩阵）")
+        outer = ttk.LabelFrame(self.inner, text="矩阵库（命名矩阵）")
         outer.pack(fill="x", padx=12, pady=6)
         self.lib_outer = outer
 
@@ -407,7 +444,7 @@ class LAApp:
 
     # ---- 表达式路径 ----------------------------------------------------------
     def _build_expression(self):
-        f = ttk.LabelFrame(self.root, text="表达式（快捷键，针对整个矩阵库求值）")
+        f = ttk.LabelFrame(self.inner, text="表达式（快捷键，针对整个矩阵库求值）")
         f.pack(fill="x", padx=12, pady=6)
         self.expr_var = tk.StringVar()
         entry = ttk.Entry(f, textvariable=self.expr_var, font=("Menlo", 13))
@@ -433,13 +470,15 @@ class LAApp:
 
     # ---- 结果区 --------------------------------------------------------------
     def _build_result(self):
-        rf = ttk.LabelFrame(self.root, text="结果")
-        rf.pack(fill="both", expand=True, padx=12, pady=(6, 12))
-        self.out = scrolledtext.ScrolledText(
+        rf = ttk.LabelFrame(self.inner, text="结果")
+        rf.pack(fill="x", expand=False, padx=12, pady=(6, 12))
+        # 结果框不内滚：高度按内容自适应（无内部滚动条），超出部分由整窗滚动
+        self.out = tk.Text(
             rf, bg="#0e1620", fg=self.colors["text"],
             insertbackground=self.colors["accent"],
-            font=("Menlo", 13), wrap="word", relief="flat", bd=0)
-        self.out.pack(fill="both", expand=True, padx=10, pady=10)
+            font=("Menlo", 13), wrap="word", relief="flat", bd=0,
+            height=MIN_RESULT_LINES, state="disabled")
+        self.out.pack(fill="x", expand=False, anchor="n", padx=10, pady=10)
         self.out.tag_configure("title", foreground=self.colors["accent"],
                                font=("Menlo", 15, "bold"))
         self.out.tag_configure("sub", foreground=self.colors["muted"],
@@ -511,6 +550,25 @@ class LAApp:
             for i, s in enumerate(res["steps"], 1):
                 self._write(f"{i}. {s}", "mat")
         self.out.config(state="disabled")
+        self._fit_result_height()
+
+    def _fit_result_height(self):
+        """让结果框高度恰好容纳全部内容（不出现内部滚动条）。"""
+        try:
+            self.out.update_idletasks()
+            avail = self.out.winfo_width() - 16
+            if avail < 80:
+                avail = 760  # 未布局时退回保守值（偏窄→行数偏多→更安全）
+            font = tkFont.Font(font=self.out.cget("font"))
+            text = self.out.get("1.0", "end-1c")
+            total = 0
+            for ln in text.split("\n"):
+                w = font.measure(ln)
+                total += max(1, -(-w // avail))
+            total = max(MIN_RESULT_LINES, min(MAX_RESULT_LINES, total + 1))
+            self.out.configure(height=total)
+        except Exception:
+            pass
 
     def _fmt_scalar(self, v, dec):
         s = str(v)
