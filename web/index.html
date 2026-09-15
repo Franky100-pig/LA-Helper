@@ -12,12 +12,15 @@
     --cell-w: 64px;   /* 输入格边长：手机端由媒体查询改小 */
   }
   * { box-sizing: border-box; }
-  html, body { height: 100%; }
+  /* 默认自然文档流：结果区永远不会被固定视口高度挤成 0。
+     宽屏（≥900px）再切回定高 + 左右分栏，见下方媒体查询。 */
+  html, body { min-height: 100%; }
   body {
     margin: 0; background: var(--bg); color: var(--text);
     font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
     line-height: 1.5;
     display: flex; flex-direction: column;
+    min-height: 100vh;
   }
   header {
     padding: 18px 24px; border-bottom: 1px solid var(--border);
@@ -28,10 +31,8 @@
   main {
     flex: 1 1 auto; display: flex; flex-direction: column;
     padding: 20px 24px 32px; max-width: 1100px; margin: 0 auto; width: 100%;
-    min-height: 0;
-    /* 内容比视口高时在 main 内部滚动，避免溢出内容压到下方状态栏 */
-    overflow-y: auto;
   }
+  .col-input, .col-result { min-width: 0; }
   .controls {
     display: flex; flex-wrap: wrap; gap: 14px; align-items: center;
     background: var(--panel); padding: 14px 16px; border-radius: 12px;
@@ -217,6 +218,34 @@
     overflow-wrap: anywhere;
   }
 
+  /* ================= 宽屏：输入 / 结果左右分栏 ================= */
+  /* 单列时结果排在最后，被上面一大堆输入控件挤得只剩一条；
+     分栏后结果独占一整列的高度与宽度。 */
+  @media (min-width: 900px) {
+    html, body { height: 100%; min-height: 0; }
+    body { min-height: 0; }
+    main {
+      display: grid;
+      grid-template-columns: minmax(380px, 470px) minmax(0, 1fr);
+      align-items: stretch;
+      max-width: 1440px;
+      padding: 18px 22px 20px;
+      min-height: 0;
+    }
+    /* 左列内容超高时自己滚，结果列不跟着动 */
+    .col-input { overflow-y: auto; min-height: 0; padding-right: 6px; }
+    .col-result { min-height: 0; display: flex; flex-direction: column; }
+
+    /* 结果卡吃掉整列 */
+    .col-result .result-area { flex: 1 1 auto; margin-top: 0; min-height: 0; }
+    .col-result .result-card { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+
+    /* 窄列里让编辑器与预览仍能并排坐下 */
+    .matrices { gap: 14px; }
+    .matrix-panel { min-width: 190px; }
+    .preview-panel { min-width: 165px; flex: 0 1 200px; }
+  }
+
   /* ================= 手机适配 (<=720px) ================= */
   @media (max-width: 720px) {
     /* 解除视口高度锁定，改为自然文档流：
@@ -287,6 +316,8 @@
   <p>本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
 </header>
 <main>
+  <!-- 输入列：桌面宽屏时与结果区左右分栏，让结果拿到整列高度 -->
+  <div class="col-input">
   <!-- 下拉框路径：表达式只是它的快捷键，两条路走同一个引擎操作 -->
   <section class="controls">
     <label>操作
@@ -384,7 +415,9 @@
       <p class="hint" id="previewHint">空格按 0 计算，灰字就是自动补的 0</p>
     </aside>
   </section>
+  </div><!-- /.col-input -->
 
+  <div class="col-result">
   <section id="result" class="result-area">
     <div class="result-card">
       <div class="empty-state">
@@ -397,6 +430,7 @@
       </div>
     </div>
   </section>
+  </div><!-- /.col-result -->
 </main>
 <script src="app.js"></script>
 </body>

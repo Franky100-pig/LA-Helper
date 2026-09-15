@@ -462,10 +462,21 @@ function renderEigen(res) {
   return html;
 }
 
+/** 单列布局（窄屏）下结果排在输入区之后，算完主动滚过去，省得自己往下找。 */
+function revealResult() {
+  if (window.innerWidth >= 900) return;   // 宽屏结果就在右边一列，不用跳
+  const box = document.querySelector(".col-result");
+  if (!box) return;
+  const r = box.getBoundingClientRect();
+  if (r.top >= 0 && r.top < window.innerHeight * 0.5) return;   // 已经看得见
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
 function renderResult(res) {
   lastResult = res;
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
+    revealResult();
     return;
   }
   let html = "";
@@ -499,6 +510,7 @@ function renderResult(res) {
       res.steps.map(s => `<li>${escapeHtml(s)}</li>`).join("") + "</ol>";
   }
   resultCard.innerHTML = html || "<div class='muted-line'>计算完成，无额外输出。</div>";
+  revealResult();
 }
 
 // --- 请求：两条入口共用，保证结果一致 ---------------------------------------
