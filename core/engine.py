@@ -26,6 +26,23 @@ def _parse(name, data, allow_symbols=False):
     return M, None
 
 
+def dispatch(req):
+    """Single entry point shared by the local server and the Pyodide bridge.
+
+    A request either carries ``op`` (the dropdown path) or ``expr`` (the
+    expression shortcut). Both funnel into the same underlying operations, so
+    the two paths can never drift apart.
+    """
+    if not isinstance(req, dict):
+        return {"ok": False, "error": "bad request"}
+    show_steps = bool(req.get("showSteps", True))
+    if req.get("expr"):
+        from . import expr as expr_mod          # local import: expr imports us
+        return expr_mod.evaluate(req["expr"], req.get("matrices") or {},
+                                 show_steps=show_steps)
+    return compute(req.get("op"), req.get("A"), req.get("B"), show_steps)
+
+
 def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
     try:
         A, err = _parse("A", A_data, allow_symbols)

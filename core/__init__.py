@@ -6,7 +6,8 @@ from . import solve
 from . import det_rank
 from . import inverse
 from . import eigen
-from .engine import compute, MAX_DIM
+from .engine import compute, dispatch, MAX_DIM
+from . import expr
 
 __version__ = "0.2.0"
 
@@ -19,5 +20,7 @@ __all__ = [
     "inverse",
     "eigen",
     "compute",
+    "dispatch",
+    "expr",
     "MAX_DIM",
 ]
