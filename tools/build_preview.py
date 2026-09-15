@@ -17,14 +17,22 @@ PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
 def bundle_core():
-    """Collect core modules with relative imports rewritten to flat ones."""
+    """Collect core modules with relative imports rewritten to flat ones.
+
+    The rewrite is indentation-aware: a relative import inside a function body
+    (e.g. engine.dispatch's lazy `from . import expr`) must be flattened too,
+    otherwise the bundled module raises ImportError in the browser.
+    """
     files = {}
     for p in sorted((ROOT / "core").glob("*.py")):
         if p.name == "__init__.py":
             continue
         src = p.read_text(encoding="utf-8")
-        src = re.sub(r"^from \.(\w+) import", r"from \1 import", src, flags=re.M)
-        src = re.sub(r"^from \. import", "import", src, flags=re.M)
+        # `from .mod import x` -> `from mod import x`, keeping any indent.
+        src = re.sub(r"^(\s*)from \.(\w+) import", r"\1from \2 import", src,
+                     flags=re.M)
+        # `from . import mod` -> `import mod`, keeping any indent.
+        src = re.sub(r"^(\s*)from \. import", r"\1import", src, flags=re.M)
         files[p.name] = src
     return files
 
@@ -46,21 +54,23 @@ def build_index(html):
 
 
 def build_app_js(js):
-    # 1. engine-not-ready guard at the top of compute()
+    # 1. engine-not-ready guard. Both entry points (the operation dropdown and
+    #    the expression box) funnel through request(), so one guard covers both.
     js = js.replace(
-        "async function compute() {",
-        "async function compute() {\n"
+        "async function request(payload) {",
+        "async function request(payload) {\n"
         "  if (!window.LA || !window.LA.ready) {\n"
         "    resultCard.innerHTML = \"<div class='muted-line'>计算引擎加载中，请稍候…</div>\";\n"
-        "    return;\n"
+        "    return undefined;\n"
         "  }",
         1,
     )
-    # 2. replace the HTTP fetch with the in-browser engine call
+    # 2. replace the HTTP fetch with the in-browser engine call. Same request
+    #    envelope, so op-requests and expr-requests both work unchanged.
     js = re.sub(
         r"const resp = await fetch\(\"/api/compute\", \{.*?\}\);\s*"
         r"const res = await resp\.json\(\);",
-        "const res = await window.LA.compute(payload);",
+        "const res = await window.LA.dispatch(payload);",
         js,
         count=1,
         flags=re.S,
@@ -70,16 +80,13 @@ def build_app_js(js):
 
 BRIDGE = """\
 "use strict";
-// Boots CPython + SymPy (Pyodide/WASM) and exposes window.LA.compute().
-window.LA = { ready: false, error: null, compute: null };
+// Boots CPython + SymPy (Pyodide/WASM) and exposes window.LA.dispatch().
+window.LA = { ready: false, error: null, dispatch: null };
 
-function laPayload(payload) {
-  const py = (v) => JSON.stringify(v);
-  const op = py(payload.op);
-  const A = py(payload.A);
-  const B = payload.B === undefined ? "None" : py(payload.B);
-  const ss = payload.showSteps ? "True" : "False";
-  return `_la_compute(${op}, ${A}, ${B}, ${ss})`;
+// The whole request envelope (op *or* expr) crosses into Python as JSON, so the
+// browser runs exactly the same dispatch() the local server runs.
+function laDispatch(req) {
+  return `_la_dispatch(${JSON.stringify(JSON.stringify(req))})`;
 }
 
 (async function boot() {
@@ -98,11 +105,10 @@ function laPayload(payload) {
       'if "/la" not in sys.path:\\n' +
       '    sys.path.insert(0, "/la")\\n' +
       'import engine\\n' +
-      'def _la_compute(op, A, B, show_steps):\\n' +
-      '    return json.dumps(engine.compute(op, A, B, show_steps), ensure_ascii=False)\\n'
+      'def _la_dispatch(req_json):\\n' +
+      '    return json.dumps(engine.dispatch(json.loads(req_json)), ensure_ascii=False)\\n'
     );
-    window.LA.compute = (payload) =>
-      JSON.parse(pyodide.runPython(laPayload(payload)));
+    window.LA.dispatch = (req) => JSON.parse(pyodide.runPython(laDispatch(req)));
     window.LA.ready = true;
     if (status) status.textContent = "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）";
     if (btn) btn.disabled = false;
