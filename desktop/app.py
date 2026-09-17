@@ -15,17 +15,38 @@ import os
 import sys
 import tkinter as tk
 import tkinter.font as tkFont
-from tkinter import ttk, scrolledtext, simpledialog, messagebox
+from tkinter import ttk, scrolledtext, simpledialog, messagebox, filedialog
 
 # 让 core / desktop 包可被导入：仓库根目录 = 本文件的上两级目录
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from core import engine                          # noqa: E402
+from core import engine, photo                   # noqa: E402
 from desktop.model import (                       # noqa: E402
     LibraryModel, MIN_DIM, MAX_DIM, NAME_RE, format_matrix, clamp_dim, FRACTION_RE,
 )
+
+# ---- 本地设置（API key 等，仅存于本机，绝不入库）----
+import json as _json
+CONFIG_PATH = os.path.expanduser("~/.la_helper_settings.json")
+
+
+def load_settings():
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as _f:
+            return _json.load(_f)
+    except Exception:
+        return {}
+
+
+def save_settings(d):
+    try:
+        with open(CONFIG_PATH, "w", encoding="utf-8") as _f:
+            _json.dump(d, _f)
+    except Exception:
+        pass
+
 
 OPS = [
     ("multiply", "矩阵乘法 A×B"),
@@ -175,6 +196,7 @@ class LAApp:
         self.dec_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(bar, text="小数显示", variable=self.dec_var).pack(side="left", padx=6)
 
+        ttk.Button(bar, text="设置", command=self.open_settings).pack(side="right", padx=(8, 0))
         ttk.Button(bar, text="计算", command=self.compute_dropdown).pack(side="right", padx=(12, 0))
 
     def _op_key(self):
@@ -227,6 +249,7 @@ class LAApp:
         self.rv.trace_add("write", lambda *a: self.on_dim_change())
         self.cv.trace_add("write", lambda *a: self.on_dim_change())
 
+        ttk.Button(editor, text="从图片导入", command=self.import_from_image).pack(side="right", padx=4)
         ttk.Button(editor, text="从剪贴板粘贴", command=self.paste_from_clipboard).pack(side="right", padx=4)
 
         self.edit_grid = tk.Frame(outer, bg=self.colors["panel"])
@@ -441,6 +464,85 @@ class LAApp:
             self.root.title("LA Helper · " + text)
         else:
             self.root.title("LA Helper · 线性代数小算")
+
+    # ---- 设置（API key 等，仅存本机）--------------------------------------
+    def open_settings(self):
+        win = tk.Toplevel(self.root)
+        win.title("设置")
+        win.geometry("480x190")
+        s = load_settings()
+        tk.Label(win, text="Gemini API Key（存于本机 ~/.la_helper_settings.json，绝不入库）:").pack(
+            anchor="w", padx=12, pady=(12, 2))
+        key_var = tk.StringVar(value=s.get("api_key", ""))
+        tk.Entry(win, textvariable=key_var, width=56, show="*").pack(
+            fill="x", padx=12, pady=(0, 8))
+        tk.Label(win, text="模型:").pack(anchor="w", padx=12, pady=(0, 2))
+        model_var = tk.StringVar(value=s.get("model", photo.DEFAULT_MODEL))
+        ttk.Combobox(win, textvariable=model_var, state="readonly",
+                     values=[photo.DEFAULT_MODEL, "gemini-2.5-flash-lite",
+                             "gemini-2.5-pro"]).pack(fill="x", padx=12, pady=(0, 12))
+
+        def _save():
+            save_settings({"api_key": key_var.get().strip(),
+                          "model": model_var.get()})
+            win.destroy()
+            self.set_msg("设置已保存")
+        ttk.Button(win, text="保存", command=_save).pack(side="right", padx=12, pady=(0, 12))
+
+    # ---- 从图片导入矩阵 ------------------------------------------------------
+    def import_from_image(self):
+        path = filedialog.askopenfilename(
+            title="选择矩阵图片",
+            filetypes=[("图片", "*.png *.jpg *.jpeg *.webp *.heic"), ("所有文件", "*.*")])
+        if not path:
+            return
+        ext = os.path.splitext(path)[1].lower()
+        mime = photo.SUPPORTED_MIME.get(ext)
+        if not mime:
+            self.set_msg(f"不支持的图片格式：{ext}", warn=True)
+            return
+        try:
+            with open(path, "rb") as f:
+                data = f.read()
+        except Exception as e:
+            self.set_msg(f"读取图片失败：{e}", warn=True)
+            return
+        settings = load_settings()
+        api_key = settings.get("api_key", "")
+        model = settings.get("model", photo.DEFAULT_MODEL)
+        if not api_key:
+            messagebox.showerror(
+                "需要 API Key",
+                "尚未配置 Gemini API Key。请点击「设置」填入"
+                "（免费，aistudio.google.com 获取）。")
+            return
+        self.set_msg("正在识别图片…")
+        self.root.update_idletasks()
+        try:
+            matrix, raw = photo.image_to_matrix(api_key, model, data, mime)
+        except photo.PhotoError as e:
+            self._show_raw("识别失败 / 无法解析，请手动核对原始返回", e.raw or str(e))
+            return
+        rows = len(matrix)
+        cols = len(matrix[0]) if rows else 0
+        self.model.resize(self.model.editing, rows, cols)
+        for r in range(rows):
+            for c in range(cols):
+                self.model.set_cell(self.model.editing, r, c, matrix[r][c])
+        self.rv.set(rows)
+        self.cv.set(cols)
+        self.build_edit_grid()
+        self.render_preview()
+        self.set_msg(f"已从图片导入 {rows}×{cols} 矩阵，请核对后计算")
+
+    def _show_raw(self, title, text):
+        win = tk.Toplevel(self.root)
+        win.title(title)
+        win.geometry("540x380")
+        t = tk.Text(win, wrap="word", bg="#0e1620", fg="#e6edf3")
+        t.insert("1.0", text or "")
+        t.config(state="disabled")
+        t.pack(fill="both", expand=True, padx=12, pady=12)
 
     # ---- 表达式路径 ----------------------------------------------------------
     def _build_expression(self):
