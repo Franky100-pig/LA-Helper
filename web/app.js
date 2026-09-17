@@ -10,6 +10,25 @@ const DEFAULT_NAMES = ["A", "B", "C", "D"];
 const NAME_RE = /^[A-Za-z][A-Za-z0-9_]{0,7}$/;
 const NUM_RE = /[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
 
+// 图片导入（Photo -> Matrix）：浏览器直连 Gemini，解析走共享 Python 解析器。
+const IMG_MIME = {
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg",
+  ".webp": "image/webp", ".heic": "image/heic",
+};
+const GEMINI_ENDPOINT =
+  "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent";
+const PHOTO_TIMEOUT_MS = 90000;
+const API_KEY_STORE = "lah_api_key";
+const MODEL_STORE = "lah_model";
+const PHOTO_PROMPT =
+  "This image shows a single matrix (a rectangular array of numbers). " +
+  "Read it and output ONLY a JSON array of arrays of strings, one inner " +
+  "array per row, e.g. [[\"1\",\"2\"],[\"3\",\"4\"]]. Rules: keep each entry " +
+  "exactly as written — fractions as \"a/b\", negatives with a minus sign, " +
+  "decimals as written; do not simplify or evaluate. The array must be " +
+  "rectangular (every row the same length). If you cannot read the matrix " +
+  "clearly, output the word ERROR followed by what you see instead of a JSON array.";
+
 const el = (id) => document.getElementById(id);
 const opSelect = el("op");
 const leftSel = el("leftSel");
@@ -315,6 +334,155 @@ function finishPaste(msg) {
   if (first) first.focus();
 }
 
+// --- 设置（API key 等，仅存本机 localStorage）--------------------------------
+
+function getSettings() {
+  return {
+    apiKey: localStorage.getItem(API_KEY_STORE) || "",
+    model: localStorage.getItem(MODEL_STORE) || "gemini-2.5-flash",
+  };
+}
+
+function saveSettings(s) {
+  localStorage.setItem(API_KEY_STORE, s.apiKey || "");
+  localStorage.setItem(MODEL_STORE, s.model || "gemini-2.5-flash");
+}
+
+function openSettings() {
+  const panel = el("settingsPanel");
+  if (panel.classList.contains("open")) { panel.classList.remove("open"); return; }
+  const s = getSettings();
+  el("apiKeyIn").value = s.apiKey;
+  el("modelSel").value = s.model;
+  panel.classList.add("open");
+}
+
+// --- 图片导入（Photo -> Matrix）---------------------------------------------
+
+function importFromImage() {
+  const s = getSettings();
+  if (!s.apiKey) {
+    setMsg("尚未配置 Gemini API Key，请点「设置」填入（免费，aistudio.google.com 获取）。", "bad");
+    openSettings();
+    return;
+  }
+  el("imageInput").click();
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result || "";
+      const comma = dataUrl.indexOf(",");
+      resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+    };
+    reader.onerror = () => reject("读取失败");
+    reader.readAsDataURL(file);
+  });
+}
+
+async function callGeminiVision(apiKey, model, mime, b64) {
+  const url = GEMINI_ENDPOINT.replace("{model}", model) + "?key=" + encodeURIComponent(apiKey);
+  const body = {
+    contents: [{ parts: [
+      { text: PHOTO_PROMPT },
+      { inline_data: { mime_type: mime, data: b64 } },
+    ] }],
+    generationConfig: { responseMimeType: "application/json", temperature: 0 },
+  };
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), PHOTO_TIMEOUT_MS);
+  let resp;
+  try {
+    resp = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+  } catch (err) {
+    clearTimeout(timer);
+    throw new Error("网络 / CORS 错误（" + err + "）。若浏览器拦截跨域请求，请改用桌面版。");
+  }
+  clearTimeout(timer);
+  if (!resp.ok) {
+    let detail = "";
+    try { detail = (await resp.text()).slice(0, 500); } catch (e) {}
+    throw new Error("HTTP " + resp.status + "：" + detail);
+  }
+  const data = await resp.json();
+  try {
+    return data.candidates[0].content.parts[0].text;
+  } catch (e) {
+    throw new Error("Gemini 返回格式异常：" + JSON.stringify(data).slice(0, 300));
+  }
+}
+
+async function onImageChosen(e) {
+  const file = e.target.files && e.target.files[0];
+  e.target.value = "";            // 允许再次选择同一张图
+  if (!file) return;
+  const ext = (file.name.split(".").pop() || "").toLowerCase();
+  const mime = IMG_MIME["." + ext] || file.type;
+  if (!mime || !mime.startsWith("image/")) {
+    setMsg("不支持的图片格式：" + (ext ? "." + ext : file.type), "bad");
+    return;
+  }
+  if (!window.LA || !window.LA.ready || !window.LA.parsePhoto) {
+    setMsg("计算引擎尚未就绪，请稍候再试（图片识别需在 Pyodide 静态版中使用）。", "bad");
+    return;
+  }
+  const s = getSettings();
+  setMsg("正在识别图片…", "good");
+  let b64, rawText;
+  try {
+    b64 = await fileToBase64(file);
+  } catch (err) {
+    setMsg("读取图片失败：" + err, "bad");
+    return;
+  }
+  try {
+    rawText = await callGeminiVision(s.apiKey, s.model, mime, b64);
+  } catch (err) {
+    setMsg("调用 Gemini 失败：" + err, "bad");
+    return;
+  }
+  let parsed;
+  try {
+    parsed = window.LA.parsePhoto(rawText);
+  } catch (err) {
+    showRawResult("识别失败：解析异常", rawText);
+    return;
+  }
+  if (parsed.ok) {
+    fillFromMatrix(parsed.matrix);
+  } else {
+    showRawResult("无法解析出矩阵（请手动核对原始返回）", parsed.raw || rawText);
+  }
+}
+
+function fillFromMatrix(matrix) {
+  const m = state.lib[state.editing];
+  const rows = matrix.length;
+  const cols = rows ? matrix[0].length : 0;
+  const r = Math.min(rows, MAX_DIM);
+  const c = Math.min(cols, MAX_DIM);
+  resizeMatrix(m, r, c);
+  for (let i = 0; i < r; i++)
+    for (let j = 0; j < c; j++)
+      m.cells[i][j] = (matrix[i] && matrix[i][j] !== undefined) ? String(matrix[i][j]) : "";
+  finishPaste(`已从图片导入 ${r}×${c} 矩阵，请核对后计算`);
+}
+
+function showRawResult(title, raw) {
+  resultCard.innerHTML =
+    `<h3>${escapeHtml(title)}</h3>` +
+    `<div class="error">模型返回的原始文本（可据此手动填入）：</div>` +
+    `<pre class="raw-box">${escapeHtml(raw || "")}</pre>`;
+  revealResult();
+}
+
 // --- 库操作：新增 / 改名 / 清空 / 删除 --------------------------------------
 
 function addMatrix() {
@@ -581,6 +749,14 @@ el("addMat").addEventListener("click", addMatrix);
 el("renameMat").addEventListener("click", startRename);
 el("clearMat").addEventListener("click", clearMatrix);
 el("delMat").addEventListener("click", deleteMatrix);
+el("openSettings").addEventListener("click", openSettings);
+el("saveSettings").addEventListener("click", () => {
+  saveSettings({ apiKey: el("apiKeyIn").value.trim(), model: el("modelSel").value });
+  el("settingsPanel").classList.remove("open");
+  setMsg("设置已保存", "good");
+});
+el("importImage").addEventListener("click", importFromImage);
+el("imageInput").addEventListener("change", onImageChosen);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
     renderPreview();

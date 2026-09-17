@@ -109,7 +109,27 @@ function laDispatch(req) {
       '    return json.dumps(engine.dispatch(json.loads(req_json)), ensure_ascii=False)\\n'
     );
     window.LA.dispatch = (req) => JSON.parse(pyodide.runPython(laDispatch(req)));
+    window.LA.pyodide = pyodide;
     window.LA.ready = true;
+    // 图片导入：浏览器把 Gemini 返回的原始文本交给共享 Python 解析器
+    // （与桌面端 core.photo.parse_matrix_response 同一份实现，保证两端一致）。
+    window.LA.parsePhoto = (rawText) => {
+      if (!rawText || !String(rawText).trim()) {
+        return { ok: false, error: "模型返回为空。", raw: String(rawText || "") };
+      }
+      const pyLines = [
+        "import json",
+        "import photo",
+        "try:",
+        "    _m = photo.parse_matrix_response(" + JSON.stringify(JSON.stringify(rawText)) + ")",
+        '    _out = {"ok": True, "matrix": _m}',
+        "except photo.PhotoError as _e:",
+        '    _out = {"ok": False, "error": str(_e), "raw": _e.raw}',
+        "_photo_result = json.dumps(_out, ensure_ascii=False)",
+      ];
+      const py = pyLines.join("\\n");
+      return JSON.parse(pyodide.runPython(py));
+    };
     if (status) status.textContent = "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）";
     if (btn) btn.disabled = false;
   } catch (err) {
