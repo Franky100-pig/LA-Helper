@@ -2,8 +2,8 @@
 
 The only genuinely free, keyless vision API we found is Google's Gemini
 (2.5 Flash) free tier, obtained at https://aistudio.google.com. The provider
-is abstracted behind :func:`call_vision` so a future Claude/OpenAI backend can
-be slotted in without touching the UI.
+is abstracted behind :func:`call_gemini_vision` so a future Claude/OpenAI
+backend can be slotted in without touching the UI.
 
 Two consumers:
 * Desktop (CPython): calls the API directly via :func:`image_to_matrix`.
@@ -18,13 +18,25 @@ import ast
 import base64
 import json
 import re
+import urllib.error
 import urllib.request
 
-DEFAULT_MODEL = "gemini-2.5-flash"
+MODELS = ("gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro")
+DEFAULT_MODEL = MODELS[0]
 GEMINI_ENDPOINT = (
     "https://generativelanguage.googleapis.com/v1beta/models/{model}"
     ":generateContent"
 )
+
+# The model name is interpolated into the URL *path*, so only allow the
+# characters a real Gemini model id uses — never "/", "?", whitespace, "..".
+_MODEL_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+
+
+def is_valid_model(model):
+    """True if ``model`` is safe to interpolate into the request URL."""
+    return bool(model) and bool(_MODEL_RE.match(model))
+
 
 # Supported image MIME types (Gemini accepts these for inline_data).
 SUPPORTED_MIME = {
@@ -122,7 +134,9 @@ def call_gemini_vision(api_key, model, image_bytes, mime, prompt=None):
     """Call Gemini vision and return the raw text reply (desktop path)."""
     if not api_key:
         raise PhotoError("未配置 Gemini API Key。请在设置中填入。")
-    url = GEMINI_ENDPOINT.format(model=model) + f"?key={api_key}"
+    if not is_valid_model(model):
+        raise PhotoError(f"模型名不合法：{model!r}（只允许字母、数字、. _ -）")
+    url = GEMINI_ENDPOINT.format(model=model)
     body = {
         "contents": [{
             "parts": [
@@ -141,7 +155,12 @@ def call_gemini_vision(api_key, model, image_bytes, mime, prompt=None):
     req = urllib.request.Request(
         url,
         data=json.dumps(body).encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            # The key goes in a header, not ?key=..., so it can never end up in
+            # a URL log, proxy log or browser history.
+            "x-goog-api-key": api_key,
+        },
     )
     try:
         with urllib.request.urlopen(req, timeout=90) as resp:

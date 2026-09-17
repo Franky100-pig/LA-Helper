@@ -20,14 +20,10 @@ const GEMINI_ENDPOINT =
 const PHOTO_TIMEOUT_MS = 90000;
 const API_KEY_STORE = "lah_api_key";
 const MODEL_STORE = "lah_model";
-const PHOTO_PROMPT =
-  "This image shows a single matrix (a rectangular array of numbers). " +
-  "Read it and output ONLY a JSON array of arrays of strings, one inner " +
-  "array per row, e.g. [[\"1\",\"2\"],[\"3\",\"4\"]]. Rules: keep each entry " +
-  "exactly as written — fractions as \"a/b\", negatives with a minus sign, " +
-  "decimals as written; do not simplify or evaluate. The array must be " +
-  "rectangular (every row the same length). If you cannot read the matrix " +
-  "clearly, output the word ERROR followed by what you see instead of a JSON array.";
+// The model name goes into the URL path — allow only real Gemini-id characters.
+const MODEL_RE = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+// 提示词不在这里复制一份：运行时从 Pyodide 桥取 core/photo.py 的 build_prompt()，
+// 保证网页端与桌面端用的是同一段文字（见 window.LA.photoPrompt）。
 
 const el = (id) => document.getElementById(id);
 const opSelect = el("op");
@@ -382,11 +378,19 @@ function fileToBase64(file) {
   });
 }
 
+/** 提示词来自 Python 侧（core/photo.py::build_prompt），两端共用一份。 */
+function promptFromBridge() {
+  return (window.LA && window.LA.photoPrompt) ? window.LA.photoPrompt() : "";
+}
+
 async function callGeminiVision(apiKey, model, mime, b64) {
-  const url = GEMINI_ENDPOINT.replace("{model}", model) + "?key=" + encodeURIComponent(apiKey);
+  if (!MODEL_RE.test(model || "")) {
+    throw new Error("模型名不合法：" + model + "（只允许字母、数字、. _ -）");
+  }
+  const url = GEMINI_ENDPOINT.replace("{model}", model);
   const body = {
     contents: [{ parts: [
-      { text: PHOTO_PROMPT },
+      { text: promptFromBridge() },
       { inline_data: { mime_type: mime, data: b64 } },
     ] }],
     generationConfig: { responseMimeType: "application/json", temperature: 0 },
@@ -397,7 +401,11 @@ async function callGeminiVision(apiKey, model, mime, b64) {
   try {
     resp = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Key in a header, not ?key=..., so it never lands in a URL log/history.
+        "x-goog-api-key": apiKey,
+      },
       body: JSON.stringify(body),
       signal: controller.signal,
     });
@@ -429,7 +437,7 @@ async function onImageChosen(e) {
     setMsg("不支持的图片格式：" + (ext ? "." + ext : file.type), "bad");
     return;
   }
-  if (!window.LA || !window.LA.ready || !window.LA.parsePhoto) {
+  if (!window.LA || !window.LA.ready || !window.LA.parsePhoto || !window.LA.photoPrompt) {
     setMsg("计算引擎尚未就绪，请稍候再试（图片识别需在 Pyodide 静态版中使用）。", "bad");
     return;
   }

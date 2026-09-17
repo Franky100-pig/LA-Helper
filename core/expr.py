@@ -285,7 +285,13 @@ def _mat_power(M, n):
 def _eval(node, lib):
     """Evaluate to a Matrix or a SymPy scalar (no step recording)."""
     if isinstance(node, Num):
-        return _parse_cell(node.text)
+        # _parse_cell enforces the same whitelist (and exponent guard) as a grid
+        # cell; surface its message as an ExprError so the UI sees a clean line
+        # instead of a "ValueError: ..." prefix.
+        try:
+            return _parse_cell(node.text)
+        except ValueError as e:
+            raise ExprError(str(e))
     if isinstance(node, Name):
         return _lookup(node.name, lib)
     if isinstance(node, Unary):
@@ -348,7 +354,9 @@ def _eval(node, lib):
             return ops.scalar_mul(L, 1 / R)
         return L / R
     if op == "^":
-        if not isinstance(R, (int,)) and not R.is_Integer:
+        if isinstance(R, Matrix):
+            raise ExprError("幂指数不能是矩阵；请写整数，如 A^2、A^-1")
+        if not isinstance(R, int) and not R.is_Integer:
             raise ExprError("幂指数必须是整数（如 A^2、A^-1）")
         n = int(R)
         if abs(n) > _MAX_POWER:

@@ -13,6 +13,12 @@ import sympy as sp
 
 MAX_CELL_LEN = 64
 
+# A cell like "1e99999999999999999999999999" would make SymPy materialise
+# 10**(10**26) and take the whole process down; a merely large one leaks a raw
+# CPython "int string conversion" error. Either way it is never a real matrix
+# entry, so cap the exponent hard: 1e1000 is already ~1001 digits.
+MAX_EXPONENT = 1000
+
 # 1, -1, 1.5, .5, 1e-3, 1/3, -2/7 ...  (no operators, no function calls)
 _NUMBER_RE = re.compile(
     r"""^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?"""
@@ -20,6 +26,9 @@ _NUMBER_RE = re.compile(
 )
 # a single bare symbol name: x, lambda1, _t
 _SYMBOL_RE = re.compile(r"^[A-Za-z_][A-Za-z_0-9]*$")
+# every exponent in a numeric cell (a numerator and a denominator can have one)
+_EXP_RE = re.compile(r"[eE]([+-]?\d+)")
+
 
 
 def _to_sympy_scalar(x, allow_symbols=False):
@@ -52,6 +61,21 @@ def _float_to_rational(x):
         return sp.Rational(x).limit_denominator(10 ** 9)
 
 
+def _check_exponent(s):
+    """Reject absurd exponents before SymPy is allowed to expand them.
+
+    The digit count is checked first on purpose: ``int("9"*26)`` is cheap, but
+    the following ``10**exp`` inside Rational is what exhausts memory.
+    """
+    for m in _EXP_RE.finditer(s):
+        digits = m.group(1).lstrip("+-")
+        if len(digits) > 6 or int(digits) > MAX_EXPONENT:
+            raise ValueError(
+                f"指数过大 {s!r}：绝对值上限 {MAX_EXPONENT}"
+                "（避免生成天文数字，正常矩阵用不到这么大的量级）"
+            )
+
+
 def _parse_cell(s, allow_symbols=False):
     """Parse one grid cell. Whitelist only: numbers, and optionally symbols."""
     s = s.strip()
@@ -60,6 +84,7 @@ def _parse_cell(s, allow_symbols=False):
     if len(s) > MAX_CELL_LEN:
         raise ValueError(f"单元格内容过长（>{MAX_CELL_LEN} 字符）：{s[:20]}…")
     if _NUMBER_RE.match(s):
+        _check_exponent(s)
         try:
             return sp.Rational(s)
         except Exception:

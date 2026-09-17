@@ -130,6 +130,8 @@ function laDispatch(req) {
       const py = pyLines.join("\\n");
       return JSON.parse(pyodide.runPython(py));
     };
+    // 提示词也单一来源：网页端不再自带一份，直接向 Python 要，避免两端措辞漂移。
+    window.LA.photoPrompt = () => pyodide.runPython("import photo; photo.build_prompt()");
     if (status) status.textContent = "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）";
     if (btn) btn.disabled = false;
   } catch (err) {

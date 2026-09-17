@@ -8,6 +8,7 @@ from . import inverse
 from . import eigen
 from .engine import compute, dispatch, MAX_DIM
 from . import expr
+from . import photo
 
 __version__ = "0.5.0"
 
@@ -22,5 +23,6 @@ __all__ = [
     "compute",
     "dispatch",
     "expr",
+    "photo",
     "MAX_DIM",
 ]

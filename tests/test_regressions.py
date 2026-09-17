@@ -112,3 +112,52 @@ def test_pinv_moore_penrose():
     A = Matrix([[1, 2], [2, 4], [3, 1]])
     P, _ = inv.pseudo_inverse(A, record_steps=False)
     assert ops.mul(ops.mul(A, P), A).to_list() == A.to_list()
+
+
+# 6. Absurd exponents must be rejected *before* SymPy expands them: the old
+#    "1e99999999999999999999999999" made it materialise 10**(10**26) and killed
+#    the process; a merely huge one leaked a raw CPython message.
+
+@pytest.mark.parametrize("bad", [
+    "1e99999999999999999999999999", "1e999999", "1e-999999", "1e1001",
+])
+def test_huge_exponents_are_rejected_with_a_friendly_message(bad):
+    with pytest.raises(ValueError) as ei:
+        Matrix([[bad]])
+    msg = str(ei.value)
+    assert "指数" in msg
+    assert "exceeds the limit" not in msg.lower()      # no CPython internals
+
+
+@pytest.mark.parametrize("good,expected", [("1e3", "1000"), ("1e-3", "1/1000")])
+def test_moderate_exponents_still_parse(good, expected):
+    assert Matrix([[good]]).to_list() == [[expected]]
+
+
+def test_boundary_exponent_still_works():
+    """1e1000 is allowed (just wide) — the cap is inclusive on magnitude."""
+    assert len(Matrix([["1e1000"]]).to_list()[0][0]) == 1001
+
+
+def test_huge_exponent_via_engine_is_rejected_not_crash():
+    from core.engine import dispatch
+    res = dispatch({"op": "det", "A": [["1e99999999999999999999999999"]]})
+    assert res["ok"] is False
+    assert "指数" in res["error"]
+
+
+def test_huge_exponent_in_expression_is_friendly():
+    from core.expr import evaluate
+    res = evaluate("1e99999999999999999999999999 * A", {"A": [["1"]]})
+    assert res["ok"] is False
+    assert "指数" in res["error"]
+    assert "ValueError" not in res["error"]
+
+
+def test_matrix_exponent_gives_friendly_error():
+    """A^B used to surface AttributeError: 'Matrix' ... has no attribute is_Integer."""
+    from core.expr import evaluate
+    res = evaluate("A^B", {"A": [["2"]], "B": [["2"]]})
+    assert res["ok"] is False
+    assert "AttributeError" not in res["error"]
+    assert "指数" in res["error"]

@@ -1,4 +1,4 @@
-"""Determinant, rank, and a thin wrapper around RREF."""
+"""Determinant, rank, and thin wrappers around the echelon-form routines."""
 from .matrix import Matrix
 from .solve import rref, ref
 from .lu import lu_decomposition

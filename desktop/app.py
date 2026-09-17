@@ -41,9 +41,17 @@ def load_settings():
 
 
 def save_settings(d):
+    """Persist settings. The file holds the API key, so keep it owner-only."""
     try:
-        with open(CONFIG_PATH, "w", encoding="utf-8") as _f:
+        # Create with 0600 in one step, so there is never a window where the
+        # key sits in a world-readable file.
+        fd = os.open(CONFIG_PATH, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+        with os.fdopen(fd, "w", encoding="utf-8") as _f:
             _json.dump(d, _f)
+        try:
+            os.chmod(CONFIG_PATH, 0o600)   # tighten a pre-existing file too
+        except OSError:
+            pass
     except Exception:
         pass
 
@@ -479,8 +487,7 @@ class LAApp:
         tk.Label(win, text="模型:").pack(anchor="w", padx=12, pady=(0, 2))
         model_var = tk.StringVar(value=s.get("model", photo.DEFAULT_MODEL))
         ttk.Combobox(win, textvariable=model_var, state="readonly",
-                     values=[photo.DEFAULT_MODEL, "gemini-2.5-flash-lite",
-                             "gemini-2.5-pro"]).pack(fill="x", padx=12, pady=(0, 12))
+                     values=list(photo.MODELS)).pack(fill="x", padx=12, pady=(0, 12))
 
         def _save():
             save_settings({"api_key": key_var.get().strip(),
