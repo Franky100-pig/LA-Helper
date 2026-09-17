@@ -39,7 +39,7 @@ OPS = [
     ("pseudo_inverse", "伪逆 A⁺"),
     ("lu", "LU 分解"),
     ("solve", "增广矩阵求解 Ax=b"),
-    ("rref", "RREF 行最简形"),
+    ("ref", "REF 行阶梯形"),
     ("det", "行列式 det(A)"),
     ("rank", "秩 rank(A)"),
     ("eigen", "特征值 / 特征向量"),

@@ -110,8 +110,8 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                     "null_basis": [_mat(v) for v in sol["null_basis"]],
                     "free_vars": sol["free_vars"],
                     "steps": sol["steps"]}
-        elif op == "rref":
-            M, steps = det_rank.rref_wrap(A, record_steps=show_steps)
+        elif op == "ref":
+            M, steps = det_rank.ref_wrap(A, record_steps=show_steps)
             return {"ok": True, "type": "matrix", "data": _mat(M), "steps": steps}
         elif op == "det":
             d, steps = det_rank.determinant(A, record_steps=show_steps)
