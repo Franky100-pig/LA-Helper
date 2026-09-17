@@ -19,6 +19,7 @@ def test_rank():
     assert det_rank.rank(Matrix([[1, 0], [0, 1]])) == 2
 
 
-def test_rref():
-    M, _ = det_rank.rref_wrap(Matrix([[1, 2], [2, 4]]), record_steps=False)
-    assert M.to_list() == [["1", "2"], ["0", "0"]]
+def test_ref():
+    M, _ = det_rank.ref_wrap(
+        Matrix([[1, 2, 3], [4, 5, 6], [7, 8, 9]]), record_steps=False)
+    assert M.to_list() == [["1", "2", "3"], ["0", "-3", "-6"], ["0", "0", "0"]]

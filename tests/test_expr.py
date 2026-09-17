@@ -200,8 +200,8 @@ def test_transpose_short_alias_T():
     assert ok("T(A)") == compute("transpose", A)
 
 
-def test_rref_matches_dropdown():
-    assert ok("rref(A)") == compute("rref", A)
+def test_ref_matches_dropdown():
+    assert ok("ref(A)") == compute("ref", A)
 
 
 def test_pinv_matches_dropdown():

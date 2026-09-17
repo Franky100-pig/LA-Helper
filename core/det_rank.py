@@ -1,6 +1,6 @@
 """Determinant, rank, and a thin wrapper around RREF."""
 from .matrix import Matrix
-from .solve import rref
+from .solve import rref, ref
 from .lu import lu_decomposition
 import sympy as sp
 
@@ -10,8 +10,8 @@ def rank(A):
     return len(piv)
 
 
-def rref_wrap(A, record_steps=True):
-    M, steps, _ = rref(A, record_steps=record_steps)
+def ref_wrap(A, record_steps=True):
+    M, steps, _ = ref(A, record_steps=record_steps)
     return M, steps
 
 

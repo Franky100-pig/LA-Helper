@@ -43,6 +43,47 @@ def rref(A, record_steps=True):
     return M, steps, pivot_cols
 
 
+def ref(A, record_steps=True):
+    """Row echelon form (NOT reduced). Returns (REF, steps, pivot_columns).
+
+    Unlike :func:`rref`, pivots are left at their natural (non-zero) values and
+    only entries *below* each pivot are cleared. The result is an upper-
+    triangular-like staircase instead of always collapsing to the identity for
+    invertible matrices, which makes the elimination visible and instructive.
+    """
+    M = A.copy()
+    steps = []
+    pivot_cols = []
+    r = 0
+    for c in range(M.cols):
+        if r >= M.rows:
+            break
+        pivot = None
+        for i in range(r, M.rows):
+            if not M.data[i][c].equals(0):
+                pivot = i
+                break
+        if pivot is None:
+            continue  # zero column, skip
+        if pivot != r:
+            M.data[r], M.data[pivot] = M.data[pivot], M.data[r]
+            if record_steps:
+                steps.append(f"Swap R{r + 1} ↔ R{pivot + 1}")
+        pv = M.data[r][c]
+        for i in range(r + 1, M.rows):
+            if not M.data[i][c].equals(0):
+                factor = sp.simplify(M.data[i][c] / pv)
+                for k in range(M.cols):
+                    M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[r][k])
+                if record_steps:
+                    steps.append(
+                        f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{r + 1}"
+                    )
+        pivot_cols.append(c)
+        r += 1
+    return M, steps, pivot_cols
+
+
 def null_space(A):
     """Basis of the null space (solutions to A x = 0)."""
     M, _, pivot_cols = rref(A, record_steps=False)
