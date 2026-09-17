@@ -591,3 +591,56 @@ if (showDecimals) {
 DEFAULT_NAMES.forEach(n => { state.lib[n] = newMatrix(3, 3); });
 state.editing = "A";
 refreshAll();
+
+// ---------------------------------------------------------------------------
+// 宽屏分栏的可拖动分隔条：调整输入列 / 结果列的宽度比例。
+// 宽度写在 main 的 --col-input-w 上，并记住到 localStorage，下次打开还原。
+// ---------------------------------------------------------------------------
+(function initSplitter() {
+  const main = document.querySelector("main");
+  const splitter = document.getElementById("colSplitter");
+  if (!main || !splitter) return;
+
+  const KEY = "la.colInputW";
+  const MIN_W = 320;                              // 左列最窄（矩阵面板 + 预览还要放得下）
+  const RESULT_MIN = 380;                         // 结果列至少留这么多
+
+  // 还原上次拖过的宽度
+  try {
+    const saved = parseFloat(localStorage.getItem(KEY));
+    if (saved >= MIN_W) main.style.setProperty("--col-input-w", saved + "px");
+  } catch (_) { /* localStorage 不可用就忽略 */ }
+
+  let dragging = false, startX = 0, startW = 0;
+
+  splitter.addEventListener("pointerdown", (e) => {
+    // 只在分栏生效的宽屏下响应
+    if (!window.matchMedia("(min-width: 900px)").matches) return;
+    dragging = true;
+    startX = e.clientX;
+    const cur = parseFloat(main.style.getPropertyValue("--col-input-w"));
+    startW = cur || document.querySelector(".col-input").getBoundingClientRect().width;
+    splitter.setPointerCapture(e.pointerId);
+    splitter.classList.add("dragging");
+    document.body.classList.add("col-resizing");
+    e.preventDefault();
+  });
+
+  splitter.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const max = Math.max(MIN_W, main.clientWidth - RESULT_MIN);
+    const w = Math.round(Math.max(MIN_W, Math.min(max, startW + e.clientX - startX)));
+    main.style.setProperty("--col-input-w", w + "px");
+  });
+
+  const stopDrag = () => {
+    if (!dragging) return;
+    dragging = false;
+    splitter.classList.remove("dragging");
+    document.body.classList.remove("col-resizing");
+    const w = parseFloat(main.style.getPropertyValue("--col-input-w"));
+    if (w) { try { localStorage.setItem(KEY, String(w)); } catch (_) {} }
+  };
+  splitter.addEventListener("pointerup", stopDrag);
+  splitter.addEventListener("pointercancel", stopDrag);
+})();
