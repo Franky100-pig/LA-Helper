@@ -12,14 +12,36 @@ import sympy as sp
 EIGEN_NUMERIC_MIN = 5
 PRECISION = 6
 
+# An exact form longer than this reads like machine output, not math (e.g. the
+# Cardano formula SymPy gives for a cubic with three real roots runs 100+
+# chars of nested cube roots). Those fall back to the decimal value.
+READABLE_MAX_LEN = 60
+
+# Imaginary parts below this (relative) are float round-off, not physics.
+NOISE = 1e-10
+
+
+def _clean_noise(v):
+    """Drop a negligible imaginary part that is pure numerical round-off."""
+    try:
+        re_, im_ = sp.re(v), sp.im(v)
+        if im_.is_number and abs(im_) < NOISE * max(1, abs(re_)):
+            return re_
+    except Exception:
+        pass
+    return v
+
 
 def _is_readable(v):
     """True if v can be shown to a student without scaring them."""
-    return not (v.has(sp.CRootOf) or v.has(sp.RootOf) or v.has(sp.Lambda))
+    if v.has(sp.CRootOf) or v.has(sp.RootOf) or v.has(sp.Lambda):
+        return False
+    return len(str(v)) <= READABLE_MAX_LEN
 
 
 def _fmt_num(v, precision):
     """Short numeric string; handles complex values (sp.Float would not)."""
+    v = _clean_noise(v)
     try:
         return str(sp.Float(sp.N(v, precision), precision))
     except (TypeError, ValueError):
@@ -52,8 +74,10 @@ def eigen(A, numeric=None, precision=PRECISION):
         shown = approx if (numeric or not readable) else exact
         vectors = []
         for b in basis:
-            if numeric:
-                b = b.evalf(precision)
+            if numeric or not readable:
+                # Decimal eigenvectors too -- an exact vector for a Cardano
+                # eigenvalue is even worse than the eigenvalue itself.
+                b = b.evalf(precision).applyfunc(_clean_noise)
             vectors.append(Matrix.from_sympy(b))
         pairs.append({
             "value": shown,

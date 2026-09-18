@@ -652,7 +652,8 @@ class LAApp:
                 self._write(line, "sub")
                 # Show a prominent decimal approximation next to an exact form
                 # so the value is readable even when written in radicals.
-                if (not dec) and p.get("approx") and p.get("exact") and p["exact"] != p["value"]:
+                # (Skipped when the value already IS the decimal fallback.)
+                if (not dec) and p.get("approx") and p["value"] != p["approx"]:
                     self._write("≈ " + format_math.to_text(p["approx"], True), "mat")
                 for v in p["vectors"]:
                     self._write(format_matrix(v, dec), "mat")
