@@ -116,11 +116,16 @@ class Handler(BaseHTTPRequestHandler):
             body = json.loads(raw.decode("utf-8"))
             s = str(body.get("s", ""))
             decimals = bool(body.get("decimals", False))
+            mode = str(body.get("mode", "html"))
         except Exception:
             self._send(400, {"error": "bad JSON"})
             return
+        if mode == "step":
+            html = format_math.step_html(s)
+        else:
+            html = format_math.to_html(s)
         self._send(200, {
-            "html": format_math.to_html(s),
+            "html": html,
             "text": format_math.to_text(s, decimals),
         })
 

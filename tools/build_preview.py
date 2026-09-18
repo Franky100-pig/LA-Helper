@@ -9,11 +9,23 @@ Out:  ../la-preview/  (index.html, app.js, la-bridge.js, core_bundle.js)
 import json
 import pathlib
 import re
+import subprocess
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
 OUT = ROOT.parent / "la-preview"
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+
+
+def _git_short_hash():
+    """Best-effort short commit hash, used as a cache-busting query string."""
+    try:
+        return subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=str(ROOT), capture_output=True, text=True, timeout=10,
+        ).stdout.strip()
+    except Exception:
+        return ""
 
 
 def bundle_core():
@@ -37,18 +49,21 @@ def bundle_core():
     return files
 
 
-def build_index(html):
+def build_index(html, ver=""):
     html = html.replace(
         '<button id="compute">计算</button>',
         '<button id="compute" disabled>计算</button>',
     )
+    # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
+    # 避免旧 la-bridge.js（带 bug 的桥）被长期缓存导致页面显示 undefined。
+    q = f"?v={ver}" if ver else ""
     html = html.replace(
         "<script src=\"app.js\"></script>",
         '<p id="engineStatus" class="hint">正在加载计算引擎（首次约需十几秒，之后秒回）…</p>\n'
-        '<script src="core_bundle.js"></script>\n'
+        f'<script src="core_bundle.js{q}"></script>\n'
         f'<script src="{PYODIDE_URL}pyodide.js"></script>\n'
-        '<script src="la-bridge.js"></script>\n'
-        '<script src="app.js"></script>',
+        f'<script src="la-bridge.js{q}"></script>\n'
+        f'<script src="app.js{q}"></script>',
     )
     return html
 
@@ -150,9 +165,15 @@ function laDispatch(req) {
       return pyodide.runPython(pyLines.join("\\n"));
     };
     window.LA.stepHtml = (s) => {
+      // 同样必须以表达式结尾（runPython 只返回最后一个表达式的值），并兜底异常，
+      // 保证任何情况下都返回字符串、绝不返回 undefined。
       const pyLines = [
         "import format_math",
-        "format_math.step_html(" + JSON.stringify(s ?? "") + ")",
+        "try:",
+        "    _h = format_math.step_html(" + JSON.stringify(s ?? "") + ")",
+        "except Exception as _e:",
+        '    _h = format_math._escape(str(_e))',
+        "_h",
       ];
       return pyodide.runPython(pyLines.join("\\n"));
     };
@@ -168,6 +189,7 @@ function laDispatch(req) {
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
+    ver = _git_short_hash()
     core = bundle_core()
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
@@ -175,7 +197,7 @@ def main():
     )
     web = ROOT / "web"
     (OUT / "index.html").write_text(
-        build_index((web / "index.html").read_text(encoding="utf-8")),
+        build_index((web / "index.html").read_text(encoding="utf-8"), ver),
         encoding="utf-8",
     )
     (OUT / "app.js").write_text(

@@ -635,7 +635,7 @@ async function stepHtml(s) {
     const r = await fetch("/api/format", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ s }),
+      body: JSON.stringify({ s, mode: "step" }),
     });
     const j = await r.json();
     return j.html;
@@ -670,10 +670,10 @@ async function renderEigen(res) {
     const lam = await mathHtml(p.value);
     // 精确形式（含 sqrt / 分数）才额外给出小数近似，纯数字就不画蛇添足。
     const isSymbolic = /[^0-9.\-]/.test(p.value);
-    let line = `<div class="eig"><div class="lam">λ = <b>${lam}</b>`;
+    let line = `<div class="eig"><div class="lam">λ = <b>${lam != null ? lam : escapeHtml(String(p.value))}</b>`;
     if (p.approx && isSymbolic) {
       const ap = await mathHtml(p.approx);
-      line += ` <span class="approx">≈ ${ap}</span>`;
+      line += ` <span class="approx">≈ ${ap != null ? ap : escapeHtml(String(p.approx))}</span>`;
     }
     line += ` （代数重数 ${p.multiplicity}`;
     if (p.geometric !== undefined && p.geometric < p.multiplicity) {
@@ -740,7 +740,9 @@ async function renderResult(res) {
   if (res.steps && res.steps.length) {
     let steps = "<h4>计算步骤</h4><ol class='steps'>";
     for (const s of res.steps) {
-      steps += `<li>${await stepHtml(s)}</li>`;
+      const h = await stepHtml(s);
+      // 防御：任何情况下都不要往页面里写 "undefined"
+      steps += `<li>${h != null ? h : escapeHtml(String(s))}</li>`;
     }
     steps += "</ol>";
     html += steps;
