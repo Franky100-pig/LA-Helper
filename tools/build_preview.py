@@ -126,7 +126,8 @@ function laDispatch(req) {
         '    _out = {"ok": True, "matrix": _m}',
         "except photo.PhotoError as _e:",
         '    _out = {"ok": False, "error": str(_e), "raw": _e.raw}',
-        "_photo_result = json.dumps(_out, ensure_ascii=False)",
+        // 结尾必须是表达式（runPython 只返回最后一个表达式的值，赋值会得到 undefined）
+        "json.dumps(_out, ensure_ascii=False)",
       ];
       const py = pyLines.join("\\n");
       return JSON.parse(pyodide.runPython(py));
@@ -136,21 +137,22 @@ function laDispatch(req) {
     // 公式美化也单一来源：网页端把精确值字符串交给 Python 排版（竖式分数 / √ /
     // 小数），与桌面端 core.format_math 同一份实现，保证两端一致。
     window.LA.mathHtml = (s) => {
+      // Pyodide runPython 只返回最后一个“表达式”的值（return_mode="last_expr"），
+      // 最后一行若是赋值语句会得到 undefined——所以结尾必须是表达式 `_h`。
       const pyLines = [
-        "import json",
         "import format_math",
         "try:",
         "    _h = format_math.to_html(" + JSON.stringify(s ?? "") + ")",
         "except Exception as _e:",
         '    _h = format_math._escape(str(_e))',
-        "_math_html = _h",
+        "_h",
       ];
       return pyodide.runPython(pyLines.join("\\n"));
     };
     window.LA.stepHtml = (s) => {
       const pyLines = [
         "import format_math",
-        "_step_html = format_math.step_html(" + JSON.stringify(s ?? "") + ")",
+        "format_math.step_html(" + JSON.stringify(s ?? "") + ")",
       ];
       return pyodide.runPython(pyLines.join("\\n"));
     };
