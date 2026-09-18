@@ -7,13 +7,18 @@ Run:  python tools/build_preview.py
 Out:  ../la-preview/  (index.html, app.js, la-bridge.js, core_bundle.js)
 """
 import json
+import os
 import pathlib
 import re
 import hashlib
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
-OUT = ROOT.parent / "la-preview"
+# Default: a sibling dir so local previews never touch the repo. CI overrides
+# this to build inside the repo (e.g. `public/`) so the Pages artifact can pick
+# it up.
+OUT_DEFAULT = ROOT.parent / "la-preview"
+OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
@@ -202,6 +207,9 @@ def main():
         encoding="utf-8",
     )
     (OUT / "la-bridge.js").write_text(BRIDGE, encoding="utf-8")
+    # 关掉 GitHub Pages 的 Jekyll 处理（否则以下划线开头的文件会被忽略，
+    # 且 Jekyll 可能改写内容）。纯静态站不需要它。
+    (OUT / ".nojekyll").write_text("", encoding="utf-8")
     print("built ->", OUT)
     print("core modules:", ", ".join(core))
 

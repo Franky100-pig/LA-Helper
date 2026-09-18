@@ -14,6 +14,9 @@ build/
 dist/
 *.spec
 
+# GitHub Pages build output (CI builds into public/; never commit it)
+public/
+
 # OS / editor
 .DS_Store
 Thumbs.db

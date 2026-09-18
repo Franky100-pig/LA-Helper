@@ -1,0 +1,46 @@
+name: Deploy to GitHub Pages
+
+# 每次 push 到 main 自动重建静态预览（tools/build_preview.py）并部署到
+# GitHub Pages。部署来源需在仓库 Settings → Pages 里选 “GitHub Actions”。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只跑一个 Pages 部署，避免并发互相覆盖。
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build static preview
+        env:
+          LA_PREVIEW_OUT: public
+        run: python3 tools/build_preview.py
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
