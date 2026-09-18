@@ -22,9 +22,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
-from core import engine, photo                   # noqa: E402
+from core import engine, photo, format_math      # noqa: E402
 from desktop.model import (                       # noqa: E402
-    LibraryModel, MIN_DIM, MAX_DIM, NAME_RE, format_matrix, clamp_dim, FRACTION_RE,
+    LibraryModel, MIN_DIM, MAX_DIM, NAME_RE, format_matrix, clamp_dim,
 )
 
 # ---- 本地设置（API key 等，仅存于本机，绝不入库）----
@@ -650,14 +650,16 @@ class LAApp:
                     line += f"，几何重数 {p['geometric']} → 不可对角化"
                 line += "）"
                 self._write(line, "sub")
-                if p.get("approx") and p.get("exact") and p["exact"] != p["value"]:
-                    self._write("精确值：" + str(p["exact"]), "mat")
+                # Show a prominent decimal approximation next to an exact form
+                # so the value is readable even when written in radicals.
+                if (not dec) and p.get("approx") and p.get("exact") and p["exact"] != p["value"]:
+                    self._write("≈ " + format_math.to_text(p["approx"], True), "mat")
                 for v in p["vectors"]:
                     self._write(format_matrix(v, dec), "mat")
         if res.get("steps"):
             self._write("计算步骤", "title")
             for i, s in enumerate(res["steps"], 1):
-                self._write(f"{i}. {s}", "mat")
+                self._write(f"{i}. {format_math.step_text(s)}", "mat")
         self.out.config(state="disabled")
         self._fit_result_height()
 
@@ -680,20 +682,9 @@ class LAApp:
             pass
 
     def _fmt_scalar(self, v, dec):
-        s = str(v)
-        if dec:
-            from desktop.model import FRACTION_RE
-            m = FRACTION_RE.match(s)
-            if m:
-                den = int(m.group(2))
-                if den != 0:
-                    s = str(int(m.group(1)) / den)
-            num = float(s)
-            if num.is_integer():
-                s = str(int(num))
-            else:
-                s = f"{num:.4f}"
-        return s
+        # Delegate to the shared formatter: it cleans sqrt(..)/**/I and shows a
+        # decimal when requested, so scalar results stay readable in both modes.
+        return format_math.to_text(v, dec)
 
     # ---- 计算 ----
     def compute_dropdown(self):

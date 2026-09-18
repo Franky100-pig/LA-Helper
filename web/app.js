@@ -611,6 +611,51 @@ function fmtCell(v) {
   return s.replace(/\*I/g, "i");
 }
 
+// 公式美化：把引擎返回的精确值字符串（如 "(-1 + sqrt(5))/2"）交给 Python 排版成
+// 竖式分数 / √ / 小数。优先走 Pyodide 桥（静态构建），本地服务器则打到 /api/format。
+// 两端共用 core.format_math，保证一致。
+async function mathHtml(s) {
+  if (window.LA && window.LA.mathHtml) return window.LA.mathHtml(s);
+  try {
+    const r = await fetch("/api/format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ s }),
+    });
+    const j = await r.json();
+    return j.html;
+  } catch (e) {
+    return escapeHtml(String(s));
+  }
+}
+
+async function stepHtml(s) {
+  if (window.LA && window.LA.stepHtml) return window.LA.stepHtml(s);
+  try {
+    const r = await fetch("/api/format", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ s }),
+    });
+    const j = await r.json();
+    return j.html;
+  } catch (e) {
+    return escapeHtml(String(s));
+  }
+}
+
+async function renderMatrixMath(mat) {
+  let body = "";
+  for (const row of mat) {
+    const cells = [];
+    for (const c of row) cells.push("<td>" + (await mathHtml(c)) + "</td>");
+    body += "<tr>" + cells.join("") + "</tr>";
+  }
+  return '<div class="matrix-box"><span class="bracket">[</span>' +
+    '<table class="mat">' + body + '</table><span class="bracket">]</span></div>';
+}
+
+
 function renderMatrix(mat) {
   let body = "";
   for (const row of mat) {
@@ -619,22 +664,33 @@ function renderMatrix(mat) {
   return `<div class="matrix-box"><span class="bracket">[</span><table class="mat">${body}</table><span class="bracket">]</span></div>`;
 }
 
-function renderEigen(res) {
+async function renderEigen(res) {
   let html = "<h3>特征值 / 特征向量</h3>";
-  res.pairs.forEach(p => {
-    const lam = escapeHtml(fmtCell(p.value));
-    html += `<div class="eig"><div>λ = <b>${lam}</b>`;
-    html += ` （代数重数 ${p.multiplicity}`;
+  for (const p of res.pairs) {
+    const lam = await mathHtml(p.value);
+    // 精确形式（含 sqrt / 分数）才额外给出小数近似，纯数字就不画蛇添足。
+    const isSymbolic = /[^0-9.\-]/.test(p.value);
+    let line = `<div class="eig"><div class="lam">λ = <b>${lam}</b>`;
+    if (p.approx && isSymbolic) {
+      const ap = await mathHtml(p.approx);
+      line += ` <span class="approx">≈ ${ap}</span>`;
+    }
+    line += ` （代数重数 ${p.multiplicity}`;
     if (p.geometric !== undefined && p.geometric < p.multiplicity) {
-      html += `，几何重数 ${p.geometric} → <span class="warn">不可对角化</span>`;
+      line += `，几何重数 ${p.geometric} → <span class="warn">不可对角化</span>`;
     }
-    html += "）</div>";
-    if (p.approx && p.exact && p.exact !== p.value) {
-      html += `<details class="exact"><summary>精确值</summary><code>${escapeHtml(p.exact)}</code></details>`;
+    line += "）</div>";
+    if (p.exact && p.exact !== p.value && !isSymbolic) {
+      line += `<details class="exact"><summary>精确值</summary><code>${escapeHtml(p.exact)}</code></details>`;
+    } else if (p.exact && p.exact !== p.value) {
+      line += `<div class="exact">精确形式：${escapeHtml(p.exact)}</div>`;
     }
-    html += p.vectors.map(v => renderMatrix(v)).join(" ");
-    html += "</div>";
-  });
+    for (const v of p.vectors) {
+      line += await renderMatrixMath(v);
+    }
+    line += "</div>";
+    html += line;
+  }
   return html;
 }
 
@@ -648,7 +704,7 @@ function revealResult() {
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function renderResult(res) {
+async function renderResult(res) {
   lastResult = res;
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
@@ -679,11 +735,15 @@ function renderResult(res) {
   } else if (res.type === "inverse_status") {
     html += `<div class="error">不存在：${escapeHtml(res.note)}</div>`;
   } else if (res.type === "eigen") {
-    html += renderEigen(res);
+    html += await renderEigen(res);
   }
   if (res.steps && res.steps.length) {
-    html += "<h4>计算步骤</h4><ol class='steps'>" +
-      res.steps.map(s => `<li>${escapeHtml(s)}</li>`).join("") + "</ol>";
+    let steps = "<h4>计算步骤</h4><ol class='steps'>";
+    for (const s of res.steps) {
+      steps += `<li>${await stepHtml(s)}</li>`;
+    }
+    steps += "</ol>";
+    html += steps;
   }
   resultCard.innerHTML = html || "<div class='muted-line'>计算完成，无额外输出。</div>";
   revealResult();
@@ -727,7 +787,7 @@ async function compute() {
   const payload = { op: op, A: dataOf(leftSel.value), showSteps: showSteps.checked };
   if (OPS_NEED_B.has(op)) payload.B = dataOf(rightSel.value);
   const res = await request(payload);
-  if (res) renderResult(res);
+  if (res) await renderResult(res);
 }
 
 /** 表达式路径：同一个 request，只是换了载荷。 */
@@ -739,7 +799,7 @@ async function runExpr() {
     matrices: matrixData(),
     showSteps: showSteps.checked,
   });
-  if (res) renderResult(res);
+  if (res) await renderResult(res);
 }
 
 // --- 绑定 -------------------------------------------------------------------

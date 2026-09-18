@@ -15,6 +15,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, ROOT)
 
 from core.engine import dispatch  # noqa: E402
+from core import format_math  # noqa: E402
 
 HOST = "127.0.0.1"
 PORT = 8000
@@ -74,9 +75,15 @@ class Handler(BaseHTTPRequestHandler):
         if self._bad_host():
             self._send(403, {"error": "forbidden host"})
             return
-        if self.path.split("?")[0] != "/api/compute":
+        path = self.path.split("?")[0]
+        if path == "/api/compute":
+            self._serve_compute()
+        elif path == "/api/format":
+            self._serve_format()
+        else:
             self._send(404, {"error": "not found"})
-            return
+
+    def _serve_compute(self):
         try:
             length = int(self.headers.get("Content-Length", 0))
         except ValueError:
@@ -97,6 +104,25 @@ class Handler(BaseHTTPRequestHandler):
         # One route for both entry points: {"op": ...} from the dropdown,
         # {"expr": ...} from the expression box.
         self._send(200, dispatch(req))
+
+    def _serve_format(self):
+        try:
+            length = int(self.headers.get("Content-Length", 0))
+        except ValueError:
+            self._send(400, {"error": "bad Content-Length"})
+            return
+        raw = self.rfile.read(length) if length else b"{}"
+        try:
+            body = json.loads(raw.decode("utf-8"))
+            s = str(body.get("s", ""))
+            decimals = bool(body.get("decimals", False))
+        except Exception:
+            self._send(400, {"error": "bad JSON"})
+            return
+        self._send(200, {
+            "html": format_math.to_html(s),
+            "text": format_math.to_text(s, decimals),
+        })
 
     def log_message(self, fmt, *args):
         if "--verbose" in sys.argv:

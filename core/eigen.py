@@ -46,10 +46,10 @@ def eigen(A, numeric=None, precision=PRECISION):
         v = sp.simplify(val)
         exact = fmt_expr(v)
         readable = _is_readable(v)
-        approx = None
-        if numeric or not readable:
-            approx = _fmt_num(v, precision)
-        shown = approx if approx is not None else exact
+        # Always compute a decimal approximation for display, so even an exact
+        # form like (-1 + sqrt(5))/2 is shown next to a friendly 1.618034.
+        approx = _fmt_num(v, precision)
+        shown = approx if (numeric or not readable) else exact
         vectors = []
         for b in basis:
             if numeric:

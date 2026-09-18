@@ -9,6 +9,8 @@ Empty cells mean "0" to the engine, exactly like the web.
 """
 import re
 
+from core import format_math
+
 MIN_DIM = 1
 MAX_DIM = 16
 DEFAULT_NAMES = ["A", "B", "C", "D"]
@@ -66,11 +68,17 @@ def fmt_cell(v, decimals):
             den = int(m.group(2))
             if den != 0:
                 s = str(int(m.group(1)) / den)
-        num = float(s)
+        try:
+            num = float(s)
+        except (ValueError, TypeError):
+            # radical / symbolic exact form can't be a plain decimal -> clean it
+            return format_math.to_text(s, decimals=False)
         if num.is_integer():
             s = str(int(num))
         else:
             s = f"{num:.4f}"
+    else:
+        s = format_math.to_text(s, decimals=False)
     return s
 
 

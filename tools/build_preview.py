@@ -105,6 +105,7 @@ function laDispatch(req) {
       'if "/la" not in sys.path:\\n' +
       '    sys.path.insert(0, "/la")\\n' +
       'import engine\\n' +
+      'import format_math\\n' +
       'def _la_dispatch(req_json):\\n' +
       '    return json.dumps(engine.dispatch(json.loads(req_json)), ensure_ascii=False)\\n'
     );
@@ -132,6 +133,27 @@ function laDispatch(req) {
     };
     // 提示词也单一来源：网页端不再自带一份，直接向 Python 要，避免两端措辞漂移。
     window.LA.photoPrompt = () => pyodide.runPython("import photo; photo.build_prompt()");
+    // 公式美化也单一来源：网页端把精确值字符串交给 Python 排版（竖式分数 / √ /
+    // 小数），与桌面端 core.format_math 同一份实现，保证两端一致。
+    window.LA.mathHtml = (s) => {
+      const pyLines = [
+        "import json",
+        "import format_math",
+        "try:",
+        "    _h = format_math.to_html(" + JSON.stringify(s ?? "") + ")",
+        "except Exception as _e:",
+        '    _h = format_math._escape(str(_e))',
+        "_math_html = _h",
+      ];
+      return pyodide.runPython(pyLines.join("\\n"));
+    };
+    window.LA.stepHtml = (s) => {
+      const pyLines = [
+        "import format_math",
+        "_step_html = format_math.step_html(" + JSON.stringify(s ?? "") + ")",
+      ];
+      return pyodide.runPython(pyLines.join("\\n"));
+    };
     if (status) status.textContent = "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）";
     if (btn) btn.disabled = false;
   } catch (err) {

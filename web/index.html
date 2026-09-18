@@ -148,6 +148,18 @@
     font-variant-numeric: tabular-nums;
   }
   .scalar { font-size: 26px; font-weight: 700; color: var(--accent2); }
+  /* 公式美化：竖式分数 / √ / 小数近似 —— 让精确值（含 sqrt、分数）变得人能读 */
+  .frac { display: inline-flex; flex-direction: column; text-align: center;
+         vertical-align: middle; margin: 0 .15em; line-height: 1.1; }
+  .frac .fnum { border-bottom: 1px solid currentColor; padding: 0 .3em; }
+  .frac .fden { padding: 0 .3em; }
+  .sqrt { display: inline-flex; align-items: flex-start; vertical-align: middle; }
+  .sqrt .radix { font-size: .7em; transform: translateY(.1em); margin-right: .05em; }
+  .sqrt .rad { border-top: 1px solid currentColor; padding: 0 .15em; }
+  .eig .lam { font-size: 1.15em; }
+  .eig .approx { color: var(--muted); font-size: .85em; margin-left: .3em; }
+  .eig .exact { color: var(--muted); font-size: .8em; margin-top: 4px; }
+  ol.steps li .frac { font-size: .95em; }
   .lu-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; margin-top: 8px; }
   .eig { background: #0e1620; border: 1px solid var(--border); border-radius: 10px;
          padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
