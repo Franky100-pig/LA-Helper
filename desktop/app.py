@@ -24,7 +24,7 @@ if ROOT not in sys.path:
 
 from core import engine, photo, format_math      # noqa: E402
 from desktop.model import (                       # noqa: E402
-    LibraryModel, MIN_DIM, MAX_DIM, NAME_RE, format_matrix, clamp_dim,
+    LibraryModel, MIN_DIM, MAX_DIM, format_matrix, clamp_dim,
 )
 
 # ---- 本地设置（API key 等，仅存于本机，绝不入库）----
@@ -652,8 +652,13 @@ class LAApp:
                 self._write(line, "sub")
                 # Show a prominent decimal approximation next to an exact form
                 # so the value is readable even when written in radicals.
-                # (Skipped when the value already IS the decimal fallback.)
-                if (not dec) and p.get("approx") and p["value"] != p["approx"]:
+                # (Skipped when the value already IS the decimal fallback, or
+                # when the exact form is already clear at a glance -- e.g. a
+                # plain integer like 2 or the imaginary unit i, where a decimal
+                # "≈ 1.0*i" would only add noise.)
+                exact_raw = p.get("exact") or p["value"]
+                needs_approx = ("sqrt" in exact_raw) or ("/" in exact_raw)
+                if (not dec) and p.get("approx") and p["value"] != p["approx"] and needs_approx:
                     self._write("≈ " + format_math.to_text(p["approx"], True), "mat")
                 for v in p["vectors"]:
                     self._write(format_matrix(v, dec), "mat")
