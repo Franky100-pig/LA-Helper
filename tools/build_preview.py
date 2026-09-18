@@ -9,7 +9,7 @@ Out:  ../la-preview/  (index.html, app.js, la-bridge.js, core_bundle.js)
 import json
 import pathlib
 import re
-import subprocess
+import hashlib
 
 HERE = pathlib.Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -17,15 +17,11 @@ OUT = ROOT.parent / "la-preview"
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
-def _git_short_hash():
-    """Best-effort short commit hash, used as a cache-busting query string."""
-    try:
-        return subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"],
-            cwd=str(ROOT), capture_output=True, text=True, timeout=10,
-        ).stdout.strip()
-    except Exception:
-        return ""
+def _content_version(web_app_js, core):
+    """Short hash of the bundled JS so the cache-bust query changes whenever the
+    shipped code changes (a git hash would lag one commit behind the build)."""
+    blob = json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
+    return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
 def bundle_core():
@@ -189,13 +185,14 @@ function laDispatch(req) {
 
 def main():
     OUT.mkdir(parents=True, exist_ok=True)
-    ver = _git_short_hash()
     core = bundle_core()
+    web = ROOT / "web"
+    web_app_js = (web / "app.js").read_text(encoding="utf-8")
+    ver = _content_version(web_app_js, core)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
     )
-    web = ROOT / "web"
     (OUT / "index.html").write_text(
         build_index((web / "index.html").read_text(encoding="utf-8"), ver),
         encoding="utf-8",
