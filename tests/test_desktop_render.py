@@ -155,7 +155,7 @@ class _ThemeHarness:
             set=lambda v: setattr(self, "_btn", v))
 
 
-def test_theme_has_both_palettes_and_soft_light(monkeypatch, tmp_path):
+def test_theme_has_both_palettes_with_white_light(monkeypatch, tmp_path):
     monkeypatch.setattr(app_mod, "ttk", _FakeTTK())
     monkeypatch.setattr(app_mod, "CONFIG_PATH", str(tmp_path / "s.json"))
     h = _ThemeHarness()
@@ -165,8 +165,9 @@ def test_theme_has_both_palettes_and_soft_light(monkeypatch, tmp_path):
     for p in pal.values():
         for key in ("bg", "panel", "text", "muted", "accent", "field"):
             assert key in p
-    # 浅色底不刺眼：不用纯白底 / 纯黑字
-    assert pal["light"]["bg"] != "#ffffff"
+    # 浅色 = 纯白底；文本框底色要略深一点，否则白底白框看不见
+    assert pal["light"]["bg"] == "#ffffff"
+    assert pal["light"]["field"] != "#ffffff"
     assert pal["light"]["text"] != "#000000"
 
 
@@ -184,7 +185,7 @@ def test_theme_defaults_dark_then_toggles_and_persists(monkeypatch, tmp_path):
 
     h.toggle_theme()
     assert h.theme == "light"
-    assert h.colors["bg"] == "#eef1f5"
+    assert h.colors["bg"] == "#ffffff"
     assert h._btn == "深色"
     assert json.loads(cfg.read_text())["theme"] == "light"   # 已持久化
 
@@ -201,4 +202,4 @@ def test_theme_restored_from_settings(monkeypatch, tmp_path):
     h = _ThemeHarness()
     h._style()
     assert h.theme == "light"
-    assert h.colors["bg"] == "#eef1f5"
+    assert h.colors["bg"] == "#ffffff"

@@ -147,9 +147,9 @@ class LAApp:
                 accent="#7aa7d6", accent_hover="#6fb4ff", field="#26303a",
                 btn_fg="#1b2530", select="#23303f", warn="#ffb454", err="#ff6b6b"),
             "light": dict(
-                bg="#eef1f5", panel="#f7f9fc", text="#2a323b", muted="#6b7785",
-                accent="#4a86c5", accent_hover="#5b97d6", field="#ffffff",
-                btn_fg="#ffffff", select="#cfe0f0", warn="#b3701f", err="#c0392b"),
+                bg="#ffffff", panel="#ffffff", text="#1f2328", muted="#5f6b76",
+                accent="#2f74b5", accent_hover="#4a90d9", field="#f6f8fa",
+                btn_fg="#ffffff", select="#cfe0f0", warn="#a8621c", err="#c0392b"),
         }
         self.apply_theme(load_settings().get("theme", "dark"))
 

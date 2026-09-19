@@ -27,19 +27,21 @@
     --guide-border: #1c2531;
     --placeholder: #5d6b7a;
     --preview-auto: #55636f;
+    --on-accent: #08121f;      /* 铺在强调色（按钮 / 选中 chip）上的文字色 */
     --cell-w: 64px;   /* 输入格边长：手机端由媒体查询改小 */
   }
-  /* 浅色：柔和不刺眼（非纯白纯黑），与深色共用同一套变量名 */
+  /* 浅色：纯白底（不是灰底），配深灰字；强调色上的文字改成白色 */
   :root[data-theme="light"] {
-    --bg: #eaeef3; --panel: #ffffff; --panel2: #f2f5f9;
-    --accent: #3b82c4; --accent2: #d98a3d; --text: #2a323b; --muted: #6b7785;
-    --border: #d8dee6; --ok: #2f9e44; --bad: #e2574c;
-    --inset: #f3f6fa;
-    --inset-focus: #e7eef6;
-    --header-grad: linear-gradient(90deg, #e4ebf2, #eaeef3);
-    --guide-border: #e1e7ee;
-    --placeholder: #9aa7b4;
-    --preview-auto: #9aa7b4;
+    --bg: #ffffff; --panel: #ffffff; --panel2: #f6f8fa;
+    --accent: #2f74b5; --accent2: #a8621c; --text: #1f2328; --muted: #5f6b76;
+    --border: #d9dee3; --ok: #1a7f37; --bad: #cf222e;
+    --inset: #f6f8fa;
+    --inset-focus: #eef2f6;
+    --header-grad: linear-gradient(90deg, #ffffff, #f6f8fa);
+    --guide-border: #e6ebef;
+    --placeholder: #8b96a1;
+    --preview-auto: #8b96a1;
+    --on-accent: #ffffff;
   }
   * { box-sizing: border-box; }
   /* 默认自然文档流：结果区永远不会被固定视口高度挤成 0。
@@ -78,7 +80,7 @@
     border-radius: 8px; padding: 7px 10px; font-size: 14px;
   }
   button {
-    background: var(--accent); color: #08121f; font-weight: 600; cursor: pointer;
+    background: var(--accent); color: var(--on-accent); font-weight: 600; cursor: pointer;
     border: none; padding: 9px 18px;
   }
   button:hover { filter: brightness(1.08); }
@@ -110,9 +112,9 @@
     cursor: pointer; font-family: ui-monospace, Menlo, monospace;
   }
   .chip:hover { border-color: var(--accent); }
-  .chip.on { background: var(--accent); color: #08121f; border-color: var(--accent); }
+  .chip.on { background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
   .chip.bad { border-color: var(--bad); color: var(--bad); }
-  .chip.bad.on { background: var(--bad); color: #1a0b0b; border-color: var(--bad); }
+  .chip.bad.on { background: var(--bad); color: var(--on-accent); border-color: var(--bad); }
 
   .matrices { display: flex; gap: 22px; flex-wrap: wrap; flex: 0 0 auto; }
   .matrix-panel {
@@ -210,7 +212,7 @@
   .exact code { word-break: break-all; }
 
   .chip-shape { color: var(--muted); font-weight: 400; margin-left: 5px; font-size: 11px; }
-  .chip.on .chip-shape { color: rgba(8, 18, 31, .72); }
+  .chip.on .chip-shape { color: var(--on-accent); opacity: .72; }
 
   /* 快捷键指南：默认折叠，不占地方 */
   .guide { flex: 1 1 100%; border-top: 1px dashed var(--border); padding-top: 8px; }
