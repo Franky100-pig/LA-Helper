@@ -1,6 +1,7 @@
 """LA Helper — 本地桌面版（tkinter，零额外 GUI 依赖，Mac/Windows 通用）。
 
-复用 core/engine.dispatch（精确分数，SymPy 后端）。无需浏览器、无需联网。
+复用 core/engine.dispatch（精确分数，SymPy 后端）。无需浏览器；计算不联网
+（只有可选的「检查新版本」会访问 GitHub Releases）。
 复用 desktop/model.LibraryModel：命名矩阵库（网页同款能力）。
 
 两条计算路径共用一个后端入口 engine.dispatch：
@@ -13,6 +14,9 @@
 """
 import os
 import sys
+import threading
+import time
+import webbrowser
 import tkinter as tk
 import tkinter.font as tkFont
 from tkinter import ttk, scrolledtext, simpledialog, messagebox, filedialog
@@ -23,6 +27,8 @@ if ROOT not in sys.path:
     sys.path.insert(0, ROOT)
 
 from core import engine, photo, format_math      # noqa: E402
+from core import __version__ as APP_VERSION      # noqa: E402
+from desktop import update as update_mod         # noqa: E402
 from desktop.model import (                       # noqa: E402
     LibraryModel, MIN_DIM, MAX_DIM, format_matrix, clamp_dim,
 )
@@ -139,7 +145,52 @@ class LAApp:
 
         self.refresh_all()
 
-    # ---- 主题（深 / 浅两套柔和配色，浅色不用纯白、深色不用纯黑）----
+        # 启动后稍等再在后台线程里查一次新版本（不阻塞界面、失败静默）
+        self.root.after(1500, self._maybe_check_updates)
+
+    # ---- 检查更新 ----------------------------------------------------------
+    AUTO_CHECK_INTERVAL = 24 * 3600   # 自动检查的最小间隔（秒），避免每次启动都发请求
+
+    def _maybe_check_updates(self, force=False):
+        """查 GitHub 最新版本。启动时静默检查；force=True 是用户手动点。"""
+        s = load_settings()
+        if not force:
+            if not s.get("check_updates", True):
+                return
+            try:
+                last = float(s.get("last_update_check") or 0)
+            except (TypeError, ValueError):
+                last = 0
+            if time.time() - last < self.AUTO_CHECK_INTERVAL:
+                return
+        threading.Thread(target=self._update_worker, args=(force,), daemon=True).start()
+
+    def _update_worker(self, force):
+        # 网络请求放在子线程，避免卡住界面
+        res = update_mod.check_for_update(APP_VERSION)
+        s = load_settings()
+        s["last_update_check"] = time.time()
+        save_settings(s)
+        try:
+            # 弹窗必须在主线程：用 after 把结果交回去
+            self.root.after(0, lambda: self._on_update_result(res, force))
+        except Exception:
+            pass
+
+    def _on_update_result(self, res, force):
+        status = res.get("status")
+        if status == update_mod.NEW:
+            if messagebox.askyesno(
+                    "发现新版本",
+                    "检测到新版本 %s（当前 %s）。\n\n是否打开下载页面？"
+                    % (res.get("tag"), APP_VERSION)):
+                webbrowser.open(res.get("url") or update_mod.RELEASES_PAGE)
+        elif force and status == update_mod.LATEST:
+            messagebox.showinfo("检查更新", "已是最新版本（%s）。" % APP_VERSION)
+        elif force and status == update_mod.ERROR:
+            messagebox.showwarning("检查更新", "检查失败，请确认网络连接后重试。")
+
+    # ---- 主题（深色 + 纯白底浅色两套配色）----
     def _style(self):
         self._palettes = {
             "dark": dict(
@@ -540,21 +591,38 @@ class LAApp:
     def open_settings(self):
         win = tk.Toplevel(self.root)
         win.title("设置")
-        win.geometry("480x190")
+        win.geometry("500x310")
+        win.configure(bg=self.colors["bg"])
         s = load_settings()
-        tk.Label(win, text="Gemini API Key（存于本机 ~/.la_helper_settings.json，绝不入库）:").pack(
+        tk.Label(win, text="Gemini API Key（存于本机 ~/.la_helper_settings.json，绝不入库）:",
+                 bg=self.colors["bg"], fg=self.colors["text"]).pack(
             anchor="w", padx=12, pady=(12, 2))
         key_var = tk.StringVar(value=s.get("api_key", ""))
-        tk.Entry(win, textvariable=key_var, width=56, show="*").pack(
+        tk.Entry(win, textvariable=key_var, width=56, show="*",
+                 bg=self.colors["field"], fg=self.colors["text"],
+                 insertbackground=self.colors["accent"]).pack(
             fill="x", padx=12, pady=(0, 8))
-        tk.Label(win, text="模型:").pack(anchor="w", padx=12, pady=(0, 2))
+        tk.Label(win, text="模型:", bg=self.colors["bg"], fg=self.colors["text"]).pack(
+            anchor="w", padx=12, pady=(0, 2))
         model_var = tk.StringVar(value=s.get("model", photo.DEFAULT_MODEL))
         ttk.Combobox(win, textvariable=model_var, state="readonly",
-                     values=list(photo.MODELS)).pack(fill="x", padx=12, pady=(0, 12))
+                     values=list(photo.MODELS)).pack(fill="x", padx=12, pady=(0, 10))
+
+        # 更新检查：默认开启、可关闭，也能立刻手动查一次
+        check_var = tk.BooleanVar(value=bool(s.get("check_updates", True)))
+        ttk.Checkbutton(win, text="启动时检查更新", variable=check_var).pack(
+            anchor="w", padx=12, pady=(0, 6))
+        ttk.Button(win, text="立即检查更新",
+                   command=lambda: self._maybe_check_updates(force=True)).pack(
+            anchor="w", padx=12, pady=(0, 10))
 
         def _save():
-            save_settings({"api_key": key_var.get().strip(),
-                          "model": model_var.get()})
+            # 合并写回：不能整体覆盖，否则会把 theme / last_update_check 抹掉
+            cur = load_settings()
+            cur.update({"api_key": key_var.get().strip(),
+                        "model": model_var.get(),
+                        "check_updates": bool(check_var.get())})
+            save_settings(cur)
             win.destroy()
             self.set_msg("设置已保存")
         ttk.Button(win, text="保存", command=_save).pack(side="right", padx=12, pady=(0, 12))

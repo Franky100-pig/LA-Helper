@@ -10,7 +10,7 @@ from .engine import compute, dispatch, MAX_DIM
 from . import expr
 from . import photo
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 __all__ = [
     "Matrix",
