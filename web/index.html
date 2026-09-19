@@ -4,12 +4,42 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LA Helper · 线性代数小算</title>
+<script>
+  // 尽早确定主题，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
+  (function () {
+    try {
+      var t = localStorage.getItem("la-theme");
+      if (t !== "light" && t !== "dark") {
+        t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) { /* 隐私模式等拿不到 localStorage：走默认深色 */ }
+  })();
+</script>
 <style>
-  :root {
+  :root {           /* 默认（深色）——系统未指定且用户未选择时的兜底 */
     --bg: #0b0f14; --panel: #151c25; --panel2: #1e2732;
     --accent: #4ea1ff; --accent2: #ffb454; --text: #e6edf3; --muted: #8b98a5;
     --border: #2b3644; --ok: #3fb950; --bad: #ff6b6b;
+    --inset: #0e1620;          /* 输入框 / 内嵌块（矩阵框、步骤、预览）底色 */
+    --inset-focus: #101b26;
+    --header-grad: linear-gradient(90deg, #121b26, #151c25);
+    --guide-border: #1c2531;
+    --placeholder: #5d6b7a;
+    --preview-auto: #55636f;
     --cell-w: 64px;   /* 输入格边长：手机端由媒体查询改小 */
+  }
+  /* 浅色：柔和不刺眼（非纯白纯黑），与深色共用同一套变量名 */
+  :root[data-theme="light"] {
+    --bg: #eaeef3; --panel: #ffffff; --panel2: #f2f5f9;
+    --accent: #3b82c4; --accent2: #d98a3d; --text: #2a323b; --muted: #6b7785;
+    --border: #d8dee6; --ok: #2f9e44; --bad: #e2574c;
+    --inset: #f3f6fa;
+    --inset-focus: #e7eef6;
+    --header-grad: linear-gradient(90deg, #e4ebf2, #eaeef3);
+    --guide-border: #e1e7ee;
+    --placeholder: #9aa7b4;
+    --preview-auto: #9aa7b4;
   }
   * { box-sizing: border-box; }
   /* 默认自然文档流：结果区永远不会被固定视口高度挤成 0。
@@ -24,8 +54,10 @@
   }
   header {
     padding: 18px 24px; border-bottom: 1px solid var(--border);
-    background: linear-gradient(90deg, #121b26, #151c25); flex: 0 0 auto;
+    background: var(--header-grad); flex: 0 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
   }
+  .head-left { min-width: 0; }
   header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
   header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
   main {
@@ -66,7 +98,7 @@
     flex: 1 1 auto; width: 100%; font-family: ui-monospace, SFMono-Regular,
     "SF Mono", Menlo, Consolas, monospace; font-size: 14px;
   }
-  .expr-bar input[type=text]::placeholder { color: #5d6b7a; }
+  .expr-bar input[type=text]::placeholder { color: var(--placeholder); }
 
   /* 矩阵库 */
   .lib-bar { gap: 10px; }
@@ -99,15 +131,15 @@
   .panel-actions { display: flex; gap: 6px; flex-wrap: wrap; }
   .dims { display: flex; gap: 10px; margin: 10px 0; align-items: center; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
   .dims input { width: 54px; }
-  .dim-hint { color: #5d6b7a; font-size: 12px; }
+  .dim-hint { color: var(--placeholder); font-size: 12px; }
   .grid-scroll { overflow-x: auto; }
   .grid { display: grid; gap: 6px; width: max-content; }
   .cell {
     width: var(--cell-w); height: 42px; text-align: center; font-size: 14px;
-    background: #0e1620; color: var(--text); border: 1px solid var(--border);
+    background: var(--inset); color: var(--text); border: 1px solid var(--border);
     border-radius: 6px;
   }
-  .cell:focus { outline: 2px solid var(--accent); background: #101b26; }
+  .cell:focus { outline: 2px solid var(--accent); background: var(--inset-focus); }
   .msg { font-size: 13px; margin-top: 10px; }
   .msg.good { color: var(--ok); }
   .msg.bad { color: var(--bad); }
@@ -136,7 +168,7 @@
   }
   .matrix-box {
     display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px; background: #0e1620; border-radius: 10px;
+    padding: 8px; background: var(--inset); border-radius: 10px;
     border: 1px solid var(--border); vertical-align: middle;
     /* 宽结果矩阵（多列 / 长分数）在本框内横向滚动，不撑破页面 */
     max-width: 100%; overflow-x: auto;
@@ -161,10 +193,10 @@
   .eig .exact { color: var(--muted); font-size: .8em; margin-top: 4px; }
   ol.steps li .frac { font-size: .95em; }
   .lu-row { display: flex; gap: 24px; flex-wrap: wrap; align-items: flex-start; margin-top: 8px; }
-  .eig { background: #0e1620; border: 1px solid var(--border); border-radius: 10px;
+  .eig { background: var(--inset); border: 1px solid var(--border); border-radius: 10px;
          padding: 12px 14px; margin-bottom: 12px; display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
   ol.steps {
-    background: #0e1620; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--inset); border: 1px solid var(--border); border-radius: 10px;
     padding: 14px 18px 14px 38px; font-size: 14px; margin: 10px 0 0;
   }
   ol.steps li { margin: 7px 0; font-variant-numeric: tabular-nums; }
@@ -193,7 +225,7 @@
   table.guide-table { border-collapse: collapse; width: 100%; min-width: 400px; font-size: 12px; }
   table.guide-table th, table.guide-table td {
     text-align: left; padding: 4px 12px 4px 0; vertical-align: top;
-    border-bottom: 1px solid #1c2531;
+    border-bottom: 1px solid var(--guide-border);
   }
   table.guide-table th { color: var(--muted); font-weight: 600; }
   table.guide-table td:first-child {
@@ -202,7 +234,7 @@
   }
   table.guide-table td:last-child { color: var(--muted); }
   .guide-body code {
-    background: #0e1620; padding: 1px 5px; border-radius: 4px; font-size: 12px;
+    background: var(--inset); padding: 1px 5px; border-radius: 4px; font-size: 12px;
     font-family: ui-monospace, Menlo, monospace;
   }
 
@@ -219,7 +251,7 @@
     padding: 3px 8px; text-align: center; white-space: nowrap;
     font-variant-numeric: tabular-nums;
   }
-  .preview-box td.auto { color: #55636f; }   /* 空格自动补的 0 */
+  .preview-box td.auto { color: var(--preview-auto); }   /* 空格自动补的 0 */
   .preview-box .br { font-family: serif; color: var(--accent2); font-size: 22px; line-height: 1; }
   .preview-empty { color: var(--muted); font-size: 12px; }
 
@@ -244,7 +276,7 @@
   .settings-panel input[type=text] { width: 360px; max-width: 100%; }
   .settings-hint { color: var(--muted); font-size: 12px; margin: 8px 0 0; }
   .raw-box {
-    background: #0e1620; border: 1px solid var(--border); border-radius: 10px;
+    background: var(--inset); border: 1px solid var(--border); border-radius: 10px;
     padding: 12px 14px; white-space: pre-wrap; word-break: break-word;
     font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 13px;
     margin-top: 10px; max-height: 320px; overflow: auto; max-width: 100%;
@@ -320,6 +352,7 @@
     select, input[type=number], input[type=text], button { font-size: 13px; padding: 8px 10px; }
     button { width: 100%; padding: 11px; }   /* 大按钮，好点 */
     button.ghost { width: auto; padding: 6px 10px; font-size: 12px; }
+    header button { width: auto; padding: 6px 10px; font-size: 12px; }  /* 顶栏主题按钮不要撑满 */
     .hint { font-size: 11px; margin-top: 0; }
 
     .expr-bar label.grow { flex: 1 1 100%; }
@@ -366,8 +399,11 @@
 </head>
 <body>
 <header>
-  <h1>LA Helper · 线性代数小算</h1>
-  <p>本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
+  <div class="head-left">
+    <h1>LA Helper · 线性代数小算</h1>
+    <p>本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
+  </div>
+  <button id="themeToggle" class="ghost" type="button" title="切换深色 / 浅色模式">浅色</button>
 </header>
 <main>
   <!-- 输入列：桌面宽屏时与结果区左右分栏，让结果拿到整列高度 -->

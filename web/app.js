@@ -890,3 +890,42 @@ refreshAll();
   splitter.addEventListener("pointerup", stopDrag);
   splitter.addEventListener("pointercancel", stopDrag);
 })();
+
+// ---------------------------------------------------------------------------
+// 深色 / 浅色主题：默认跟随系统，用户点按钮切换后记住选择（localStorage）。
+// <head> 里的内联脚本已在首帧前设好 data-theme（避免闪一下）；这里负责按钮
+// 文案、切换，以及「没手动选过时跟随系统外观变化」。
+// ---------------------------------------------------------------------------
+(function initTheme() {
+  const KEY = "la-theme";
+  const btn = document.getElementById("themeToggle");
+  const mq = window.matchMedia ? window.matchMedia("(prefers-color-scheme: light)") : null;
+
+  function stored() {
+    try { return localStorage.getItem(KEY); } catch (_) { return null; }
+  }
+  function current() {
+    return document.documentElement.getAttribute("data-theme") === "light" ? "light" : "dark";
+  }
+  function apply(t) {
+    document.documentElement.setAttribute("data-theme", t);
+    if (btn) btn.textContent = t === "dark" ? "浅色" : "深色";  // 按钮显示「点了会切到」的模式
+  }
+  function toggle() {
+    const next = current() === "dark" ? "light" : "dark";
+    apply(next);
+    try { localStorage.setItem(KEY, next); } catch (_) { /* 存不了就只本次生效 */ }
+  }
+
+  apply(current());
+  if (btn) btn.addEventListener("click", toggle);
+  // 没手动选过主题时，跟随系统深浅色变化
+  if (mq) {
+    const onChange = (e) => {
+      const s = stored();
+      if (s !== "light" && s !== "dark") apply(e.matches ? "light" : "dark");
+    };
+    if (mq.addEventListener) mq.addEventListener("change", onChange);
+    else if (mq.addListener) mq.addListener(onChange);
+  }
+})();

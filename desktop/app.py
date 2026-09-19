@@ -139,36 +139,95 @@ class LAApp:
 
         self.refresh_all()
 
-    # ---- 主题 ----
+    # ---- 主题（深 / 浅两套柔和配色，浅色不用纯白、深色不用纯黑）----
     def _style(self):
-        bg, panel, text, muted, accent = (
-            "#1e262e", "#28323c", "#d6dce2", "#9aa6b2", "#7aa7d6")
-        self.colors = dict(bg=bg, panel=panel, text=text, muted=muted, accent=accent)
-        self.root.configure(bg=bg)
+        self._palettes = {
+            "dark": dict(
+                bg="#1e262e", panel="#28323c", text="#d6dce2", muted="#9aa6b2",
+                accent="#7aa7d6", accent_hover="#6fb4ff", field="#26303a",
+                btn_fg="#1b2530", select="#23303f", warn="#ffb454", err="#ff6b6b"),
+            "light": dict(
+                bg="#eef1f5", panel="#f7f9fc", text="#2a323b", muted="#6b7785",
+                accent="#4a86c5", accent_hover="#5b97d6", field="#ffffff",
+                btn_fg="#ffffff", select="#cfe0f0", warn="#b3701f", err="#c0392b"),
+        }
+        self.apply_theme(load_settings().get("theme", "dark"))
+
+    def apply_theme(self, theme):
+        """切换主题：重设配色 + ttk 样式，并把已创建的 tk 控件也刷新一遍。"""
+        if theme not in self._palettes:
+            theme = "dark"
+        self.theme = theme
+        c = self.colors = self._palettes[theme]
+        root = self.root
+        root.configure(bg=c["bg"])
         try:
-            self.root.tk_setPalette(
-                background=bg, foreground=text,
-                activeBackground=panel, activeForeground=text,
-                selectColor=accent, selectBackground="#23303f",
-                highlightBackground=bg, highlightColor=accent)
+            root.tk_setPalette(
+                background=c["bg"], foreground=c["text"],
+                activeBackground=c["panel"], activeForeground=c["text"],
+                selectColor=c["accent"], selectBackground=c["select"],
+                highlightBackground=c["bg"], highlightColor=c["accent"])
         except Exception:
             pass
         st = ttk.Style()
         st.theme_use("clam")
-        st.configure("TFrame", background=bg)
-        st.configure("TLabel", background=bg, foreground=text)
-        st.configure("TCheckbutton", background=bg, foreground=text)
-        st.configure("TCombobox", fieldbackground=panel, background=panel,
-                     foreground=text, selectbackground=accent)
-        st.configure("TSpinbox", fieldbackground=panel, background=panel,
-                     foreground=text)
-        st.configure("TButton", background=accent, foreground="#1b2530",
+        st.configure("TFrame", background=c["bg"])
+        st.configure("TLabel", background=c["bg"], foreground=c["text"])
+        st.configure("TCheckbutton", background=c["bg"], foreground=c["text"])
+        st.configure("TCombobox", fieldbackground=c["panel"], background=c["panel"],
+                     foreground=c["text"], selectbackground=c["accent"])
+        st.configure("TSpinbox", fieldbackground=c["panel"], background=c["panel"],
+                     foreground=c["text"])
+        st.configure("TButton", background=c["accent"], foreground=c["btn_fg"],
                      font=("Helvetica", 12, "bold"))
-        st.map("TButton", background=[("active", "#6fb4ff")])
-        st.configure("TLabelframe", background=panel, foreground=accent)
-        st.configure("TLabelframe.Label", background=panel, foreground=accent)
-        st.configure("TNotebook", background=bg)
-        st.configure("TNotebook.Tab", background=panel, foreground=text)
+        st.map("TButton", background=[("active", c["accent_hover"])])
+        st.configure("TLabelframe", background=c["panel"], foreground=c["accent"])
+        st.configure("TLabelframe.Label", background=c["panel"], foreground=c["accent"])
+        st.configure("TNotebook", background=c["bg"])
+        st.configure("TNotebook.Tab", background=c["panel"], foreground=c["text"])
+        self._refresh_widget_colors()
+        self._sync_theme_btn()
+
+    def _refresh_widget_colors(self):
+        """把那些用 tk（非 ttk）建、颜色写死的控件也刷成新配色。"""
+        c = self.colors
+        for w in (getattr(self, "preview", None), getattr(self, "out", None)):
+            try:
+                w.configure(bg=c["field"], fg=c["text"], insertbackground=c["accent"])
+            except Exception:
+                pass
+        for _r, _c, entry in getattr(self, "edit_widgets", []):
+            try:
+                entry.configure(bg=c["field"], fg=c["text"], insertbackground=c["accent"])
+            except Exception:
+                pass
+        for attr, key in (("scroll", "bg"), ("edit_grid", "panel")):
+            w = getattr(self, attr, None)
+            if w is not None:
+                target = getattr(w, "canvas", w)   # ScrollableFrame -> 内层 canvas
+                try:
+                    target.configure(bg=c[key])
+                except Exception:
+                    pass
+        out = getattr(self, "out", None)
+        if out is not None:
+            out.tag_configure("title", foreground=c["accent"], font=("Menlo", 15, "bold"))
+            out.tag_configure("sub", foreground=c["muted"], font=("Menlo", 12, "bold"))
+            out.tag_configure("warn", foreground=c["warn"], font=("Menlo", 13, "bold"))
+            out.tag_configure("err", foreground=c["err"], font=("Menlo", 13, "bold"))
+            out.tag_configure("mat", foreground=c["text"], font=("Menlo", 14))
+
+    def _sync_theme_btn(self):
+        """按钮文字显示「点了会切到」的模式（深色时显示浅色）。"""
+        v = getattr(self, "theme_btn_var", None)
+        if v is not None:
+            v.set("浅色" if self.theme == "dark" else "深色")
+
+    def toggle_theme(self):
+        self.apply_theme("light" if self.theme == "dark" else "dark")
+        s = load_settings()
+        s["theme"] = self.theme
+        save_settings(s)
 
     def _icon_path(self):
         return os.path.join(ROOT, "desktop", "icon.icns")
@@ -206,6 +265,11 @@ class LAApp:
 
         ttk.Button(bar, text="设置", command=self.open_settings).pack(side="right", padx=(8, 0))
         ttk.Button(bar, text="计算", command=self.compute_dropdown).pack(side="right", padx=(12, 0))
+        # 深 / 浅色切换：文字显示「点了会切到」的模式
+        self.theme_btn_var = tk.StringVar(
+            value="浅色" if self.theme == "dark" else "深色")
+        ttk.Button(bar, textvariable=self.theme_btn_var, width=6,
+                   command=self.toggle_theme).pack(side="right", padx=(8, 0))
 
     def _op_key(self):
         idx = self.op_cb.current()
@@ -266,7 +330,7 @@ class LAApp:
         prev = ttk.LabelFrame(outer, text="预览（引擎实际读取，空格补 0）")
         prev.pack(fill="x", padx=8, pady=(2, 8))
         self.preview = scrolledtext.ScrolledText(
-            prev, bg="#26303a", fg=self.colors["text"],
+            prev, bg=self.colors["field"], fg=self.colors["text"],
             insertbackground=self.colors["accent"],
             font=("Menlo", 13), wrap="none", relief="flat", bd=0, height=6)
         self.preview.pack(fill="x", padx=8, pady=6)
@@ -306,7 +370,7 @@ class LAApp:
         for r in range(rows):
             for c in range(cols):
                 e = tk.Entry(self.edit_grid, width=8, justify="center",
-                             bg="#26303a", fg=self.colors["text"],
+                             bg=self.colors["field"], fg=self.colors["text"],
                              insertbackground=self.colors["accent"],
                              relief="solid", bd=1, highlightthickness=0)
                 e.insert(0, m["cells"][r][c])
@@ -371,7 +435,6 @@ class LAApp:
         self.set_msg("")
 
     def render_preview(self):
-        m = self.model.current()
         text = format_matrix(self.model.data_of(self.model.editing),
                              self.dec_var.get())
         self.preview.config(state="normal")
@@ -546,7 +609,7 @@ class LAApp:
         win = tk.Toplevel(self.root)
         win.title(title)
         win.geometry("540x380")
-        t = tk.Text(win, wrap="word", bg="#0e1620", fg="#e6edf3")
+        t = tk.Text(win, wrap="word", bg=self.colors["field"], fg=self.colors["text"])
         t.insert("1.0", text or "")
         t.config(state="disabled")
         t.pack(fill="both", expand=True, padx=12, pady=12)
@@ -583,7 +646,7 @@ class LAApp:
         rf.pack(fill="x", expand=False, padx=12, pady=(6, 12))
         # 结果框不内滚：高度按内容自适应（无内部滚动条），超出部分由整窗滚动
         self.out = tk.Text(
-            rf, bg="#26303a", fg=self.colors["text"],
+            rf, bg=self.colors["field"], fg=self.colors["text"],
             insertbackground=self.colors["accent"],
             font=("Menlo", 13), wrap="word", relief="flat", bd=0,
             height=MIN_RESULT_LINES, state="disabled")
@@ -592,9 +655,9 @@ class LAApp:
                                font=("Menlo", 15, "bold"))
         self.out.tag_configure("sub", foreground=self.colors["muted"],
                                font=("Menlo", 12, "bold"))
-        self.out.tag_configure("warn", foreground="#ffb454",
+        self.out.tag_configure("warn", foreground=self.colors["warn"],
                                font=("Menlo", 13, "bold"))
-        self.out.tag_configure("err", foreground="#ff6b6b",
+        self.out.tag_configure("err", foreground=self.colors["err"],
                                font=("Menlo", 13, "bold"))
         self.out.tag_configure("mat", foreground=self.colors["text"],
                                font=("Menlo", 14))

@@ -117,3 +117,88 @@ def test_lu_matrices_show_fractions_not_sqrt():
     text = "\n".join(out)
     assert "1/2" in text                  # exact fraction preserved
     assert "L（单位下三角）" in text
+
+
+# ---------------------------------------------------------------------------
+# 深 / 浅色主题：两套调色板、可切换、并持久化到设置文件。
+# 只挂载主题相关方法，避免构建整个 UI（tkinter 在无显示环境下不可用）。
+# ---------------------------------------------------------------------------
+class _FakeRoot:
+    def configure(self, **k):
+        pass
+
+    def tk_setPalette(self, **k):
+        pass
+
+
+class _Noop:
+    def __getattr__(self, name):
+        return lambda *a, **k: None
+
+
+class _FakeTTK:
+    def Style(self):
+        return _Noop()
+
+
+class _ThemeHarness:
+    _style = app_mod.LAApp._style
+    apply_theme = app_mod.LAApp.apply_theme
+    _refresh_widget_colors = app_mod.LAApp._refresh_widget_colors
+    _sync_theme_btn = app_mod.LAApp._sync_theme_btn
+    toggle_theme = app_mod.LAApp.toggle_theme
+
+    def __init__(self):
+        self.root = _FakeRoot()
+        self._btn = None
+        self.theme_btn_var = types.SimpleNamespace(
+            set=lambda v: setattr(self, "_btn", v))
+
+
+def test_theme_has_both_palettes_and_soft_light(monkeypatch, tmp_path):
+    monkeypatch.setattr(app_mod, "ttk", _FakeTTK())
+    monkeypatch.setattr(app_mod, "CONFIG_PATH", str(tmp_path / "s.json"))
+    h = _ThemeHarness()
+    h._style()
+    pal = h._palettes
+    assert set(pal) == {"dark", "light"}
+    for p in pal.values():
+        for key in ("bg", "panel", "text", "muted", "accent", "field"):
+            assert key in p
+    # 浅色底不刺眼：不用纯白底 / 纯黑字
+    assert pal["light"]["bg"] != "#ffffff"
+    assert pal["light"]["text"] != "#000000"
+
+
+def test_theme_defaults_dark_then_toggles_and_persists(monkeypatch, tmp_path):
+    import json
+    monkeypatch.setattr(app_mod, "ttk", _FakeTTK())
+    cfg = tmp_path / "s.json"
+    monkeypatch.setattr(app_mod, "CONFIG_PATH", str(cfg))
+
+    h = _ThemeHarness()
+    h._style()
+    assert h.theme == "dark"
+    assert h.colors["bg"] == "#1e262e"
+    assert h._btn == "浅色"                       # 深色时按钮提示可切到浅色
+
+    h.toggle_theme()
+    assert h.theme == "light"
+    assert h.colors["bg"] == "#eef1f5"
+    assert h._btn == "深色"
+    assert json.loads(cfg.read_text())["theme"] == "light"   # 已持久化
+
+    h.toggle_theme()
+    assert h.theme == "dark"
+    assert json.loads(cfg.read_text())["theme"] == "dark"
+
+
+def test_theme_restored_from_settings(monkeypatch, tmp_path):
+    monkeypatch.setattr(app_mod, "ttk", _FakeTTK())
+    cfg = tmp_path / "s.json"
+    cfg.write_text('{"theme": "light"}', encoding="utf-8")
+    monkeypatch.setattr(app_mod, "CONFIG_PATH", str(cfg))
+    h = _ThemeHarness()
+    h._style()
+    assert h.theme == "light"
+    assert h.colors["bg"] == "#eef1f5"
