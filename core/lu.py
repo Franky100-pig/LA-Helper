@@ -1,5 +1,5 @@
 """LU decomposition with optional partial pivoting (PA = LU)."""
-from .matrix import Matrix, fmt_expr
+from .matrix import Matrix, fmt_expr, step
 import sympy as sp
 
 
@@ -42,9 +42,8 @@ def lu_decomposition(A, pivot=True, record_steps=True):
                     L[k][j], L[piv][j] = L[piv][j], L[k][j]
                 swaps += 1
                 if record_steps:
-                    steps.append(
-                        f"Swap R{k + 1} ↔ R{piv + 1} (partial pivoting)"
-                    )
+                    steps.append(step(
+                        f"Swap R{k + 1} ↔ R{piv + 1} (partial pivoting)", U))
         if U[k][k].equals(0):
             raise ValueError(
                 f"matrix is singular / rank-deficient at pivot {k + 1}"
@@ -57,9 +56,8 @@ def lu_decomposition(A, pivot=True, record_steps=True):
             # Do not rely on exact cancellation to produce the structural zero.
             U[i][k] = sp.Integer(0)
             if record_steps and not factor.equals(0):
-                steps.append(
-                    f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{k + 1}"
-                )
+                steps.append(step(
+                    f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{k + 1}", U))
     Lm = Matrix([[L[i][j] for j in range(n)] for i in range(n)])
     Um = Matrix([[U[i][j] for j in range(n)] for i in range(n)])
     Pm = _perm_matrix(perm, n)

@@ -161,9 +161,20 @@ def to_html(s):
     return _html(e)
 
 
+def step_label(step):
+    """Text of a recorded step.
+
+    A step is ``{"text": ..., "matrix": ...}``; a bare string is still accepted
+    so older callers (and hand-written steps) keep working.
+    """
+    if isinstance(step, dict):
+        return str(step.get("text", ""))
+    return str(step)
+
+
 def step_html(step):
     """Make a REF/LU row-operation line readable (fractions + √ as HTML)."""
-    t = _escape(str(step))
+    t = _escape(step_label(step))
     t = re.sub(r"sqrt\(([^()]*)\)", r"√\1", t)
     t = re.sub(
         r"\((-?\d+)/(-?\d+)\)",
@@ -200,6 +211,6 @@ def to_text(s, decimals=False):
 
 def step_text(step):
     """Clean a REF/LU row-operation line for the desktop."""
-    t = re.sub(r"sqrt\(([^()]*)\)", r"√\1", str(step))
+    t = re.sub(r"sqrt\(([^()]*)\)", r"√\1", step_label(step))
     t = t.replace("**", "^")
     return re.sub(r"(?<![\w])I(?![\w])", "i", t)

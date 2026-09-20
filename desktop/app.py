@@ -796,7 +796,14 @@ class LAApp:
         if res.get("steps"):
             self._write("计算步骤", "title")
             for i, s in enumerate(res["steps"], 1):
-                self._write(f"{i}. {format_math.step_text(s)}", "mat")
+                # 每步是 {text, matrix}：text 是行变换，matrix 是这一步做完之后的
+                # 矩阵快照（纯说明性步骤没有矩阵）。缩进一格方便看清归属。
+                label = s.get("text") if isinstance(s, dict) else s
+                self._write(f"{i}. {format_math.step_text(label)}", "mat")
+                mat = s.get("matrix") if isinstance(s, dict) else None
+                if mat:
+                    self._write("   " + format_matrix(mat, dec).replace("\n", "\n   "),
+                                "mat")
         self.out.config(state="disabled")
         self._fit_result_height()
 

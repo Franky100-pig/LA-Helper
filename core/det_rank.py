@@ -1,5 +1,5 @@
 """Determinant, rank, and thin wrappers around the echelon-form routines."""
-from .matrix import Matrix
+from .matrix import step
 from .solve import rref, ref
 from .lu import lu_decomposition
 import sympy as sp
@@ -31,11 +31,11 @@ def determinant(A, record_steps=True):
         P, L, U, swaps, lu_steps = lu_decomposition(
             A, pivot=True, record_steps=True)
         steps.extend(lu_steps)
-        steps.append("由 P·A = L·U 得 det(A) = det(P)·det(L)·det(U)")
+        steps.append(step("由 P·A = L·U 得 det(A) = det(P)·det(L)·det(U)"))
     except ValueError:
-        steps.append("消元时出现了零主元 → 矩阵奇异（不可逆）")
+        steps.append(step("消元时出现了零主元 → 矩阵奇异（不可逆）"))
     if det == 0:
-        steps.append("det(A) = 0，矩阵奇异")
+        steps.append(step("det(A) = 0，矩阵奇异"))
     else:
-        steps.append(f"det(A) = {sp.sstr(det)}")
+        steps.append(step(f"det(A) = {sp.sstr(det)}"))
     return det, steps

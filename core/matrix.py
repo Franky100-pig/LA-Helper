@@ -102,6 +102,31 @@ def fmt_expr(x):
     return str(sp.simplify(x))
 
 
+def snapshot(data):
+    """Nested lists of exact strings for a *raw* sympy matrix (JSON-friendly).
+
+    Used to attach "the matrix right after this row operation" to a recorded
+    step, so both editions can show the matrix under each step.
+    """
+    return [[fmt_expr(c) for c in row] for row in data]
+
+
+def step(text, M=None):
+    """One recorded transformation step.
+
+    ``text`` is the row operation; ``matrix`` is a JSON-friendly snapshot of
+    the matrix *after* that operation, or ``None`` for a purely explanatory
+    step (e.g. "det(A) = det(P)·det(L)·det(U)").
+    """
+    if M is None:
+        mat = None
+    elif isinstance(M, Matrix):
+        mat = M.to_list()
+    else:
+        mat = snapshot(M)
+    return {"text": text, "matrix": mat}
+
+
 class Matrix:
     def __init__(self, data, allow_symbols=False):
         if data is None or (hasattr(data, "__len__") and len(data) == 0):
@@ -152,8 +177,7 @@ class Matrix:
 
     def to_list(self):
         """Nested lists of exact string representations (JSON-friendly)."""
-        return [[fmt_expr(self.data[r][c]) for c in range(self.cols)]
-                for r in range(self.rows)]
+        return snapshot(self.data)
 
     def __eq__(self, other):
         if not isinstance(other, Matrix):

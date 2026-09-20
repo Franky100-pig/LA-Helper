@@ -110,6 +110,10 @@ def test_ref_steps_render_cleanly():
     assert "计算步骤" in text
     assert "R2 → R2 − (2)·R1" in text     # fractions + unicode minus, no **/sqrt
     assert "**" not in text
+    # 每个步骤后面跟着"这一步做完之后的矩阵"（缩进的矩阵行）
+    assert any(ln.startswith("   [") for ln in out)
+    # 最后一步的快照就是 REF 结果：[2 1 1] / [0 -1 1] / [0 0 5]
+    assert "5]" in text
 
 
 def test_lu_matrices_show_fractions_not_sqrt():

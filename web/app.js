@@ -740,9 +740,16 @@ async function renderResult(res) {
   if (res.steps && res.steps.length) {
     let steps = "<h4>计算步骤</h4><ol class='steps'>";
     for (const s of res.steps) {
-      const h = await stepHtml(s);
+      // 每个步骤是 {text, matrix}：text 是行变换，matrix 是这一步**做完之后**
+      // 的矩阵快照（纯说明性步骤没有矩阵，为 null）。
+      const label = (s && typeof s === "object") ? (s.text != null ? s.text : "") : s;
+      const h = await stepHtml(label);
       // 防御：任何情况下都不要往页面里写 "undefined"
-      steps += `<li>${h != null ? h : escapeHtml(String(s))}</li>`;
+      let item = h != null ? h : escapeHtml(String(label));
+      if (s && typeof s === "object" && s.matrix) {
+        item += await renderMatrixMath(s.matrix);
+      }
+      steps += `<li>${item}</li>`;
     }
     steps += "</ol>";
     html += steps;
