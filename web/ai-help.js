@@ -60,11 +60,25 @@ const el = (id) => document.getElementById(id);
   const answerEl = el("aiHelpAnswer");
   const statusEl = el("aiHelpStatus");
 
-  function getKey() {
+  // Key 存储：优先 localStorage；被浏览器禁用时回落到 sessionStorage；
+  // 再不行就用内存变量兜底，保证本次会话「提问」按钮不会因存不住 Key 而失活。
+  // （file:// 在 Safari、以及部分沙箱预览里会禁用 localStorage，旧逻辑会因此把
+  //  提问按钮永久置灰，现象就是「粘贴了 Key 还是不行」。）
+  let memKey = null;
+  function readStore() {
     try { return localStorage.getItem(KEY_STORE) || ""; } catch (_) { return ""; }
   }
+  function writeStore(k) {
+    try { localStorage.setItem(KEY_STORE, k || ""); return "local"; }
+    catch (_) {
+      try { sessionStorage.setItem(KEY_STORE, k || ""); return "session"; }
+      catch (__){ return null; }
+    }
+  }
+  function getKey() { return memKey || readStore(); }
   function setKey(k) {
-    try { localStorage.setItem(KEY_STORE, k || ""); } catch (_) { /* 隐私模式：忽略 */ }
+    memKey = k || "";
+    return writeStore(k);
   }
 
   function showKeyView(msg) {
@@ -97,8 +111,11 @@ const el = (id) => document.getElementById(id);
   saveKeyBtn.addEventListener("click", () => {
     const k = keyIn.value.trim();
     if (!k) { keyMsg.textContent = "请先粘贴 Key。"; return; }
-    setKey(k);
+    const where = setKey(k);
     showAskView();
+    if (!where) {
+      statusEl.textContent = "注意：当前浏览器无法长期保存 Key（可能是隐私模式或用 file:// 打开）。本次会话内可正常使用，刷新页面后需重新填写。";
+    }
   });
 
   qEl.addEventListener("input", updateCount);
