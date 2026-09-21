@@ -105,6 +105,31 @@
   /* 矩阵库 */
   .lib-bar { gap: 10px; }
   .lib-label { font-size: 14px; color: var(--muted); }
+
+  /* 线代难点小讲义（点一篇 → 右侧显示讲解） */
+  .notes-bar { align-items: flex-start; }
+  .notes-hint { flex: 1 1 100%; margin: 0; }
+  .note-chip { font-family: inherit; font-size: 13px; }
+  .notes-body { line-height: 1.75; }
+  .notes-body h4 { color: var(--accent); margin: 16px 0 6px; font-size: 14px; }
+  .notes-body p { margin: 8px 0; }
+  .notes-body ul { margin: 8px 0 8px 1.15em; padding: 0; }
+  .notes-body li { margin: 4px 0; }
+  .notes-body code {
+    background: var(--inset); padding: 1px 5px; border-radius: 4px;
+    font-family: ui-monospace, Menlo, monospace; font-size: 13px;
+  }
+  .note-lead { font-size: 15px; color: var(--text); margin: 6px 0 14px; }
+  .note-formula {
+    background: var(--inset); border: 1px solid var(--border); border-radius: 10px;
+    padding: 10px 14px; margin: 10px 0; overflow-x: auto;
+    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px;
+  }
+  .note-tip {
+    background: var(--inset); border-left: 3px solid var(--accent);
+    border-radius: 6px; padding: 10px 14px; margin: 12px 0;
+    color: var(--text); font-size: 14px;
+  }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; align-items: center; }
   .chip {
     background: var(--panel2); color: var(--text); border: 1px solid var(--border);
@@ -536,6 +561,13 @@
       <div id="previewBox" class="preview-box"></div>
       <p class="hint" id="previewHint">空格按 0 计算，灰字就是自动补的 0</p>
     </aside>
+  </section>
+
+  <!-- 线代难点小讲义：点一篇，右侧结果区显示讲解 -->
+  <section class="controls notes-bar">
+    <span class="lib-label">线代难点小讲义</span>
+    <div id="noteChips" class="chips"></div>
+    <p class="hint notes-hint">哪个概念卡住了就点一下 → 右侧显示讲解；点上面的「计算」即切回结果。</p>
   </section>
   </div><!-- /.col-input -->
 

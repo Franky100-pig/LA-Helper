@@ -50,6 +50,8 @@ const previewBox = el("previewBox");
 
 let inFlight = null;
 let lastResult = null;
+// 右侧现在显示的是什么：「计算结果」还是「小讲义」。切换小数显示时只重画结果。
+let lastView = "result";
 
 const state = { lib: {}, editing: "A" };
 
@@ -713,6 +715,8 @@ function revealResult() {
 
 async function renderResult(res) {
   lastResult = res;
+  lastView = "result";
+  document.querySelectorAll("#noteChips .chip.on").forEach(c => c.classList.remove("on"));
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
     revealResult();
@@ -848,7 +852,8 @@ el("imageInput").addEventListener("change", onImageChosen);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
     renderPreview();
-    if (lastResult) renderResult(lastResult);
+    // 右侧正显示讲义时不要把它覆盖掉
+    if (lastView === "result" && lastResult) renderResult(lastResult);
   });
 }
 
@@ -947,3 +952,187 @@ refreshAll();
     else if (mq.addListener) mq.addListener(onChange);
   }
 })();
+
+// ---------------------------------------------------------------------------
+// 线代难点小讲义：点左侧的一篇，右侧结果区显示讲解。
+// 内容放在这里（会打包进静态预览版）；样式见 index.html 的 .notes-body / .note-*。
+// blocks 里每一项：字符串 = 段落；{h} 小标题；{ul} 项目符号；{formula} 公式块；
+// {tip} 提示块。内容是自己写的静态文案，直接当 HTML 用（所以 < 写成 &lt;）。
+// ---------------------------------------------------------------------------
+const NOTES = [
+  {
+    id: "cofactor",
+    title: "代数余子式到底在干什么",
+    tag: "行列式",
+    lead: "一句话：把 n 阶行列式「拆」成 n 个 (n−1) 阶行列式的带符号和；还不够小就接着拆，直到只剩 1 阶。",
+    blocks: [
+      { h: "先记住展开公式" },
+      { formula: "det(A) = Σⱼ (−1)^(i+j) · a(i,j) · M(i,j)　（i 是任选的一行）" },
+      "读法：<b>固定某一行 i</b>，把这行的每个元素 a(i,j) 乘上它对应的余子式 M(i,j)，再乘符号 (−1)^(i+j)，最后全部加起来。",
+      { h: "三个容易混的概念" },
+      { ul: [
+        "<b>余子式 M(i,j)</b>：把第 i 行和第 j 列<b>整条划掉</b>（划一个十字），剩下的小矩阵，取它的行列式。",
+        "<b>代数余子式</b>：就是 (−1)^(i+j) · M(i,j)，比余子式多一个符号。",
+        "<b>符号只看位置</b>：只看 (i,j)，和你划掉的那个数本身是正是负完全无关。",
+      ] },
+      { h: "符号怎么快速记" },
+      "从左上角 (1,1) 开始是 +，然后像棋盘一样交错：+ − + / − + − / + − +。等价说法：i+j 是偶数取 +，是奇数取 −。",
+      { h: "为什么可以「任选一行」" },
+      "因为行列式对自己的每一行都是<b>线性</b>的（把某一行拆成两项之和，行列式就等于两个行列式之和），而且<b>交换两行会变号</b>。把第 i 行拆成 n 个「只有第 j 个位置非零」的行，剩下的那个行列式正好就是 M(i,j)，换行带来的符号正好是 (−1)^(i+j)。所以沿任何一行、任何一列展开，结果都一样 —— 挑最好算的那条就行。",
+      { h: "最容易卡的 4 个点" },
+      { ul: [
+        "忘了要<b>递归</b>：展开出来的每一项还是一个低一阶的行列式，得接着展开，不是一步出结果。",
+        "划错范围：是「第 i 行<b>和</b>第 j 列」都划掉（十字），不是只划一个。",
+        "把 M(i,j)（余子式）和「代数余子式」当成一回事（差一个 (−1)^(i+j)）。",
+        "符号看错：只看位置，不看数字的正负。",
+      ] },
+      { h: "手算技巧" },
+      "<b>永远挑 0 最多的那一行或那一列展开</b>：0 乘任何余子式都是 0，那一项可以直接跳过，能省掉一大半工作。",
+      { tip: "在本页试一下：操作选「行列式 det(A)」，把旁边的「det 算法」切成「代数余子式展开」。每一步都会跟着一张<strong>这一步的余子式</strong>，对着上面的公式慢慢走一遍就通了。" },
+    ],
+  },
+  {
+    id: "row-reduction",
+    title: "为什么行列式能用行变换来算",
+    tag: "行列式",
+    lead: "因为行列式对三种初等行变换的反应非常规则；把它化成三角阵，答案就是对角线相乘。",
+    blocks: [
+      { h: "三种行变换对 det 的影响" },
+      { ul: [
+        "交换两行 → 行列式<b>变号</b>",
+        "某一行乘以常数 k → 行列式<b>也乘 k</b>",
+        "某一行加上另一行的倍数 → 行列式<b>不变</b>",
+      ] },
+      { h: "化到三角阵就结束了" },
+      "上三角（或下三角）矩阵的行列式 = 对角线元素相乘。因为按第一行（或第一列）展开时只有一项非零，一路递归下去就只剩主对角线。",
+      { formula: "det(A) = (−1)^s · ∏ᵢ u(i,i)　（s = 交换行的次数）" },
+      { h: "和 LU 分解的关系" },
+      "消元得到的 U 就是上三角，L 是单位下三角（对角线全是 1，所以 det(L) = 1），P 记录了换行。由 PA = LU 得 det(P)·det(A) = det(L)·det(U)，而 det(P) = (−1)^s，于是 det(A) = (−1)^s · ∏u(i,i)。本页的「行变换法」走的就是这条路线。",
+      { h: "为什么大矩阵必须用行变换" },
+      "代数余子式展开要算 n! 项（3 阶 6 项、6 阶 720 项、10 阶 360 多万项）；行变换只需要大约 n³ 次运算。所以：<b>小矩阵用代数余子式理解原理，大矩阵用行变换去算</b>。两种算法的结果必然相同。",
+      { tip: "在本页试一下：同一个矩阵先选「行变换法」算一次，再切「代数余子式展开」算一次。数值必然一样，但步骤风格完全不同。" },
+    ],
+  },
+  {
+    id: "matmul",
+    title: "矩阵乘法为什么这么怪",
+    tag: "矩阵运算",
+    lead: "「行乘列再相加」不是随便定的，它对应的含义是：先做一个变换，再做另一个变换。",
+    blocks: [
+      { h: "两种等价的读法" },
+      { ul: [
+        "<b>行 × 列</b>：(A·B)(i,j) = A 的第 i 行与 B 的第 j 列做点积。",
+        "<b>列的线性组合</b>：A·B 的第 j 列 = A 乘以 B 的第 j 列 —— B 的每一列在告诉你「把 A 的各列怎么混起来」。",
+      ] },
+      { h: "所以 AB 一般不等于 BA" },
+      "矩阵代表变换。A·B 的意思是<b>先做 B、再做 A</b>；顺序一换结果就不同（先旋转再拉伸 ≠ 先拉伸再旋转）。",
+      { h: "维度规则" },
+      "只有 (m×k)·(k×n) 才合法：中间那个 k 必须对上，结果维度是 m×n。",
+      { tip: "在本页试一下：A、B 都填好，操作选「矩阵乘法 A×B」算一次；再交换成 B×A 算一次，对比结果。" },
+    ],
+  },
+  {
+    id: "singular",
+    title: "det = 0 为什么就没有逆",
+    tag: "可逆性",
+    lead: "因为行列式是「体积缩放因子」。为 0 意味着空间被压扁了，压扁之后信息丢了，回不去。",
+    blocks: [
+      { h: "几何图像" },
+      "2×2 矩阵把单位正方形变成一个平行四边形，|det| 就是它的面积（3×3 对应体积）。det = 0 → 面积/体积变成 0 → 平面被压成一条线甚至一个点：降维了。此时两个不同的输入可能被映射到同一个输出，这个映射就没办法反推。",
+      { h: "四句话说的是一件事" },
+      { ul: [
+        "A 不可逆",
+        "det(A) = 0",
+        "A 的行（或列）线性相关",
+        "rank(A) &lt; n（存在非零的零空间向量）",
+      ] },
+      "这四个说法互相等价，看到其中一个就能推出另外三个。",
+      { tip: "在本页试一下：填一个两行成比例的矩阵（比如第 2 行 = 2 × 第 1 行），先求逆看提示，再算它的行列式和秩。" },
+    ],
+  },
+  {
+    id: "rank",
+    title: "秩到底在说什么",
+    tag: "秩",
+    lead: "秩 = 这个矩阵里「真正独立的信息」有几条。",
+    blocks: [
+      { h: "三个等价的说法" },
+      { ul: [
+        "线性无关的行的最大个数（也等于线性无关列的最大个数）",
+        "化成 REF 之后<b>主元的个数</b>",
+        "它把空间映射到的「像空间」的维数 —— 输出被压到了几维",
+      ] },
+      { h: "秩不足意味着什么" },
+      "秩 &lt; n 说明有冗余的行（能被别人线性组合出来）。于是 A·x = 0 有非零解（零空间里的向量就是被压成 0 的那些方向），而 A·x = b 可能无解、也可能有无穷多解。",
+      { tip: "在本页试一下：操作选「秩 rank(A)」和「REF 行阶梯形」各算一次 —— 数一数 REF 里的主元个数，一定等于 rank。" },
+    ],
+  },
+  {
+    id: "eigen",
+    title: "特征值 / 特征向量的几何意义",
+    tag: "特征值",
+    lead: "Av = λv 的意思是：向量 v 在这个变换下<b>方向不变</b>，只是被拉长或压短了 λ 倍。",
+    blocks: [
+      { h: "为什么重要" },
+      "一般向量被矩阵一乘，方向和长度都会变；特征向量是「例外」的那些方向 —— 它们揭示了变换最本质的行为：沿这些方向只是缩放。",
+      { h: "特征值告诉你什么" },
+      { ul: [
+        "λ = 0：这个方向被压成 0 → 矩阵一定不可逆、det = 0。",
+        "λ 是复数：这个方向其实被<b>旋转</b>了（比如旋转 90° 的矩阵没有实特征向量）。",
+        "<b>代数重数</b>：特征多项式里这个根的次数；<b>几何重数</b>：对应的线性无关特征向量的个数。",
+      ] },
+      { h: "为什么有些矩阵不能对角化" },
+      "当某个特征值的几何重数 &lt; 代数重数时，特征向量不够多、凑不齐一组基，就没法对角化（本页的结果里会直接标出「不可对角化」）。",
+      { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。" },
+    ],
+  },
+];
+
+function renderNoteChips() {
+  const box = el("noteChips");
+  if (!box) return;
+  box.innerHTML = "";
+  for (const n of NOTES) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip note-chip";
+    chip.dataset.note = n.id;
+    chip.textContent = n.title;
+    chip.title = n.lead;
+    chip.addEventListener("click", () => renderNote(n.id));
+    box.appendChild(chip);
+  }
+}
+
+function noteBlocksHtml(blocks) {
+  let html = "";
+  for (const b of blocks) {
+    if (typeof b === "string") html += "<p>" + b + "</p>";
+    else if (b.h) html += "<h4>" + b.h + "</h4>";
+    else if (b.ul) {
+      html += "<ul>" + b.ul.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
+    } else if (b.formula) {
+      html += "<div class='note-formula'>" + b.formula + "</div>";
+    } else if (b.tip) {
+      html += "<div class='note-tip'>" + b.tip + "</div>";
+    }
+  }
+  return html;
+}
+
+/** 在右侧结果区显示一篇讲义（再点「计算」就切回结果）。 */
+function renderNote(id) {
+  const n = NOTES.find((x) => x.id === id);
+  if (!n) return;
+  for (const c of document.querySelectorAll("#noteChips .chip")) {
+    c.classList.toggle("on", c.dataset.note === id);
+  }
+  resultCard.innerHTML =
+    "<h3>" + n.title + " <span class='badge'>" + n.tag + "</span></h3>" +
+    "<p class='note-lead'>" + n.lead + "</p>" +
+    "<div class='notes-body'>" + noteBlocksHtml(n.blocks) + "</div>";
+  lastView = "note";
+  revealResult();
+}
+
+renderNoteChips();
