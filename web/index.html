@@ -424,6 +424,38 @@
       padding: 9px 14px calc(12px + env(safe-area-inset-bottom, 0px));
     }
   }
+  /* 顶栏右侧按钮组：AI Help 与深浅切换并排靠右 */
+  .head-right { display: flex; align-items: center; gap: 8px; }
+
+  /* AI Help 弹窗：纯静态页，浏览器直连 GLM；用现有主题变量，深浅色自适应 */
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex;
+    align-items: center; justify-content: center; padding: 16px;
+    background: rgba(0,0,0,.5); }
+  .modal[hidden] { display: none; }
+  .modal-card { width: min(560px, 100%); max-height: 86vh; overflow: auto;
+    background: var(--panel); border: 1px solid var(--border); border-radius: 14px;
+    box-shadow: 0 18px 50px rgba(0,0,0,.4); padding: 18px 20px; }
+  .modal-head { display: flex; align-items: center; justify-content: space-between;
+    gap: 12px; margin-bottom: 12px; }
+  .modal-head h2 { margin: 0; font-size: 17px; }
+  .ai-key-box, .ai-ask-box { display: flex; flex-direction: column; gap: 10px; }
+  .ai-key-row { display: flex; gap: 8px; align-items: center; }
+  .ai-ask-row { display: flex; }
+  .grow { flex: 1 1 auto; }
+  #aiHelpKeyIn, #aiHelpQ { width: 100%; background: var(--inset); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit;
+    resize: vertical; }
+  #aiHelpKeyIn:focus, #aiHelpQ:focus { outline: none; border-color: var(--accent); background: var(--inset-focus); }
+  .ai-ask-foot { display: flex; align-items: center; gap: 8px; margin-top: 2px; }
+  .ai-answer { white-space: pre-wrap; word-break: break-word; background: var(--inset);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-height: 20px;
+    font-size: 14px; line-height: 1.6; }
+  .ai-answer:empty { display: none; }
+  button.primary { background: var(--accent); color: var(--on-accent);
+    border: 1px solid var(--accent); border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  button.primary:hover { filter: brightness(1.07); }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  #aiHelpModal a { color: var(--accent); }
 </style>
 </head>
 <body>
@@ -432,7 +464,10 @@
     <h1>LA Helper · 线性代数小算</h1>
     <p>本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
   </div>
-  <button id="themeToggle" class="ghost" type="button" title="切换深色 / 浅色模式">浅色</button>
+  <div class="head-right">
+    <button id="aiHelpBtn" class="ghost" type="button" title="用 AI 解答线代问题（需自备 GLM 免费 Key）">AI Help</button>
+    <button id="themeToggle" class="ghost" type="button" title="切换深色 / 浅色模式">浅色</button>
+  </div>
 </header>
 <main>
   <!-- 输入列：桌面宽屏时与结果区左右分栏，让结果拿到整列高度 -->
@@ -590,6 +625,44 @@
   </section>
   </div><!-- /.col-result -->
 </main>
+
+  <!-- AI Help：用 GLM-4-Flash（免费）直连解答线代问题；Key 只存本机 localStorage，
+       不经由任何中转服务器。浏览器直连 open.bigmodel.cn（已验证支持 CORS）。 -->
+  <div id="aiHelpModal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="aiHelpTitle">
+      <div class="modal-head">
+        <h2 id="aiHelpTitle">AI Help · 线代小助手</h2>
+        <button id="aiHelpClose" class="ghost" type="button" title="关闭">✕</button>
+      </div>
+
+      <div id="aiHelpKeyBox" class="ai-key-box" hidden>
+        <p class="hint">首次使用请填入你的 <b>GLM API Key</b>（免费，在
+          <a href="https://open.bigmodel.cn" target="_blank" rel="noopener">open.bigmodel.cn</a>
+          申请，选 <b>GLM-4-Flash</b> 即可无限免费用）。Key 只存在你本机浏览器，不上传任何服务器。</p>
+        <div class="ai-key-row">
+          <input type="password" id="aiHelpKeyIn" class="grow" placeholder="粘贴 GLM API Key（sk-...）" autocomplete="off">
+          <button id="aiHelpSaveKey" class="primary" type="button">保存</button>
+        </div>
+        <p class="hint" id="aiHelpKeyMsg"></p>
+      </div>
+
+      <div id="aiHelpAskBox" class="ai-ask-box" hidden>
+        <div class="ai-ask-row">
+          <textarea id="aiHelpQ" class="grow" maxlength="300" rows="3"
+            placeholder="用中文问一个线代问题，例如：为什么 det(AB)=det(A)det(B)？"></textarea>
+        </div>
+        <div class="ai-ask-foot">
+          <span class="hint" id="aiHelpCount">0 / 300</span>
+          <span class="grow"></span>
+          <button id="aiHelpChangeKey" class="ghost" type="button">更换 Key</button>
+          <button id="aiHelpSend" class="primary" type="button">提问</button>
+        </div>
+        <div id="aiHelpAnswer" class="ai-answer"></div>
+        <p class="hint" id="aiHelpStatus"></p>
+      </div>
+    </div>
+  </div>
+
 <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/heic" hidden>
 <script src="app.js"></script>
 </body>
