@@ -3,6 +3,8 @@
 // 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
 // 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
 const OPS_NEED_B = new Set(["multiply", "add", "sub", "solve", "scalar"]);
+// 行列式的两种算法（同一份核心，只是换 op 名；见 core/det_rank.py）
+const DET_METHOD_OP = { row_reduction: "det", cofactor: "det_cofactor" };
 const MIN_DIM = 1;
 const MAX_DIM = 16;
 const REQUEST_TIMEOUT_MS = 30000;
@@ -30,6 +32,8 @@ const opSelect = el("op");
 const leftSel = el("leftSel");
 const rightSel = el("rightSel");
 const rightWrap = el("rightWrap");
+const detMethodWrap = el("detMethodWrap");
+const detMethod = el("detMethod");
 const showSteps = el("showSteps");
 const showDecimals = el("showDecimals");
 const resultCard = document.querySelector(".result-card");
@@ -572,6 +576,9 @@ function refreshOperandOptions() {
   leftSel.value = names.indexOf(prevL) >= 0 ? prevL : names[0];
   rightSel.value = names.indexOf(prevR) >= 0 ? prevR : (names[1] || names[0]);
   rightWrap.style.display = OPS_NEED_B.has(opSelect.value) ? "" : "none";
+  if (detMethodWrap) {
+    detMethodWrap.style.display = opSelect.value === "det" ? "" : "none";
+  }
 }
 
 function dataOf(name) {
@@ -792,9 +799,13 @@ async function request(payload) {
 
 /** 下拉框路径（主路径）。 */
 async function compute() {
-  const op = opSelect.value;
+  const rawOp = opSelect.value;
+  // 行列式按用户选的算法映射到不同的 op（行变换 / 代数余子式展开）
+  const op = rawOp === "det"
+    ? (DET_METHOD_OP[(detMethod && detMethod.value) || "row_reduction"] || "det")
+    : rawOp;
   const payload = { op: op, A: dataOf(leftSel.value), showSteps: showSteps.checked };
-  if (OPS_NEED_B.has(op)) payload.B = dataOf(rightSel.value);
+  if (OPS_NEED_B.has(rawOp)) payload.B = dataOf(rightSel.value);
   const res = await request(payload);
   if (res) await renderResult(res);
 }

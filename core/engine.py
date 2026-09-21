@@ -116,6 +116,10 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
         elif op == "det":
             d, steps = det_rank.determinant(A, record_steps=show_steps)
             return {"ok": True, "type": "scalar", "value": str(d), "steps": steps}
+        elif op == "det_cofactor":
+            d, steps = det_rank.determinant(A, record_steps=show_steps,
+                                            method="cofactor")
+            return {"ok": True, "type": "scalar", "value": str(d), "steps": steps}
         elif op == "rank":
             r = det_rank.rank(A)
             return {"ok": True, "type": "scalar", "value": str(r), "steps": []}

@@ -433,6 +433,13 @@
         <option value="eigen">特征值 / 特征向量</option>
       </select>
     </label>
+    <!-- 行列式的算法选择：只在「行列式」时出现 -->
+    <label id="detMethodWrap" style="display:none">det 算法
+      <select id="detMethod">
+        <option value="row_reduction">行变换法（推荐）</option>
+        <option value="cofactor">代数余子式展开</option>
+      </select>
+    </label>
     <label>左操作数 <select id="leftSel"></select></label>
     <label id="rightWrap">右操作数 <select id="rightSel"></select></label>
     <label><input type="checkbox" id="showSteps" checked> 显示步骤</label>
@@ -458,7 +465,8 @@
           <tr><td>2 * A　A / 2</td><td>标量乘 · 除以标量</td><td>标量乘（k 写在式子里，不用填 B）</td></tr>
           <tr><td>inv(A)　A^-1</td><td>方阵求逆</td><td>方阵求逆</td></tr>
           <tr><td>A^2　A^0</td><td>矩阵幂（A^0 为单位阵）</td><td>—</td></tr>
-          <tr><td>det(A)</td><td>行列式</td><td>行列式</td></tr>
+          <tr><td>det(A)</td><td>行列式（行变换法）</td><td>行列式</td></tr>
+          <tr><td>cofactor(A)</td><td>行列式（代数余子式展开）</td><td>行列式 + det 算法选「代数余子式展开」</td></tr>
           <tr><td>rank(A)</td><td>秩</td><td>秩</td></tr>
           <tr><td>ref(A)</td><td>行阶梯形</td><td>REF 行阶梯形</td></tr>
           <tr><td>T(A)　transpose(A)</td><td>转置</td><td>转置</td></tr>

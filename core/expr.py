@@ -34,6 +34,7 @@ _MAX_POWER = 64
 _FUNCS = {
     "inv":       (1, 1, "inverse", False),
     "det":       (1, 1, "det", False),
+    "cofactor":  (1, 1, "det_cofactor", False),
     "rank":      (1, 1, "rank", False),
     "ref":       (1, 1, "ref", False),
     "transpose": (1, 1, "transpose", False),
@@ -315,6 +316,9 @@ def _eval(node, lib):
             return inv_mod.pseudo_inverse(M, record_steps=False)[0]
         if node.name.lower() == "det":
             return det_rank.determinant(M, record_steps=False)[0]
+        if node.name.lower() == "cofactor":
+            return det_rank.determinant(M, record_steps=False,
+                                        method="cofactor")[0]
         if node.name.lower() == "rank":
             return det_rank.rank(M)
         if node.name.lower() == "ref":

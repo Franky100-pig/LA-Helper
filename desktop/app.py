@@ -80,6 +80,9 @@ OPS = [
     ("eigen", "特征值 / 特征向量"),
 ]
 OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
+# 行列式有两种算法：下拉框里仍是同一项「行列式 det(A)」，旁边的小下拉切换算法。
+DET_METHODS = ["行变换法（推荐）", "代数余子式展开"]
+DET_METHOD_OPS = {"行变换法（推荐）": "det", "代数余子式展开": "det_cofactor"}
 
 
 # 结果区默认最小行数（比原先更高）；内容超过视口时整窗滚动，结果框本身不内滚
@@ -297,11 +300,19 @@ class LAApp:
         self.op_cb.pack(side="left", padx=(0, 10))
         self.op_cb.bind("<<ComboboxSelected>>", lambda e: self.refresh_operand_options())
 
-        ttk.Label(bar, text="左").pack(side="left", padx=(0, 2))
+        self._left_lbl = ttk.Label(bar, text="左")
+        self._left_lbl.pack(side="left", padx=(0, 2))
         self.left_var = tk.StringVar()
         self.left_cb = ttk.Combobox(bar, textvariable=self.left_var, state="readonly",
                                     width=6)
         self.left_cb.pack(side="left", padx=(0, 8))
+
+        # det 算法下拉：默认隐藏，选了「行列式」才插到「左」标签前面
+        self.det_method_var = tk.StringVar(value=DET_METHODS[0])
+        self.det_method_cb = ttk.Combobox(
+            bar, textvariable=self.det_method_var, state="readonly", width=16,
+            values=DET_METHODS)
+        self._det_cb_shown = False
 
         ttk.Label(bar, text="右").pack(side="left", padx=(0, 2))
         self.right_var = tk.StringVar()
@@ -339,6 +350,22 @@ class LAApp:
             self.right_cb.lift(self.left_cb)
         else:
             self.right_cb.pack_forget()
+        self._sync_det_method()
+
+    def _sync_det_method(self):
+        """只在选中「行列式」时露出算法下拉，插在「左」标签前面。"""
+        need = self._op_key() == "det"
+        if need and not self._det_cb_shown:
+            self.det_method_cb.pack(side="left", padx=(0, 10),
+                                    before=self._left_lbl)
+            self._det_cb_shown = True
+        elif not need and self._det_cb_shown:
+            self.det_method_cb.pack_forget()
+            self._det_cb_shown = False
+
+    def _det_op(self):
+        """当前选的行列式算法对应的 op 名（行变换 / 代数余子式展开）。"""
+        return DET_METHOD_OPS.get(self.det_method_var.get(), "det")
 
     # ---- 矩阵库 --------------------------------------------------------------
     def _build_library(self):
@@ -832,11 +859,13 @@ class LAApp:
 
     # ---- 计算 ----
     def compute_dropdown(self):
-        op = self._op_key()
+        raw_op = self._op_key()
+        # 行列式：按旁边选的算法走不同 op
+        op = self._det_op() if raw_op == "det" else raw_op
         show_steps = self.steps_var.get()
         payload = {"op": op, "A": self.model.data_of(self.left_var.get()),
                    "showSteps": show_steps}
-        if op in OPS_NEED_B:
+        if raw_op in OPS_NEED_B:
             payload["B"] = self.model.data_of(self.right_var.get())
         try:
             res = engine.dispatch(payload)

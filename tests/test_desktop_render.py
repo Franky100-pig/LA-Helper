@@ -207,3 +207,60 @@ def test_theme_restored_from_settings(monkeypatch, tmp_path):
     h._style()
     assert h.theme == "light"
     assert h.colors["bg"] == "#ffffff"
+
+
+# ---------------------------------------------------------------------------
+# 行列式的算法选择：下拉框里仍是「行列式」，旁边的算法下拉决定发哪个 op。
+# 只挂「下拉 -> op」这段纯逻辑，避免构建窗口。
+# ---------------------------------------------------------------------------
+class _FakeVar:
+    def __init__(self, v):
+        self._v = v
+
+    def get(self):
+        return self._v
+
+
+class _DetHarness:
+    _op_key = app_mod.LAApp._op_key
+    _det_op = app_mod.LAApp._det_op
+    compute_dropdown = app_mod.LAApp.compute_dropdown
+
+    def __init__(self, method):
+        self.op_cb = types.SimpleNamespace(
+            current=lambda: [k for k, _ in app_mod.OPS].index("det"))
+        self.det_method_var = _FakeVar(method)
+        self.steps_var = _FakeVar(True)
+        self.left_var = _FakeVar("A")
+        self.right_var = _FakeVar("A")
+        self.model = app_mod.LibraryModel()
+
+    def render_result(self, res):
+        pass
+
+
+def _catch_payload(monkeypatch):
+    seen = {}
+
+    def fake_dispatch(payload):
+        seen.clear()
+        seen.update(payload)
+        return {"ok": True, "type": "scalar", "value": "0", "steps": []}
+
+    monkeypatch.setattr(app_mod.engine, "dispatch", fake_dispatch)
+    return seen
+
+
+def test_det_method_dropdown_selects_the_op(monkeypatch):
+    seen = _catch_payload(monkeypatch)
+    _DetHarness("代数余子式展开").compute_dropdown()
+    assert seen["op"] == "det_cofactor"
+    _DetHarness("行变换法（推荐）").compute_dropdown()
+    assert seen["op"] == "det"
+
+
+def test_det_op_falls_back_to_row_reduction():
+    assert _DetHarness("代数余子式展开")._det_op() == "det_cofactor"
+    assert _DetHarness("行变换法（推荐）")._det_op() == "det"
+    assert _DetHarness("??")._det_op() == "det"      # 未知文本退回默认
+
