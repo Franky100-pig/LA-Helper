@@ -22,10 +22,10 @@ OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
-def _content_version(web_app_js, core):
+def _content_version(web_app_js, core, ai_help_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build)."""
-    blob = json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
+    blob = json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js + ai_help_js
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -193,7 +193,8 @@ def main():
     core = bundle_core()
     web = ROOT / "web"
     web_app_js = (web / "app.js").read_text(encoding="utf-8")
-    ver = _content_version(web_app_js, core)
+    ai_help_js = (web / "ai-help.js").read_text(encoding="utf-8") if (web / "ai-help.js").exists() else ""
+    ver = _content_version(web_app_js, core, ai_help_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -207,6 +208,14 @@ def main():
         encoding="utf-8",
     )
     (OUT / "la-bridge.js").write_text(BRIDGE, encoding="utf-8")
+    # AI Help 独立页：不依赖 Pyodide 引擎，单独复制；脚本引用同样加 ?v 缓存 bust。
+    if (web / "ai-help.html").exists():
+        q = f"?v={ver}" if ver else ""
+        ah = (web / "ai-help.html").read_text(encoding="utf-8")
+        ah = ah.replace('<script src="ai-help.js"></script>', f'<script src="ai-help.js{q}"></script>')
+        (OUT / "ai-help.html").write_text(ah, encoding="utf-8")
+    if (web / "ai-help.js").exists():
+        (OUT / "ai-help.js").write_text((web / "ai-help.js").read_text(encoding="utf-8"), encoding="utf-8")
     # 关掉 GitHub Pages 的 Jekyll 处理（否则以下划线开头的文件会被忽略，
     # 且 Jekyll 可能改写内容）。纯静态站不需要它。
     (OUT / ".nojekyll").write_text("", encoding="utf-8")

@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Help · LA Helper</title>
+<script>
+  // 尽早确定主题，避免首帧闪一下（与主页同一套 localStorage key）
+  (function () {
+    try {
+      var t = localStorage.getItem("la-theme");
+      if (t !== "light" && t !== "dark") {
+        t = window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    } catch (e) { /* 隐私模式：走默认深色 */ }
+  })();
+</script>
+<style>
+  :root {           /* 默认（深色） */
+    --bg: #0b0f14; --panel: #151c25; --panel2: #1e2732;
+    --accent: #4ea1ff; --accent2: #ffb454; --text: #e6edf3; --muted: #8b98a5;
+    --border: #2b3644; --ok: #3fb950; --bad: #ff6b6b;
+    --inset: #0e1620; --inset-focus: #101b26;
+    --header-grad: linear-gradient(90deg, #121b26, #151c25);
+    --on-accent: #08121f;
+  }
+  :root[data-theme="light"] {   /* 浅色：纯白底 */
+    --bg: #ffffff; --panel: #ffffff; --panel2: #f6f8fa;
+    --accent: #2f74b5; --accent2: #a8621c; --text: #1f2328; --muted: #5f6b76;
+    --border: #d9dee3; --ok: #1a7f37; --bad: #cf222e;
+    --inset: #f6f8fa; --inset-focus: #eef2f6;
+    --header-grad: linear-gradient(90deg, #ffffff, #f6f8fa);
+    --on-accent: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { min-height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; line-height: 1.5; }
+
+  header { padding: 18px 24px; border-bottom: 1px solid var(--border);
+    background: var(--header-grad); display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+  .head-left { min-width: 0; }
+  header h1 { margin: 0; font-size: 20px; letter-spacing: .5px; }
+  header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+  .head-right { display: flex; align-items: center; gap: 8px; }
+  /* 次要按钮 / 链接：长成 .ghost 的样子 */
+  .ghost { background: var(--panel2); color: var(--text); font-weight: 500;
+    border: 1px solid var(--border); padding: 6px 12px; font-size: 13px; border-radius: 8px;
+    cursor: pointer; text-decoration: none; display: inline-flex; align-items: center; }
+  .ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  main { max-width: 720px; margin: 0 auto; padding: 24px; }
+  .ai-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
+  .hint { color: var(--muted); font-size: 13px; }
+  .ai-key-box, .ai-ask-box { display: flex; flex-direction: column; gap: 12px; }
+  .ai-key-row { display: flex; gap: 8px; align-items: center; }
+  .grow { flex: 1 1 auto; }
+  #aiHelpKeyIn, #aiHelpQ { width: 100%; background: var(--inset); color: var(--text);
+    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; font: inherit; resize: vertical; }
+  #aiHelpKeyIn:focus, #aiHelpQ:focus { outline: none; border-color: var(--accent); background: var(--inset-focus); }
+  .ai-ask-foot { display: flex; align-items: center; gap: 8px; }
+  .ai-answer { white-space: pre-wrap; word-break: break-word; background: var(--inset);
+    border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-height: 20px;
+    font-size: 14px; line-height: 1.6; }
+  .ai-answer:empty { display: none; }
+  button.primary { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
+    border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
+  button.primary:hover { filter: brightness(1.07); }
+  button.primary:disabled { opacity: .5; cursor: not-allowed; }
+  a { color: var(--accent); }
+
+  @media (max-width: 600px) {
+    header { padding: 12px 14px; }
+    header h1 { font-size: 17px; }
+    header p { font-size: 12px; }
+    main { padding: 14px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="head-left">
+    <h1>AI Help · 线代小助手</h1>
+    <p>用 GLM-4-Flash（免费）解答你的线代问题</p>
+  </div>
+  <div class="head-right">
+    <a class="ghost" href="index.html" title="返回 LA Helper">← 返回</a>
+    <button id="themeToggle" class="ghost" type="button" title="切换深色 / 浅色模式">浅色</button>
+  </div>
+</header>
+
+<main>
+  <div class="ai-card">
+    <!-- 首次使用：填自己的 GLM Key（仅存本机 localStorage） -->
+    <div id="aiHelpKeyBox" class="ai-key-box">
+      <p class="hint">首次使用请填入你的 <b>GLM API Key</b>（免费，在
+        <a href="https://open.bigmodel.cn" target="_blank" rel="noopener">open.bigmodel.cn</a>
+        申请，选 <b>GLM-4-Flash</b> 即可无限免费用）。Key 只存在你本机浏览器，不上传任何服务器。</p>
+      <div class="ai-key-row">
+        <input type="password" id="aiHelpKeyIn" class="grow" placeholder="粘贴 GLM API Key（sk-...）" autocomplete="off">
+        <button id="aiHelpSaveKey" class="primary" type="button">保存</button>
+      </div>
+      <p class="hint" id="aiHelpKeyMsg"></p>
+    </div>
+
+    <!-- 已配置 Key：提问框 -->
+    <div id="aiHelpAskBox" class="ai-ask-box" hidden>
+      <div class="ai-ask-row">
+        <textarea id="aiHelpQ" class="grow" maxlength="300" rows="4"
+          placeholder="用中文问一个线代问题，例如：为什么 det(AB)=det(A)det(B)？"></textarea>
+      </div>
+      <div class="ai-ask-foot">
+        <span class="hint" id="aiHelpCount">0 / 300</span>
+        <span class="grow"></span>
+        <button id="aiHelpChangeKey" class="ghost" type="button">更换 Key</button>
+        <button id="aiHelpSend" class="primary" type="button">提问</button>
+      </div>
+      <div id="aiHelpAnswer" class="ai-answer"></div>
+      <p class="hint" id="aiHelpStatus"></p>
+    </div>
+  </div>
+</main>
+
+<script src="ai-help.js"></script>
+</body>
+</html>
