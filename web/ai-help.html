@@ -64,6 +64,9 @@
     border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-height: 20px;
     font-size: 14px; line-height: 1.6; }
   .ai-answer:empty { display: none; }
+  /* KaTeX 渲染的数学：独立公式居中、可横向滚动；行内公式不换行打断 */
+  .ai-math-block { display: block; margin: 10px 0; text-align: center; overflow-x: auto; }
+  .ai-answer .katex { text-align: initial; }
   button.primary { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
     border-radius: 8px; padding: 8px 14px; font: inherit; cursor: pointer; }
   button.primary:hover { filter: brightness(1.07); }
@@ -77,6 +80,14 @@
     main { padding: 14px; }
   }
 </style>
+  <!-- 数学公式渲染：KaTeX。优先 jsDelivr，加载失败时回落到国内 npmmirror 镜像；
+       若两个 CDN 都不可用，ai-help.js 会优雅降级为“原始文本 + $…$”显示，不会报错白屏。 -->
+  <link rel="stylesheet" id="katexCss"
+        href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+        onerror="this.onerror=null;this.href='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.css'">
+  <script defer
+          src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+          onerror="this.onerror=null;var s=document.createElement('script');s.src='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.js';document.head.appendChild(s)"></script>
 </head>
 <body>
 <header>

@@ -97,6 +97,35 @@ const el = (id) => document.getElementById(id);
     setTimeout(() => qEl.focus(), 30);
   }
 
+  // 把模型返回的文本渲染成可读公式。模型被要求用 $...$（行内）/ $$...$$（独立）
+  // 写 LaTeX，也兼容 \(...\) / \[...\]。KaTeX 没加载到时（两个 CDN 都挂了）
+  // 直接回退为纯文本，不会白屏。
+  const MATH_RE = /\$\$([\s\S]+?)\$\$|\\\[([\s\S]+?)\\\]|\\\(([\s\S]+?)\\\)|\$(?!\$)([^$\n]+?)\$/g;
+  function renderAnswer(text) {
+    answerEl.textContent = "";
+    if (!text) return;
+    if (!window.katex) { answerEl.textContent = text; return; }
+    let last = 0, m;
+    MATH_RE.lastIndex = 0;
+    while ((m = MATH_RE.exec(text))) {
+      if (m.index > last) {
+        answerEl.appendChild(document.createTextNode(text.slice(last, m.index)));
+      }
+      const tex = (m[1] ?? m[2] ?? m[3] ?? m[4]).trim();
+      const display = m[1] !== undefined || m[2] !== undefined;
+      const node = document.createElement(display ? "div" : "span");
+      node.className = display ? "ai-math-block" : "ai-math";
+      try {
+        window.katex.render(tex, node, { throwOnError: false, displayMode: display });
+      } catch (_) {
+        node.textContent = m[0]; // 渲染失败就原样显示该段
+      }
+      answerEl.appendChild(node);
+      last = MATH_RE.lastIndex;
+    }
+    if (last < text.length) answerEl.appendChild(document.createTextNode(text.slice(last)));
+  }
+
   function updateCount() {
     const n = qEl.value.length;
     countEl.textContent = n + " / " + MAX;
@@ -164,7 +193,7 @@ const el = (id) => document.getElementById(id);
       }
       const ans = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
       statusEl.textContent = "";
-      answerEl.textContent = ans || "（模型没有返回内容）";
+      renderAnswer(ans || "（模型没有返回内容）");
     } catch (err) {
       statusEl.textContent = "网络错误：" + err.message + "（需能访问 open.bigmodel.cn）";
     } finally {
