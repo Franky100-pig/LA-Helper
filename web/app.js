@@ -747,6 +747,15 @@ async function renderResult(res) {
     html += `<div class="error">不存在：${escapeHtml(res.note)}</div>`;
   } else if (res.type === "eigen") {
     html += await renderEigen(res);
+  } else if (res.type === "cofactor") {
+    html += "<h3>余子式矩阵 C（C(i,j) = (−1)^(i+j)·M(i,j)）</h3>" + renderMatrix(res.C);
+    html += "<h3>伴随矩阵 adj(A) = Cᵀ</h3>" + renderMatrix(res.adj);
+    const dOk = res.det !== "0";
+    html += "<p class='hint'>det(A) = " + escapeHtml(fmtCell(res.det)) + "；"
+      + (dOk
+          ? "当 det(A) ≠ 0 时，A⁻¹ = adj(A) / det(A)。"
+          : "（det = 0，矩阵不可逆，A⁻¹ 不存在）。")
+      + "</p>";
   }
   if (res.steps && res.steps.length) {
     let steps = "<h4>计算步骤</h4><ol class='steps'>";
@@ -1085,6 +1094,46 @@ const NOTES = [
       { h: "为什么有些矩阵不能对角化" },
       "当某个特征值的几何重数 &lt; 代数重数时，特征向量不够多、凑不齐一组基，就没法对角化（本页的结果里会直接标出「不可对角化」）。",
       { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。" },
+    ],
+  },
+  {
+    id: "adjugate",
+    title: "伴随矩阵与求逆公式",
+    tag: "可逆性",
+    lead: "把余子式矩阵转置一下得到伴随矩阵 adj(A)，它直接给出求逆公式 A⁻¹ = adj(A)/det(A)。",
+    blocks: [
+      { h: "从余子式矩阵到伴随矩阵" },
+      "本页新增了「余子式矩阵 C &amp; 伴随矩阵 adj(A)」这个运算：C 的每个元素 C(i,j) = (−1)^(i+j)·M(i,j)；而 <b>伴随矩阵 adj(A) = Cᵀ</b>（把 C 转置）。",
+      { h: "为什么它能求逆" },
+      "代数上有恒等式 A · adj(A) = adj(A) · A = det(A) · I。只要 det(A) ≠ 0，两边同除以 det(A) 就得到 A⁻¹ = adj(A)/det(A)。这就是伴随求逆法。",
+      { formula: "A⁻¹ = adj(A) / det(A)　（det(A) ≠ 0）" },
+      { h: "它和 Gauss 求逆的关系" },
+      "两者结果必然相同。但伴随法要算 n² 个余子式（每个都是 n−1 阶行列式），是 O(n·n!)；高斯消元是 O(n³)。所以：<b>伴随法用来理解原理和写公式，Gauss 法用来真算</b>。",
+      { h: "三个结论打包带走" },
+      { ul: [
+        "det(A) = 0 ⟺ adj(A) 退化（不可逆时伴随矩阵要么全 0、要么秩 ≤ 1）",
+        "逆存在 ⟺ det(A) ≠ 0 ⟺ adj(A) ≠ 0",
+        "2×2 有超好记的口诀：主对角互换、副对角变号，再除以 det。",
+      ] },
+      { tip: "在本页试一下：填一个 2×2 或 3×3 矩阵，操作选「余子式矩阵 C &amp; 伴随矩阵 adj(A)」；再把同一个矩阵拿去「方阵求逆 A⁻¹」，对照着看 adj(A)/det 和 Gauss 逆是否一致。" },
+    ],
+  },
+  {
+    id: "orthogonal",
+    title: "正交矩阵与正交变换",
+    tag: "矩阵运算",
+    lead: "正交矩阵就是「保长度、保角度」的变换：转置等于逆，QᵀQ = I。",
+    blocks: [
+      { h: "定义" },
+      "方阵 Q 叫正交矩阵，当且仅当它的列（也等价于行）两两正交且都是单位向量。等价地：<b>QᵀQ = I，也就是 Qᵀ = Q⁻¹</b>。",
+      { formula: "Qᵀ · Q = I　⇔　Q⁻¹ = Qᵀ" },
+      { h: "几何意义：刚性运动" },
+      "正交变换只做<b>旋转和反射</b>，既不拉伸也不压扁：任意向量被它一乘，长度不变（‖Qx‖ = ‖x‖），向量之间的夹角也不变。所以「正交」=「不改变内积」。",
+      { h: "行列式只有 ±1" },
+      "因为 det(QᵀQ) = det(I) = 1，而 det(Qᵀ) = det(Q)，所以 det(Q)² = 1 → det(Q) = 1 或 −1。det = 1 是纯旋转，det = −1 含一次反射。",
+      { h: "和特征值的关系" },
+      "正交矩阵的特征值都落在单位圆上（复数），模长全是 1；实特征值只能是 ±1。旋转矩阵的复特征值就是 e^(±iθ)。",
+      { tip: "在本页试一下：填一个旋转矩阵 [[cosθ,−sinθ],[sinθ,cosθ]]（把 θ 换成具体数，如 30°→√3/2 与 1/2），算它的转置和逆，验证 Qᵀ = Q⁻¹；再算特征值，会看到 e^(±iθ)。" },
     ],
   },
 ];

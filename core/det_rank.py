@@ -142,3 +142,47 @@ def _determinant_cofactor(A, record_steps=True):
     det = sp.simplify(_cofactor_value([row[:] for row in A.data], steps, 0))
     steps.append(step(f"det(A) = {fmt_expr(det)}"))
     return det, steps
+
+
+# --- 余子式矩阵 / 伴随矩阵 ---------------------------------------------------
+
+def cofactor_matrix(A, record_steps=False):
+    """余子式矩阵 C 与伴随矩阵 adj(A)=Cᵀ。
+
+    C(i,j) = (−1)^(i+j) · det(划掉第 i 行第 j 列的余子式 M(i,j))。
+    伴随矩阵 adj(A) = Cᵀ，配合 det(A) 可写出 A⁻¹ = adj(A)/det(A)（det≠0 时）。
+
+    n 稍大时 O(n·n!) 会爆炸（要算 n² 个 n−1 阶行列式），沿用行列式代数余子式
+    展开的上限 MAX_COFACTOR_DIM；超过就在引擎层提示改用「方阵求逆 A⁻¹」。
+    """
+    n = A.rows
+    if not A.is_square():
+        raise ValueError(f"余子式矩阵需要方阵，收到 {A.shape}")
+    if n > MAX_COFACTOR_DIM:
+        raise ValueError(
+            f"余子式矩阵最多支持 {MAX_COFACTOR_DIM}×{MAX_COFACTOR_DIM}"
+            f"（当前 {n}×{n}）；这么大的矩阵建议改用「方阵求逆 A⁻¹」")
+    data = A.data
+    C = [[None] * n for _ in range(n)]
+    adj = [[None] * n for _ in range(n)]
+    steps = []
+    for i in range(n):
+        for j in range(n):
+            minor = _minor(data, i, j)
+            Mn = sp.simplify(sp.Matrix(minor).det())
+            sgn = 1 if (i + j) % 2 == 0 else -1
+            c = sgn * Mn
+            C[i][j] = c
+            adj[j][i] = c  # adj(A) = Cᵀ
+            if record_steps and n <= 5:
+                steps.append(step(
+                    f"C({i + 1},{j + 1}) = (−1)^({i + 1}+{j + 1}) · "
+                    f"det(划掉第 {i + 1} 行第 {j + 1} 列) "
+                    f"= {fmt_expr(sgn)} · {fmt_expr(Mn)} = {fmt_expr(c)}",
+                    minor))
+    det = sp.simplify(A.to_sympy().det())
+    if record_steps:
+        steps.append(step(
+            f"余子式矩阵 C 已求出（见上）。伴随矩阵 adj(A) = Cᵀ；"
+            f"当 det(A) ≠ 0 时 A⁻¹ = adj(A)/det(A)。"))
+    return C, adj, det, steps

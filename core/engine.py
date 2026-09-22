@@ -120,6 +120,12 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             d, steps = det_rank.determinant(A, record_steps=show_steps,
                                             method="cofactor")
             return {"ok": True, "type": "scalar", "value": str(d), "steps": steps}
+        elif op == "cofactor_matrix":
+            C, adj, det, steps = det_rank.cofactor_matrix(
+                A, record_steps=show_steps)
+            return {"ok": True, "type": "cofactor",
+                    "C": _mat(Matrix(C)), "adj": _mat(Matrix(adj)),
+                    "det": str(det), "steps": steps}
         elif op == "rank":
             r = det_rank.rank(A)
             return {"ok": True, "type": "scalar", "value": str(r), "steps": []}
