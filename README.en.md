@@ -182,13 +182,20 @@ The web edition only listens on `127.0.0.1`; it is not a service meant for the p
 internet — do not expose it to your LAN or put it behind a reverse proxy. All matrix
 computation happens inside the local process / browser sandbox and **sends no data**.
 
-**The one exception: importing from a photo.** When you click "Import from image",
-that image is sent directly to the Gemini (Google) API you configured for recognition;
-nothing else is ever sent. The API key is stored only on your machine and is sent to
-Google only with that request, through the `x-goog-api-key` header — it never passes
-through any third-party server and is never written into a URL. If you would rather
-not make any network call, simply don't press that button; every other feature remains
-fully offline.
+**Two exceptions, both triggered by you and both entirely avoidable:**
+
+1. **Importing from a photo.** When you click "Import from image", that image is sent
+   directly to the Gemini (Google) API you configured for recognition. The API key is
+   stored only on your machine and is sent to Google only with that request, through
+   the `x-goog-api-key` header — it never passes through any third-party server and is
+   never written into a URL.
+2. **AI Help (web edition).** When you ask a question on the AI Help page, the question
+   you typed (plus a fixed system prompt) is sent to the GLM (Zhipu) API you configured.
+   The GLM key lives only in your browser's `localStorage` and goes straight to
+   `open.bigmodel.cn` in an `Authorization` header — no intermediary server involved.
+
+If you would rather not make any network call, simply don't use these two buttons;
+every other feature remains fully offline.
 
 ## Roadmap
 - [ ] More factorisations (QR / SVD), Gram-Schmidt, least squares

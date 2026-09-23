@@ -81,13 +81,20 @@
   }
 </style>
   <!-- 数学公式渲染：KaTeX。优先 jsDelivr，加载失败时回落到国内 npmmirror 镜像；
-       若两个 CDN 都不可用，ai-help.js 会优雅降级为“原始文本 + $…$”显示，不会报错白屏。 -->
+       若两个 CDN 都不可用，ai-help.js 会优雅降级为“原始文本 + $…$”显示，不会报错白屏。
+       两个源都带 integrity(SRI)：本页把 GLM Key 存在 localStorage，若 CDN 被投毒
+       注入脚本就能读走它，SRI 可确保只有字节完全匹配的 KaTeX 才被执行。
+       （jsDelivr 与 npmmirror 的 dist 产物已验证字节一致，故回落源共用同一哈希。） -->
   <link rel="stylesheet" id="katexCss"
         href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+        integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+"
+        crossorigin="anonymous" referrerpolicy="no-referrer"
         onerror="this.onerror=null;this.href='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.css'">
   <script defer
           src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
-          onerror="this.onerror=null;var s=document.createElement('script');s.src='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.js';document.head.appendChild(s)"></script>
+          integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg"
+          crossorigin="anonymous" referrerpolicy="no-referrer"
+          onerror="this.onerror=null;var s=document.createElement('script');s.src='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.js';s.integrity='sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg';s.crossOrigin='anonymous';document.head.appendChild(s)"></script>
 </head>
 <body>
 <header>

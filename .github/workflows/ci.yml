@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# 最小权限：CI 只需读代码跑测试，不需要写任何东西。
+# 不显式声明会沿用仓库默认权限（可能比实际需要的宽）。
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

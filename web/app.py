@@ -83,43 +83,54 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self._send(404, {"error": "not found"})
 
-    def _serve_compute(self):
+    def _read_json_body(self):
+        """Validate + read + parse the request body for *every* API route.
+
+        Returns ``(status, payload)``; ``status == 200`` means ``payload`` is the
+        parsed object. Both routes must go through this so the limits cannot
+        drift apart (``/api/format`` used to skip the size cap entirely).
+
+        Two guards matter:
+        * negative Content-Length would make ``rfile.read(-1)`` block until EOF,
+          pinning a worker thread forever;
+        * an oversized body would otherwise be buffered in full before parsing.
+        """
         try:
             length = int(self.headers.get("Content-Length", 0))
         except ValueError:
-            self._send(400, {"ok": False, "error": "bad Content-Length"})
-            return
+            return 400, {"ok": False, "error": "bad Content-Length"}
+        if length < 0:
+            self.close_connection = True
+            return 400, {"ok": False, "error": "invalid Content-Length"}
         if length > MAX_BODY:
-            self._send(413, {"ok": False, "error": f"请求体过大（>{MAX_BODY} 字节）"})
-            return
+            self.close_connection = True
+            return 413, {"ok": False, "error": f"请求体过大（>{MAX_BODY} 字节）"}
         raw = self.rfile.read(length) if length else b"{}"
         try:
             req = json.loads(raw.decode("utf-8"))
         except Exception:
-            self._send(400, {"ok": False, "error": "bad JSON"})
-            return
+            return 400, {"ok": False, "error": "bad JSON"}
         if not isinstance(req, dict):
-            self._send(400, {"ok": False, "error": "bad request"})
+            return 400, {"ok": False, "error": "bad request"}
+        return 200, req
+
+    def _serve_compute(self):
+        status, req = self._read_json_body()
+        if status != 200:
+            self._send(status, req)
             return
         # One route for both entry points: {"op": ...} from the dropdown,
         # {"expr": ...} from the expression box.
         self._send(200, dispatch(req))
 
     def _serve_format(self):
-        try:
-            length = int(self.headers.get("Content-Length", 0))
-        except ValueError:
-            self._send(400, {"error": "bad Content-Length"})
+        status, body = self._read_json_body()
+        if status != 200:
+            self._send(status, body)
             return
-        raw = self.rfile.read(length) if length else b"{}"
-        try:
-            body = json.loads(raw.decode("utf-8"))
-            s = str(body.get("s", ""))
-            decimals = bool(body.get("decimals", False))
-            mode = str(body.get("mode", "html"))
-        except Exception:
-            self._send(400, {"error": "bad JSON"})
-            return
+        s = str(body.get("s", ""))
+        decimals = bool(body.get("decimals", False))
+        mode = str(body.get("mode", "html"))
         if mode == "step":
             html = format_math.step_html(s)
         else:

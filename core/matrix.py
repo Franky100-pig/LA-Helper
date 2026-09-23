@@ -87,8 +87,18 @@ def _parse_cell(s, allow_symbols=False):
         _check_exponent(s)
         try:
             return sp.Rational(s)
+        except ZeroDivisionError:
+            # "1/0" matches the number whitelist but has a zero denominator;
+            # SymPy's own message ("string-float not recognized") is meaningless
+            # to a student, so say it plainly instead.
+            raise ValueError(f"分母不能为 0：{s!r}")
         except Exception:
-            return sp.Rational(sp.Float(s))
+            try:
+                return sp.Rational(sp.Float(s))
+            except Exception:
+                raise ValueError(
+                    f"无法识别的输入 {s!r}；仅支持整数、小数、分数（如 1/3）"
+                )
     if allow_symbols and _SYMBOL_RE.match(s):
         return sp.Symbol(s)
     raise ValueError(
