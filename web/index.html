@@ -4,8 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LA Helper · 线性代数小算</title>
+<!-- 字典与讲义放在 head：它们只是数据 + 函数，先加载好，页面文案才不会先闪一下中文 -->
+<script src="i18n.js"></script>
+<script src="notes.js"></script>
 <script>
-  // 尽早确定主题，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
+  // 尽早确定主题与语言，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
   (function () {
     try {
       var t = localStorage.getItem("la-theme");
@@ -14,6 +17,12 @@
       }
       document.documentElement.setAttribute("data-theme", t);
     } catch (e) { /* 隐私模式等拿不到 localStorage：走默认深色 */ }
+    try {
+      // 语言判定只在 i18n.js 里实现一份，这里直接用，避免两处逻辑漂移
+      var l = window.LA_I18N.get();
+      document.documentElement.setAttribute("data-lang", l);
+      document.documentElement.setAttribute("lang", l === "zh" ? "zh-CN" : "en");
+    } catch (e) { /* 拿不到就保持默认中文 */ }
   })();
 </script>
 <style>
@@ -433,12 +442,20 @@
 <body>
 <header>
   <div class="head-left">
-    <h1>LA Helper · 线性代数小算</h1>
-    <p>本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
+    <h1 data-i18n="app.title">LA Helper · 线性代数小算</h1>
+    <p data-i18n="app.tagline">本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
   </div>
   <div class="head-right">
-    <a id="aiHelpBtn" class="ghost" href="ai-help.html" title="用 AI 解答线代问题（需自备 GLM 免费 Key）">AI Help</a>
-    <button id="themeToggle" class="ghost" type="button" title="切换深色 / 浅色模式">浅色</button>
+    <a id="aiHelpBtn" class="ghost" href="ai-help.html"
+       data-i18n="app.aiHelp" data-i18n-attrs="title:app.aiHelpTip"
+       title="用 AI 解答线代问题（需自备 GLM 免费 Key）">AI Help</a>
+    <button id="langToggle" class="ghost" type="button"
+            data-i18n-attrs="title:app.langTip" title="切换中文 / English">EN</button>
+    <!-- 主题按钮的文案由 initTheme 决定（显示「点了会切到」的模式），
+         所以这里不给 data-i18n，只让 title 跟着语言走 -->
+    <button id="themeToggle" class="ghost" type="button"
+            data-i18n-attrs="title:theme.tip"
+            title="切换深色 / 浅色模式">浅色</button>
   </div>
 </header>
 <main>
@@ -446,69 +463,65 @@
   <div class="col-input">
   <!-- 下拉框路径：表达式只是它的快捷键，两条路走同一个引擎操作 -->
   <section class="controls">
-    <label>操作
+    <label><span data-i18n="op.label">操作</span>
       <select id="op">
-        <option value="multiply">矩阵乘法 A×B</option>
-        <option value="add">加法 A+B</option>
-        <option value="sub">减法 A−B</option>
-        <option value="transpose">转置 Aᵀ</option>
-        <option value="scalar">标量乘 k·A（k 填在 B 左上角）</option>
-        <option value="inverse">方阵求逆 A⁻¹</option>
-        <option value="left_inverse">左逆</option>
-        <option value="right_inverse">右逆</option>
-        <option value="pseudo_inverse">伪逆 A⁺</option>
-        <option value="lu">LU 分解</option>
-        <option value="solve">增广矩阵求解 Ax=b</option>
-        <option value="ref">REF 行阶梯形</option>
-        <option value="det">行列式 det(A)</option>
-        <option value="cofactor_matrix">余子式矩阵 C &amp; 伴随矩阵 adj(A)</option>
-        <option value="rank">秩 rank(A)</option>
-        <option value="eigen">特征值 / 特征向量</option>
+        <option value="multiply" data-i18n="op.multiply">矩阵乘法 A×B</option>
+        <option value="add" data-i18n="op.add">加法 A+B</option>
+        <option value="sub" data-i18n="op.sub">减法 A−B</option>
+        <option value="transpose" data-i18n="op.transpose">转置 Aᵀ</option>
+        <option value="scalar" data-i18n="op.scalar">标量乘 k·A（k 填在 B 左上角）</option>
+        <option value="inverse" data-i18n="op.inverse">方阵求逆 A⁻¹</option>
+        <option value="left_inverse" data-i18n="op.left_inverse">左逆</option>
+        <option value="right_inverse" data-i18n="op.right_inverse">右逆</option>
+        <option value="pseudo_inverse" data-i18n="op.pseudo_inverse">伪逆 A⁺</option>
+        <option value="lu" data-i18n="op.lu">LU 分解</option>
+        <option value="solve" data-i18n="op.solve">增广矩阵求解 Ax=b</option>
+        <option value="ref" data-i18n="op.ref">REF 行阶梯形</option>
+        <option value="det" data-i18n="op.det">行列式 det(A)</option>
+        <option value="cofactor_matrix" data-i18n="op.cofactor_matrix">余子式矩阵 C &amp; 伴随矩阵 adj(A)</option>
+        <option value="rank" data-i18n="op.rank">秩 rank(A)</option>
+        <option value="eigen" data-i18n="op.eigen">特征值 / 特征向量</option>
       </select>
     </label>
     <!-- 行列式的算法选择：只在「行列式」时出现 -->
-    <label id="detMethodWrap" style="display:none">det 算法
+    <label id="detMethodWrap" style="display:none"><span data-i18n="detMethod.label">det 算法</span>
       <select id="detMethod">
-        <option value="row_reduction">行变换法（推荐）</option>
-        <option value="cofactor">代数余子式展开</option>
+        <option value="row_reduction" data-i18n="detMethod.row_reduction">行变换法（推荐）</option>
+        <option value="cofactor" data-i18n="detMethod.cofactor">代数余子式展开</option>
       </select>
     </label>
-    <label>左操作数 <select id="leftSel"></select></label>
-    <label id="rightWrap">右操作数 <select id="rightSel"></select></label>
-    <label><input type="checkbox" id="showSteps" checked> 显示步骤</label>
-    <label><input type="checkbox" id="showDecimals"> 小数显示</label>
-    <button id="compute">计算</button>
+    <label><span data-i18n="operand.left">左操作数</span> <select id="leftSel"></select></label>
+    <label id="rightWrap"><span data-i18n="operand.right">右操作数</span> <select id="rightSel"></select></label>
+    <label><input type="checkbox" id="showSteps" checked> <span data-i18n="opt.showSteps">显示步骤</span></label>
+    <label><input type="checkbox" id="showDecimals"> <span data-i18n="opt.showDecimals">小数显示</span></label>
+    <button id="compute" data-i18n="btn.compute">计算</button>
   </section>
 
   <!-- 表达式快捷键 -->
   <section class="controls expr-bar">
-    <label class="grow">表达式
-      <input id="exprIn" type="text" placeholder="inv(A) * B   或   det(A)   A^2   2*A - B"
+    <label class="grow"><span data-i18n="expr.label">表达式</span>
+      <input id="exprIn" type="text"
+             placeholder="inv(A) * B   或   det(A)   A^2   2*A - B"
+             data-i18n-attrs="placeholder:expr.placeholder"
              autocomplete="off" autocapitalize="off" spellcheck="false">
     </label>
-    <button id="runExpr">运行</button>
+    <button id="runExpr" data-i18n="btn.runExpr">运行</button>
     <span class="hint" id="exprHint"></span>
     <details class="guide">
-      <summary>快捷键指南（点开）</summary>
+      <summary data-i18n="guide.summary">快捷键指南（点开）</summary>
       <div class="guide-body">
         <table class="guide-table">
-          <tr><th>写法</th><th>含义</th><th>下拉框里对应的操作</th></tr>
-          <tr><td>A + B / A - B</td><td>矩阵加减</td><td>加法 / 减法</td></tr>
-          <tr><td>A * B</td><td>矩阵乘法</td><td>矩阵乘法</td></tr>
-          <tr><td>2 * A　A / 2</td><td>标量乘 · 除以标量</td><td>标量乘（k 写在式子里，不用填 B）</td></tr>
-          <tr><td>inv(A)　A^-1</td><td>方阵求逆</td><td>方阵求逆</td></tr>
-          <tr><td>A^2　A^0</td><td>矩阵幂（A^0 为单位阵）</td><td>—</td></tr>
-          <tr><td>det(A)</td><td>行列式（行变换法）</td><td>行列式</td></tr>
-          <tr><td>cofactor(A)</td><td>行列式（代数余子式展开）</td><td>行列式 + det 算法选「代数余子式展开」</td></tr>
-          <tr><td>rank(A)</td><td>秩</td><td>秩</td></tr>
-          <tr><td>ref(A)</td><td>行阶梯形</td><td>REF 行阶梯形</td></tr>
-          <tr><td>T(A)　transpose(A)</td><td>转置</td><td>转置</td></tr>
-          <tr><td>pinv(A)</td><td>伪逆</td><td>伪逆</td></tr>
-          <tr><td>lu(A)</td><td>LU 分解</td><td>LU 分解</td></tr>
-          <tr><td>solve(A, b)</td><td>解 Ax = b</td><td>增广矩阵求解</td></tr>
-          <tr><td>eigen(A)</td><td>特征值 / 特征向量</td><td>特征值 / 特征向量</td></tr>
+          <thead>
+            <tr>
+              <th data-i18n="guide.thSyntax">写法</th>
+              <th data-i18n="guide.thMeaning">含义</th>
+              <th data-i18n="guide.thOp">下拉框里对应的操作</th>
+            </tr>
+          </thead>
+          <!-- 14 行对照表由 app.js 按当前语言渲染（文案只在 i18n.js 里存一份） -->
+          <tbody id="guideRows"></tbody>
         </table>
-        <p class="hint">
+        <p class="hint" data-i18n-html="guide.note">
           可以连着写：<code>inv(A) * B - C</code>、<code>det(A * B)</code>、<code>3 * inv(A)</code>。
           <code>lu</code> / <code>solve</code> / <code>eigen</code> 的结果不止一项，只能单独使用。
           上面每一行都对应下拉框里的同一个操作，两条路算出来的结果完全一致。
@@ -519,45 +532,47 @@
 
   <!-- 矩阵库：命名矩阵，可增删改名，改尺寸不丢数据 -->
   <section class="controls lib-bar">
-    <span class="lib-label">矩阵库</span>
+    <span class="lib-label" data-i18n="lib.label">矩阵库</span>
     <div id="libChips" class="chips"></div>
-    <button id="openSettings" class="ghost" title="设置 Gemini API Key">设置</button>
-    <button id="addMat" class="ghost">＋ 新增</button>
+    <button id="openSettings" class="ghost" data-i18n="btn.settings"
+            data-i18n-attrs="title:btn.settingsTip" title="设置 Gemini API Key">设置</button>
+    <button id="addMat" class="ghost" data-i18n="btn.addMat">＋ 新增</button>
   </section>
 
   <section id="settingsPanel" class="controls settings-panel">
-    <h3>设置（Gemini API Key 仅存于本机浏览器）</h3>
+    <h3 data-i18n="settings.h3">设置（Gemini API Key 仅存于本机浏览器）</h3>
     <div class="settings-row">
-      <label>API Key
-        <input id="apiKeyIn" type="text" placeholder="粘贴 aistudio.google.com 免费获取的 key" autocomplete="off" spellcheck="false">
+      <label><span data-i18n="settings.apiKey">API Key</span>
+        <input id="apiKeyIn" type="text" placeholder="粘贴 aistudio.google.com 免费获取的 key"
+               data-i18n-attrs="placeholder:settings.apiKeyPh" autocomplete="off" spellcheck="false">
       </label>
-      <label>模型
+      <label><span data-i18n="settings.model">模型</span>
         <select id="modelSel">
           <option value="gemini-2.5-flash">gemini-2.5-flash（默认）</option>
           <option value="gemini-2.5-flash-lite">gemini-2.5-flash-lite</option>
           <option value="gemini-2.5-pro">gemini-2.5-pro</option>
         </select>
       </label>
-      <button id="saveSettings">保存</button>
+      <button id="saveSettings" data-i18n="btn.save">保存</button>
     </div>
-    <p class="settings-hint">免费获取：https://aistudio.google.com → 左侧「Get API key」。密钥只存在你本地浏览器，不会上传到任何服务器（计算时仅直接发给 Google）。</p>
+    <p class="settings-hint" data-i18n-html="settings.hint">免费获取：https://aistudio.google.com → 左侧「Get API key」。密钥只存在你本地浏览器，不会上传到任何服务器（计算时仅直接发给 Google）。</p>
   </section>
 
   <section class="matrices">
     <div class="matrix-panel">
       <div class="panel-head">
-        <h3>正在编辑 <b id="editName">A</b></h3>
+        <h3><span data-i18n="mat.editing">正在编辑</span> <b id="editName">A</b></h3>
         <div class="panel-actions">
-          <button id="importImage" class="ghost">从图片导入</button>
-          <button id="renameMat" class="ghost">改名</button>
-          <button id="clearMat" class="ghost">清空</button>
-          <button id="delMat" class="ghost danger">删除</button>
+          <button id="importImage" class="ghost" data-i18n="btn.importImage">从图片导入</button>
+          <button id="renameMat" class="ghost" data-i18n="btn.rename">改名</button>
+          <button id="clearMat" class="ghost" data-i18n="btn.clear">清空</button>
+          <button id="delMat" class="ghost danger" data-i18n="btn.delete">删除</button>
         </div>
       </div>
       <div class="dims">
-        行 <input id="rowsIn" type="number" min="1" max="16" value="3">
-        列 <input id="colsIn" type="number" min="1" max="16" value="3">
-        <span class="dim-hint">可从 Excel / 文本直接粘贴一整块数字</span>
+        <span data-i18n="dims.rows">行</span> <input id="rowsIn" type="number" min="1" max="16" value="3">
+        <span data-i18n="dims.cols">列</span> <input id="colsIn" type="number" min="1" max="16" value="3">
+        <span class="dim-hint" data-i18n="dims.hint">可从 Excel / 文本直接粘贴一整块数字</span>
       </div>
       <div class="grid-scroll"><div class="grid" id="grid"></div></div>
       <div id="editorMsg" class="msg"></div>
@@ -565,23 +580,24 @@
 
     <!-- 旁边的小字预览：边填边看最终形状 -->
     <aside class="preview-panel">
-      <h3>预览 <span class="preview-name" id="previewName">A</span></h3>
+      <h3><span data-i18n="preview.title">预览</span> <span class="preview-name" id="previewName">A</span></h3>
       <div id="previewBox" class="preview-box"></div>
-      <p class="hint" id="previewHint">空格按 0 计算，灰字就是自动补的 0</p>
+      <p class="hint" id="previewHint" data-i18n="preview.hint">空格按 0 计算，灰字就是自动补的 0</p>
     </aside>
   </section>
 
   <!-- 线代难点小讲义：点一篇，右侧结果区显示讲解 -->
   <section class="controls notes-bar">
-    <span class="lib-label">线代难点小讲义</span>
+    <span class="lib-label" data-i18n="notes.label">线代难点小讲义</span>
     <div id="noteChips" class="chips"></div>
-    <p class="hint notes-hint">哪个概念卡住了就点一下 → 右侧显示讲解；点上面的「计算」即切回结果。</p>
+    <p class="hint notes-hint" data-i18n="notes.hint">哪个概念卡住了就点一下 → 右侧显示讲解；点上面的「计算」即切回结果。</p>
   </section>
   </div><!-- /.col-input -->
 
   <!-- 宽屏时可拖动：调整输入列与结果列的宽度比例 -->
   <div id="colSplitter" class="col-splitter" role="separator" aria-orientation="vertical"
-       aria-label="拖动调整左右两栏宽度" title="拖动调整左右两栏宽度"></div>
+       aria-label="拖动调整左右两栏宽度" title="拖动调整左右两栏宽度"
+       data-i18n-attrs="title:splitter.tip,aria-label:splitter.tip"></div>
 
   <div class="col-result">
   <section id="result" class="result-area">
@@ -591,8 +607,8 @@
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M3 9h18M9 21V9" />
         </svg>
-        <p class="lead">填好矩阵，写个算式，或从上面选操作</p>
-        <p>结果会在这里显示，勾选“显示步骤”可看详细推导</p>
+        <p class="lead" data-i18n="empty.lead">填好矩阵，写个算式，或从上面选操作</p>
+        <p data-i18n="empty.sub">结果会在这里显示，勾选“显示步骤”可看详细推导</p>
       </div>
     </div>
   </section>

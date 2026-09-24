@@ -1,5 +1,16 @@
 "use strict";
 
+// 双语：所有面向用户的文案统一走 i18n.js 的 t()；小讲义走 notes.js（中英两套）。
+// 两个文件都在 index.html 的 <head> 里先于本文件加载。
+const I18N = window.LA_I18N;
+const tr = I18N.t;
+const NOTES_BY_LANG = window.LA_NOTES;
+
+/** 当前语言的小讲义（切语言时按 id 重画即可，两种语言 id 一致）。 */
+function notes() {
+  return NOTES_BY_LANG[I18N.get()] || NOTES_BY_LANG.zh;
+}
+
 // 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
 // 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
 const OPS_NEED_B = new Set(["multiply", "add", "sub", "solve", "scalar"]);
@@ -243,8 +254,8 @@ function onDimChange() {
   resizeMatrix(m, rows, cols);
   buildGrid();
   renderChips();
-  setMsg(hadAny ? `已改为 ${rows}×${cols}，原有数据保留` : `已改为 ${rows}×${cols}`,
-         "good");
+  setMsg(tr(hadAny ? "msg.resizedKeep" : "msg.resized",
+            { rows: rows, cols: cols }), "good");
 }
 
 function numbersIn(text) { return text.match(NUM_RE) || []; }
@@ -284,12 +295,12 @@ function onPaste(e) {
     const cols = Math.min(MAX_DIM, structured.cols);
     resizeMatrix(m, rows, cols);
     m.cells = reshape(structured.values, rows, cols);
-    finishPaste(`已按粘贴内容识别为 ${rows}×${cols}，共 ${rows * cols} 个数`);
+    finishPaste(tr("msg.pasteShape", { rows: rows, cols: cols, n: rows * cols }));
     return;
   }
 
   const nums = numbersIn(text);
-  if (nums.length === 0) { setMsg("剪贴板里没找到数字", "bad"); return; }
+  if (nums.length === 0) { setMsg(tr("msg.noNumbers"), "bad"); return; }
 
   // 2) 只有一个数字 -> 只填当前这一格
   if (nums.length === 1 && e.target && e.target.dataset &&
@@ -315,14 +326,13 @@ function onPaste(e) {
       rows = side;
       cols = side;
     } else {
-      setMsg(`读到 ${nums.length} 个数：排不满当前的 ${m.rows} 行，也不是方阵。` +
-             `请先在上面设置行列，或粘贴带换行的矩阵`, "bad");
+      setMsg(tr("msg.pasteMismatch", { n: nums.length, rows: m.rows }), "bad");
       return;
     }
   }
   resizeMatrix(m, rows, cols);
   m.cells = reshape(nums, rows, cols);
-  finishPaste(`已识别为 ${rows}×${cols}，共 ${nums.length} 个数`);
+  finishPaste(tr("msg.pasteFilled", { rows: rows, cols: cols, n: nums.length }));
 }
 
 function finishPaste(msg) {
@@ -364,7 +374,7 @@ function openSettings() {
 function importFromImage() {
   const s = getSettings();
   if (!s.apiKey) {
-    setMsg("尚未配置 Gemini API Key，请点「设置」填入（免费，aistudio.google.com 获取）。", "bad");
+    setMsg(tr("msg.noApiKey"), "bad");
     openSettings();
     return;
   }
@@ -379,7 +389,7 @@ function fileToBase64(file) {
       const comma = dataUrl.indexOf(",");
       resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
     };
-    reader.onerror = () => reject("读取失败");
+    reader.onerror = () => reject(tr("msg.readFail"));
     reader.readAsDataURL(file);
   });
 }
@@ -391,7 +401,7 @@ function promptFromBridge() {
 
 async function callGeminiVision(apiKey, model, mime, b64) {
   if (!MODEL_RE.test(model || "")) {
-    throw new Error("模型名不合法：" + model + "（只允许字母、数字、. _ -）");
+    throw new Error(tr("msg.badModel", { model: model }));
   }
   const url = GEMINI_ENDPOINT.replace("{model}", model);
   const body = {
@@ -417,19 +427,19 @@ async function callGeminiVision(apiKey, model, mime, b64) {
     });
   } catch (err) {
     clearTimeout(timer);
-    throw new Error("网络 / CORS 错误（" + err + "）。若浏览器拦截跨域请求，请改用桌面版。");
+    throw new Error(tr("msg.network", { err: err }));
   }
   clearTimeout(timer);
   if (!resp.ok) {
     let detail = "";
     try { detail = (await resp.text()).slice(0, 500); } catch (e) {}
-    throw new Error("HTTP " + resp.status + "：" + detail);
+    throw new Error(tr("msg.http", { status: resp.status, detail: detail }));
   }
   const data = await resp.json();
   try {
     return data.candidates[0].content.parts[0].text;
   } catch (e) {
-    throw new Error("Gemini 返回格式异常：" + JSON.stringify(data).slice(0, 300));
+    throw new Error(tr("msg.geminiFormat", { data: JSON.stringify(data).slice(0, 300) }));
   }
 }
 
@@ -440,39 +450,39 @@ async function onImageChosen(e) {
   const ext = (file.name.split(".").pop() || "").toLowerCase();
   const mime = IMG_MIME["." + ext] || file.type;
   if (!mime || !mime.startsWith("image/")) {
-    setMsg("不支持的图片格式：" + (ext ? "." + ext : file.type), "bad");
+    setMsg(tr("msg.badImageFmt", { ext: ext ? "." + ext : file.type }), "bad");
     return;
   }
   if (!window.LA || !window.LA.ready || !window.LA.parsePhoto || !window.LA.photoPrompt) {
-    setMsg("计算引擎尚未就绪，请稍候再试（图片识别需在 Pyodide 静态版中使用）。", "bad");
+    setMsg(tr("msg.engineNotReady"), "bad");
     return;
   }
   const s = getSettings();
-  setMsg("正在识别图片…", "good");
+  setMsg(tr("msg.recognizing"), "good");
   let b64, rawText;
   try {
     b64 = await fileToBase64(file);
   } catch (err) {
-    setMsg("读取图片失败：" + err, "bad");
+    setMsg(tr("msg.readImageFail", { err: err }), "bad");
     return;
   }
   try {
     rawText = await callGeminiVision(s.apiKey, s.model, mime, b64);
   } catch (err) {
-    setMsg("调用 Gemini 失败：" + err, "bad");
+    setMsg(tr("msg.geminiFail", { err: err }), "bad");
     return;
   }
   let parsed;
   try {
     parsed = window.LA.parsePhoto(rawText);
   } catch (err) {
-    showRawResult("识别失败：解析异常", rawText);
+    showRawResult(tr("photo.parseFail"), rawText);
     return;
   }
   if (parsed.ok) {
     fillFromMatrix(parsed.matrix);
   } else {
-    showRawResult("无法解析出矩阵（请手动核对原始返回）", parsed.raw || rawText);
+    showRawResult(tr("photo.cannotParse"), parsed.raw || rawText);
   }
 }
 
@@ -486,13 +496,13 @@ function fillFromMatrix(matrix) {
   for (let i = 0; i < r; i++)
     for (let j = 0; j < c; j++)
       m.cells[i][j] = (matrix[i] && matrix[i][j] !== undefined) ? String(matrix[i][j]) : "";
-  finishPaste(`已从图片导入 ${r}×${c} 矩阵，请核对后计算`);
+  finishPaste(tr("msg.imported", { rows: r, cols: c }));
 }
 
 function showRawResult(title, raw) {
   resultCard.innerHTML =
     `<h3>${escapeHtml(title)}</h3>` +
-    `<div class="error">模型返回的原始文本（可据此手动填入）：</div>` +
+    `<div class="error">${escapeHtml(tr("photo.rawHint"))}</div>` +
     `<pre class="raw-box">${escapeHtml(raw || "")}</pre>`;
   revealResult();
 }
@@ -504,23 +514,23 @@ function addMatrix() {
   state.lib[name] = newMatrix(3, 3);
   state.editing = name;
   refreshAll();
-  setMsg(`已新增 ${name}`, "good");
+  setMsg(tr("msg.added", { name: name }), "good");
 }
 
 function deleteMatrix() {
-  if (nameList().length <= 1) { setMsg("至少要保留一个矩阵", "bad"); return; }
+  if (nameList().length <= 1) { setMsg(tr("msg.keepOne"), "bad"); return; }
   const old = state.editing;
   delete state.lib[old];
   state.editing = nameList()[0];
   refreshAll();
-  setMsg(`已删除 ${old}`, "good");
+  setMsg(tr("msg.deleted", { name: old }), "good");
 }
 
 function clearMatrix() {
   const m = state.lib[state.editing];
   m.cells = blankCells(m.rows, m.cols);
   buildGrid();
-  setMsg(`已清空 ${state.editing}`, "good");
+  setMsg(tr("msg.cleared", { name: state.editing }), "good");
 }
 
 function startRename() {
@@ -539,14 +549,14 @@ function startRename() {
     const v = input.value.trim();
     if (commit && v && v !== old) {
       if (!NAME_RE.test(v)) {
-        setMsg("名称要以字母开头，最多 8 位字母或数字", "bad");
+        setMsg(tr("msg.badName"), "bad");
       } else if (state.lib[v]) {
-        setMsg(`已经有一个叫 ${v} 的矩阵了`, "bad");
+        setMsg(tr("msg.dupName", { name: v }), "bad");
       } else {
         state.lib[v] = state.lib[old];
         delete state.lib[old];
         if (state.editing === old) state.editing = v;
-        setMsg(`已改名为 ${v}`, "good");
+        setMsg(tr("msg.renamed", { name: v }), "good");
       }
     }
     input.replaceWith(editNameEl);
@@ -597,7 +607,8 @@ function matrixData() {
 }
 
 function updateExprHint() {
-  exprHint.textContent = "可用矩阵：" + nameList().join("、");
+  const sep = I18N.get() === "zh" ? "、" : ", ";
+  exprHint.textContent = tr("expr.available", { names: nameList().join(sep) });
 }
 
 // --- 显示格式化 -------------------------------------------------------------
@@ -674,7 +685,7 @@ function renderMatrix(mat) {
 }
 
 async function renderEigen(res) {
-  let html = "<h3>特征值 / 特征向量</h3>";
+  let html = "<h3>" + tr("eigen.title") + "</h3>";
   for (const p of res.pairs) {
     const lam = await mathHtml(p.value);
     // 精确形式（含 sqrt / 分数）才额外给出小数近似，纯数字就不画蛇添足。
@@ -684,15 +695,15 @@ async function renderEigen(res) {
       const ap = await mathHtml(p.approx);
       line += ` <span class="approx">≈ ${ap != null ? ap : escapeHtml(String(p.approx))}</span>`;
     }
-    line += ` （代数重数 ${p.multiplicity}`;
+    line += " " + tr("eigen.algebraic", { n: p.multiplicity });
     if (p.geometric !== undefined && p.geometric < p.multiplicity) {
-      line += `，几何重数 ${p.geometric} → <span class="warn">不可对角化</span>`;
+      line += tr("eigen.geometric", { n: p.geometric });
     }
     line += "）</div>";
     if (p.exact && p.exact !== p.value && !isSymbolic) {
-      line += `<details class="exact"><summary>精确值</summary><code>${escapeHtml(p.exact)}</code></details>`;
+      line += `<details class="exact"><summary>${tr("eigen.exact")}</summary><code>${escapeHtml(p.exact)}</code></details>`;
     } else if (p.exact && p.exact !== p.value) {
-      line += `<div class="exact">精确形式：${escapeHtml(p.exact)}</div>`;
+      line += `<div class="exact">${tr("eigen.exactForm", { v: escapeHtml(p.exact) })}</div>`;
     }
     for (const v of p.vectors) {
       line += await renderMatrixMath(v);
@@ -724,41 +735,44 @@ async function renderResult(res) {
   }
   let html = "";
   if (res.type === "matrix") {
-    html += "<h3>结果</h3>" + renderMatrix(res.data);
+    html += "<h3>" + tr("result.title") + "</h3>" + renderMatrix(res.data);
   } else if (res.type === "scalar") {
-    html += "<h3>结果</h3><div class='scalar'>" + escapeHtml(fmtCell(res.value)) + "</div>";
+    html += "<h3>" + tr("result.title") + "</h3><div class='scalar'>" + escapeHtml(fmtCell(res.value)) + "</div>";
   } else if (res.type === "lu") {
-    html += "<h3>LU 分解 &nbsp; P·A = L·U</h3>";
+    html += "<h3>" + tr("result.lu") + "</h3>";
     html += "<div class='lu-row'>" +
-      "<div><h4>P（置换）</h4>" + renderMatrix(res.P) + "</div>" +
-      "<div><h4>L（单位下三角）</h4>" + renderMatrix(res.L) + "</div>" +
-      "<div><h4>U（上三角）</h4>" + renderMatrix(res.U) + "</div></div>";
+      "<div><h4>" + tr("result.luP") + "</h4>" + renderMatrix(res.P) + "</div>" +
+      "<div><h4>" + tr("result.luL") + "</h4>" + renderMatrix(res.L) + "</div>" +
+      "<div><h4>" + tr("result.luU") + "</h4>" + renderMatrix(res.U) + "</div></div>";
   } else if (res.type === "solve") {
-    const badge = { unique: "唯一解", none: "无解", infinite: "无穷多解" }[res.status];
-    html += `<h3>求解结果：<span class="badge">${badge}</span></h3>`;
+    const badge = {
+      unique: tr("solve.unique"),
+      none: tr("solve.none"),
+      infinite: tr("solve.infinite"),
+    }[res.status];
+    html += `<h3>${tr("result.solve")}<span class="badge">${badge}</span></h3>`;
     if (res.status !== "none" && res.particular) {
-      html += "<h4>特解 x*</h4>" + renderMatrix(res.particular);
+      html += "<h4>" + tr("result.particular") + "</h4>" + renderMatrix(res.particular);
     }
     if (res.null_basis && res.null_basis.length) {
-      html += `<h4>零空间基（自由变量：${res.free_vars.map(i => "x" + (i + 1)).join(", ")}）</h4>`;
+      html += `<h4>${tr("result.nullBasis", { vars: res.free_vars.map(i => "x" + (i + 1)).join(", ") })}</h4>`;
       html += res.null_basis.map(v => renderMatrix(v)).join(" ");
     }
   } else if (res.type === "inverse_status") {
-    html += `<div class="error">不存在：${escapeHtml(res.note)}</div>`;
+    html += `<div class="error">${tr("inverse.none", { note: escapeHtml(res.note) })}</div>`;
   } else if (res.type === "eigen") {
     html += await renderEigen(res);
   } else if (res.type === "cofactor") {
-    html += "<h3>余子式矩阵 C（C(i,j) = (−1)^(i+j)·M(i,j)）</h3>" + renderMatrix(res.C);
-    html += "<h3>伴随矩阵 adj(A) = Cᵀ</h3>" + renderMatrix(res.adj);
+    html += "<h3>" + tr("cofactor.title") + "</h3>" + renderMatrix(res.C);
+    html += "<h3>" + tr("cofactor.adj") + "</h3>" + renderMatrix(res.adj);
     const dOk = res.det !== "0";
-    html += "<p class='hint'>det(A) = " + escapeHtml(fmtCell(res.det)) + "；"
-      + (dOk
-          ? "当 det(A) ≠ 0 时，A⁻¹ = adj(A) / det(A)。"
-          : "（det = 0，矩阵不可逆，A⁻¹ 不存在）。")
-      + "</p>";
+    html += "<p class='hint'>" + tr("cofactor.detHint", {
+      det: escapeHtml(fmtCell(res.det)),
+      tail: dOk ? tr("cofactor.invertible") : tr("cofactor.singular"),
+    }) + "</p>";
   }
   if (res.steps && res.steps.length) {
-    let steps = "<h4>计算步骤</h4><ol class='steps'>";
+    let steps = "<h4>" + tr("result.steps") + "</h4><ol class='steps'>";
     for (const s of res.steps) {
       // 每个步骤是 {text, matrix}：text 是行变换，matrix 是这一步**做完之后**
       // 的矩阵快照（纯说明性步骤没有矩阵，为 null）。
@@ -774,7 +788,7 @@ async function renderResult(res) {
     steps += "</ol>";
     html += steps;
   }
-  resultCard.innerHTML = html || "<div class='muted-line'>计算完成，无额外输出。</div>";
+  resultCard.innerHTML = html || "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
   revealResult();
 }
 
@@ -786,7 +800,7 @@ async function request(payload) {
   inFlight = controller;
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
-  resultCard.innerHTML = "<div class='muted-line'>计算中…</div>";
+  resultCard.innerHTML = "<div class='muted-line'>" + tr("result.computing") + "</div>";
   try {
     const resp = await fetch("/api/compute", {
       method: "POST",
@@ -799,9 +813,9 @@ async function request(payload) {
   } catch (e) {
     if (e.name === "AbortError") {
       resultCard.innerHTML =
-        `<div class="error">⚠️ 计算超时（>${REQUEST_TIMEOUT_MS / 1000}s），请减小矩阵规模或关闭「显示步骤」。</div>`;
+        `<div class="error">${tr("result.timeout", { sec: REQUEST_TIMEOUT_MS / 1000 })}</div>`;
     } else {
-      resultCard.innerHTML = `<div class="error">⚠️ 请求失败：${escapeHtml(e)}</div>`;
+      resultCard.innerHTML = `<div class="error">${tr("result.failed", { err: escapeHtml(e) })}</div>`;
     }
     return null;
   } finally {
@@ -854,7 +868,7 @@ el("openSettings").addEventListener("click", openSettings);
 el("saveSettings").addEventListener("click", () => {
   saveSettings({ apiKey: el("apiKeyIn").value.trim(), model: el("modelSel").value });
   el("settingsPanel").classList.remove("open");
-  setMsg("设置已保存", "good");
+  setMsg(tr("msg.settingsSaved"), "good");
 });
 el("importImage").addEventListener("click", importFromImage);
 el("imageInput").addEventListener("change", onImageChosen);
@@ -941,7 +955,7 @@ refreshAll();
   }
   function apply(t) {
     document.documentElement.setAttribute("data-theme", t);
-    if (btn) btn.textContent = t === "dark" ? "浅色" : "深色";  // 按钮显示「点了会切到」的模式
+    if (btn) btn.textContent = t === "dark" ? tr("theme.toLight") : tr("theme.toDark");  // 按钮显示「点了会切到」的模式
   }
   function toggle() {
     const next = current() === "dark" ? "light" : "dark";
@@ -950,6 +964,8 @@ refreshAll();
   }
 
   apply(current());
+  // 切换语言时按钮文案要跟着变（它显示的是「点了会切到」的那一档）
+  I18N.onChange(() => apply(current()));
   if (btn) btn.addEventListener("click", toggle);
   // 没手动选过主题时，跟随系统深浅色变化
   if (mq) {
@@ -969,180 +985,12 @@ refreshAll();
 // blocks 里每一项：字符串 = 段落；{h} 小标题；{ul} 项目符号；{formula} 公式块；
 // {tip} 提示块。内容是自己写的静态文案，直接当 HTML 用（所以 < 写成 &lt;）。
 // ---------------------------------------------------------------------------
-const NOTES = [
-  {
-    id: "cofactor",
-    title: "代数余子式到底在干什么",
-    tag: "行列式",
-    lead: "一句话：把 n 阶行列式「拆」成 n 个 (n−1) 阶行列式的带符号和；还不够小就接着拆，直到只剩 1 阶。",
-    blocks: [
-      { h: "先记住展开公式" },
-      { formula: "det(A) = Σⱼ (−1)^(i+j) · a(i,j) · M(i,j)　（i 是任选的一行）" },
-      "读法：<b>固定某一行 i</b>，把这行的每个元素 a(i,j) 乘上它对应的余子式 M(i,j)，再乘符号 (−1)^(i+j)，最后全部加起来。",
-      { h: "三个容易混的概念" },
-      { ul: [
-        "<b>余子式 M(i,j)</b>：把第 i 行和第 j 列<b>整条划掉</b>（划一个十字），剩下的小矩阵，取它的行列式。",
-        "<b>代数余子式</b>：就是 (−1)^(i+j) · M(i,j)，比余子式多一个符号。",
-        "<b>符号只看位置</b>：只看 (i,j)，和你划掉的那个数本身是正是负完全无关。",
-      ] },
-      { h: "符号怎么快速记" },
-      "从左上角 (1,1) 开始是 +，然后像棋盘一样交错：+ − + / − + − / + − +。等价说法：i+j 是偶数取 +，是奇数取 −。",
-      { h: "为什么可以「任选一行」" },
-      "因为行列式对自己的每一行都是<b>线性</b>的（把某一行拆成两项之和，行列式就等于两个行列式之和），而且<b>交换两行会变号</b>。把第 i 行拆成 n 个「只有第 j 个位置非零」的行，剩下的那个行列式正好就是 M(i,j)，换行带来的符号正好是 (−1)^(i+j)。所以沿任何一行、任何一列展开，结果都一样 —— 挑最好算的那条就行。",
-      { h: "最容易卡的 4 个点" },
-      { ul: [
-        "忘了要<b>递归</b>：展开出来的每一项还是一个低一阶的行列式，得接着展开，不是一步出结果。",
-        "划错范围：是「第 i 行<b>和</b>第 j 列」都划掉（十字），不是只划一个。",
-        "把 M(i,j)（余子式）和「代数余子式」当成一回事（差一个 (−1)^(i+j)）。",
-        "符号看错：只看位置，不看数字的正负。",
-      ] },
-      { h: "手算技巧" },
-      "<b>永远挑 0 最多的那一行或那一列展开</b>：0 乘任何余子式都是 0，那一项可以直接跳过，能省掉一大半工作。",
-      { tip: "在本页试一下：操作选「行列式 det(A)」，把旁边的「det 算法」切成「代数余子式展开」。每一步都会跟着一张<strong>这一步的余子式</strong>，对着上面的公式慢慢走一遍就通了。" },
-    ],
-  },
-  {
-    id: "row-reduction",
-    title: "为什么行列式能用行变换来算",
-    tag: "行列式",
-    lead: "因为行列式对三种初等行变换的反应非常规则；把它化成三角阵，答案就是对角线相乘。",
-    blocks: [
-      { h: "三种行变换对 det 的影响" },
-      { ul: [
-        "交换两行 → 行列式<b>变号</b>",
-        "某一行乘以常数 k → 行列式<b>也乘 k</b>",
-        "某一行加上另一行的倍数 → 行列式<b>不变</b>",
-      ] },
-      { h: "化到三角阵就结束了" },
-      "上三角（或下三角）矩阵的行列式 = 对角线元素相乘。因为按第一行（或第一列）展开时只有一项非零，一路递归下去就只剩主对角线。",
-      { formula: "det(A) = (−1)^s · ∏ᵢ u(i,i)　（s = 交换行的次数）" },
-      { h: "和 LU 分解的关系" },
-      "消元得到的 U 就是上三角，L 是单位下三角（对角线全是 1，所以 det(L) = 1），P 记录了换行。由 PA = LU 得 det(P)·det(A) = det(L)·det(U)，而 det(P) = (−1)^s，于是 det(A) = (−1)^s · ∏u(i,i)。本页的「行变换法」走的就是这条路线。",
-      { h: "为什么大矩阵必须用行变换" },
-      "代数余子式展开要算 n! 项（3 阶 6 项、6 阶 720 项、10 阶 360 多万项）；行变换只需要大约 n³ 次运算。所以：<b>小矩阵用代数余子式理解原理，大矩阵用行变换去算</b>。两种算法的结果必然相同。",
-      { tip: "在本页试一下：同一个矩阵先选「行变换法」算一次，再切「代数余子式展开」算一次。数值必然一样，但步骤风格完全不同。" },
-    ],
-  },
-  {
-    id: "matmul",
-    title: "矩阵乘法为什么这么怪",
-    tag: "矩阵运算",
-    lead: "「行乘列再相加」不是随便定的，它对应的含义是：先做一个变换，再做另一个变换。",
-    blocks: [
-      { h: "两种等价的读法" },
-      { ul: [
-        "<b>行 × 列</b>：(A·B)(i,j) = A 的第 i 行与 B 的第 j 列做点积。",
-        "<b>列的线性组合</b>：A·B 的第 j 列 = A 乘以 B 的第 j 列 —— B 的每一列在告诉你「把 A 的各列怎么混起来」。",
-      ] },
-      { h: "所以 AB 一般不等于 BA" },
-      "矩阵代表变换。A·B 的意思是<b>先做 B、再做 A</b>；顺序一换结果就不同（先旋转再拉伸 ≠ 先拉伸再旋转）。",
-      { h: "维度规则" },
-      "只有 (m×k)·(k×n) 才合法：中间那个 k 必须对上，结果维度是 m×n。",
-      { tip: "在本页试一下：A、B 都填好，操作选「矩阵乘法 A×B」算一次；再交换成 B×A 算一次，对比结果。" },
-    ],
-  },
-  {
-    id: "singular",
-    title: "det = 0 为什么就没有逆",
-    tag: "可逆性",
-    lead: "因为行列式是「体积缩放因子」。为 0 意味着空间被压扁了，压扁之后信息丢了，回不去。",
-    blocks: [
-      { h: "几何图像" },
-      "2×2 矩阵把单位正方形变成一个平行四边形，|det| 就是它的面积（3×3 对应体积）。det = 0 → 面积/体积变成 0 → 平面被压成一条线甚至一个点：降维了。此时两个不同的输入可能被映射到同一个输出，这个映射就没办法反推。",
-      { h: "四句话说的是一件事" },
-      { ul: [
-        "A 不可逆",
-        "det(A) = 0",
-        "A 的行（或列）线性相关",
-        "rank(A) &lt; n（存在非零的零空间向量）",
-      ] },
-      "这四个说法互相等价，看到其中一个就能推出另外三个。",
-      { tip: "在本页试一下：填一个两行成比例的矩阵（比如第 2 行 = 2 × 第 1 行），先求逆看提示，再算它的行列式和秩。" },
-    ],
-  },
-  {
-    id: "rank",
-    title: "秩到底在说什么",
-    tag: "秩",
-    lead: "秩 = 这个矩阵里「真正独立的信息」有几条。",
-    blocks: [
-      { h: "三个等价的说法" },
-      { ul: [
-        "线性无关的行的最大个数（也等于线性无关列的最大个数）",
-        "化成 REF 之后<b>主元的个数</b>",
-        "它把空间映射到的「像空间」的维数 —— 输出被压到了几维",
-      ] },
-      { h: "秩不足意味着什么" },
-      "秩 &lt; n 说明有冗余的行（能被别人线性组合出来）。于是 A·x = 0 有非零解（零空间里的向量就是被压成 0 的那些方向），而 A·x = b 可能无解、也可能有无穷多解。",
-      { tip: "在本页试一下：操作选「秩 rank(A)」和「REF 行阶梯形」各算一次 —— 数一数 REF 里的主元个数，一定等于 rank。" },
-    ],
-  },
-  {
-    id: "eigen",
-    title: "特征值 / 特征向量的几何意义",
-    tag: "特征值",
-    lead: "Av = λv 的意思是：向量 v 在这个变换下<b>方向不变</b>，只是被拉长或压短了 λ 倍。",
-    blocks: [
-      { h: "为什么重要" },
-      "一般向量被矩阵一乘，方向和长度都会变；特征向量是「例外」的那些方向 —— 它们揭示了变换最本质的行为：沿这些方向只是缩放。",
-      { h: "特征值告诉你什么" },
-      { ul: [
-        "λ = 0：这个方向被压成 0 → 矩阵一定不可逆、det = 0。",
-        "λ 是复数：这个方向其实被<b>旋转</b>了（比如旋转 90° 的矩阵没有实特征向量）。",
-        "<b>代数重数</b>：特征多项式里这个根的次数；<b>几何重数</b>：对应的线性无关特征向量的个数。",
-      ] },
-      { h: "为什么有些矩阵不能对角化" },
-      "当某个特征值的几何重数 &lt; 代数重数时，特征向量不够多、凑不齐一组基，就没法对角化（本页的结果里会直接标出「不可对角化」）。",
-      { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。" },
-    ],
-  },
-  {
-    id: "adjugate",
-    title: "伴随矩阵与求逆公式",
-    tag: "可逆性",
-    lead: "把余子式矩阵转置一下得到伴随矩阵 adj(A)，它直接给出求逆公式 A⁻¹ = adj(A)/det(A)。",
-    blocks: [
-      { h: "从余子式矩阵到伴随矩阵" },
-      "本页新增了「余子式矩阵 C &amp; 伴随矩阵 adj(A)」这个运算：C 的每个元素 C(i,j) = (−1)^(i+j)·M(i,j)；而 <b>伴随矩阵 adj(A) = Cᵀ</b>（把 C 转置）。",
-      { h: "为什么它能求逆" },
-      "代数上有恒等式 A · adj(A) = adj(A) · A = det(A) · I。只要 det(A) ≠ 0，两边同除以 det(A) 就得到 A⁻¹ = adj(A)/det(A)。这就是伴随求逆法。",
-      { formula: "A⁻¹ = adj(A) / det(A)　（det(A) ≠ 0）" },
-      { h: "它和 Gauss 求逆的关系" },
-      "两者结果必然相同。但伴随法要算 n² 个余子式（每个都是 n−1 阶行列式），是 O(n·n!)；高斯消元是 O(n³)。所以：<b>伴随法用来理解原理和写公式，Gauss 法用来真算</b>。",
-      { h: "三个结论打包带走" },
-      { ul: [
-        "det(A) = 0 ⟺ adj(A) 退化（不可逆时伴随矩阵要么全 0、要么秩 ≤ 1）",
-        "逆存在 ⟺ det(A) ≠ 0 ⟺ adj(A) ≠ 0",
-        "2×2 有超好记的口诀：主对角互换、副对角变号，再除以 det。",
-      ] },
-      { tip: "在本页试一下：填一个 2×2 或 3×3 矩阵，操作选「余子式矩阵 C &amp; 伴随矩阵 adj(A)」；再把同一个矩阵拿去「方阵求逆 A⁻¹」，对照着看 adj(A)/det 和 Gauss 逆是否一致。" },
-    ],
-  },
-  {
-    id: "orthogonal",
-    title: "正交矩阵与正交变换",
-    tag: "矩阵运算",
-    lead: "正交矩阵就是「保长度、保角度」的变换：转置等于逆，QᵀQ = I。",
-    blocks: [
-      { h: "定义" },
-      "方阵 Q 叫正交矩阵，当且仅当它的列（也等价于行）两两正交且都是单位向量。等价地：<b>QᵀQ = I，也就是 Qᵀ = Q⁻¹</b>。",
-      { formula: "Qᵀ · Q = I　⇔　Q⁻¹ = Qᵀ" },
-      { h: "几何意义：刚性运动" },
-      "正交变换只做<b>旋转和反射</b>，既不拉伸也不压扁：任意向量被它一乘，长度不变（‖Qx‖ = ‖x‖），向量之间的夹角也不变。所以「正交」=「不改变内积」。",
-      { h: "行列式只有 ±1" },
-      "因为 det(QᵀQ) = det(I) = 1，而 det(Qᵀ) = det(Q)，所以 det(Q)² = 1 → det(Q) = 1 或 −1。det = 1 是纯旋转，det = −1 含一次反射。",
-      { h: "和特征值的关系" },
-      "正交矩阵的特征值都落在单位圆上（复数），模长全是 1；实特征值只能是 ±1。旋转矩阵的复特征值就是 e^(±iθ)。",
-      { tip: "在本页试一下：填一个旋转矩阵 [[cosθ,−sinθ],[sinθ,cosθ]]（把 θ 换成具体数，如 30°→√3/2 与 1/2），算它的转置和逆，验证 Qᵀ = Q⁻¹；再算特征值，会看到 e^(±iθ)。" },
-    ],
-  },
-];
 
 function renderNoteChips() {
   const box = el("noteChips");
   if (!box) return;
   box.innerHTML = "";
-  for (const n of NOTES) {
+  for (const n of notes()) {
     const chip = document.createElement("button");
     chip.type = "button";
     chip.className = "chip note-chip";
@@ -1172,7 +1020,7 @@ function noteBlocksHtml(blocks) {
 
 /** 在右侧结果区显示一篇讲义（再点「计算」就切回结果）。 */
 function renderNote(id) {
-  const n = NOTES.find((x) => x.id === id);
+  const n = notes().find((x) => x.id === id);
   if (!n) return;
   for (const c of document.querySelectorAll("#noteChips .chip")) {
     c.classList.toggle("on", c.dataset.note === id);
@@ -1186,3 +1034,63 @@ function renderNote(id) {
 }
 
 renderNoteChips();
+
+// ---------------------------------------------------------------------------
+// 快捷键指南表：14 行「写法 / 含义 / 对应操作」由 i18n.js 的 guide.rows 渲染，
+// 文案只存一份，改语言时整表重画。
+// ---------------------------------------------------------------------------
+function renderGuideRows() {
+  const body = document.getElementById("guideRows");
+  if (!body) return;
+  body.innerHTML = "";
+  for (const row of I18N.t("guide.rows")) {
+    const trEl = document.createElement("tr");
+    for (const cell of row) {
+      const td = document.createElement("td");
+      td.textContent = cell;
+      trEl.appendChild(td);
+    }
+    body.appendChild(trEl);
+  }
+}
+
+// ---------------------------------------------------------------------------
+// 中文 / English 一键切换：点一下改语言（存 localStorage），并把依赖语言的
+// 动态内容一起重画 —— 指南表、讲义 chips、算式提示，以及右侧当前显示的东西。
+// ---------------------------------------------------------------------------
+(function initLang() {
+  const btn = document.getElementById("langToggle");
+  function syncButton() {
+    if (btn) btn.textContent = I18N.toggleLabel();
+  }
+
+  I18N.apply(document);   // 把所有 data-i18n 填成当前语言
+  renderGuideRows();
+  updateExprHint();
+  syncButton();
+
+  if (btn) {
+    btn.addEventListener("click", () => { I18N.toggle(); });
+  }
+
+  I18N.onChange(() => {
+    // chips 重建会丢掉选中态，所以先记下正在看哪一篇
+    const activeEl = document.querySelector("#noteChips .chip.on");
+    const activeNote = activeEl ? activeEl.dataset.note : null;
+
+    renderGuideRows();
+    updateExprHint();
+    syncButton();
+    renderNoteChips();
+    setMsg("");                       // 旧语言留下的提示不留着
+
+    if (activeNote) {
+      renderNote(activeNote);         // 讲义按新语言重画
+    } else if (lastResult) {
+      renderResult(lastResult);       // 否则重画上一次的计算结果
+    } else {
+      resultCard.innerHTML =
+        "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
+    }
+  });
+})();

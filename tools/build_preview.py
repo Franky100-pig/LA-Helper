@@ -22,10 +22,15 @@ OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
-def _content_version(web_app_js, core, ai_help_js=""):
+def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
-    shipped code changes (a git hash would lag one commit behind the build)."""
-    blob = json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js + ai_help_js
+    shipped code changes (a git hash would lag one commit behind the build).
+
+    i18n.js / notes.js must be part of the hash: they carry every user-facing
+    string, so a wording-only change has to bust the cache too.
+    """
+    blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
+            + ai_help_js + i18n_js + notes_js)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -51,16 +56,25 @@ def bundle_core():
 
 
 def build_index(html, ver=""):
-    html = html.replace(
-        '<button id="compute">计算</button>',
-        '<button id="compute" disabled>计算</button>',
+    # 引擎就绪前禁用「计算」按钮。用正则匹配属性，避免文案进了 i18n 之后
+    # 这里的字符串替换悄悄失效（按钮现在是 data-i18n 的）。
+    html = re.sub(
+        r'<button id="compute"([^>]*)>',
+        r'<button id="compute"\1 disabled>',
+        html,
+        count=1,
     )
     # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
     # 避免旧 la-bridge.js（带 bug 的桥）被长期缓存导致页面显示 undefined。
     q = f"?v={ver}" if ver else ""
     html = html.replace(
+        '<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
+    html = html.replace(
+        '<script src="notes.js"></script>', f'<script src="notes.js{q}"></script>')
+    html = html.replace(
         "<script src=\"app.js\"></script>",
-        '<p id="engineStatus" class="hint">正在加载计算引擎（首次约需十几秒，之后秒回）…</p>\n'
+        '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
+        '正在加载计算引擎（首次约需十几秒，之后秒回）…</p>\n'
         f'<script src="core_bundle.js{q}"></script>\n'
         f'<script src="{PYODIDE_URL}pyodide.js"></script>\n'
         f'<script src="la-bridge.js{q}"></script>\n'
@@ -76,7 +90,7 @@ def build_app_js(js):
         "async function request(payload) {",
         "async function request(payload) {\n"
         "  if (!window.LA || !window.LA.ready) {\n"
-        "    resultCard.innerHTML = \"<div class='muted-line'>计算引擎加载中，请稍候…</div>\";\n"
+        "    resultCard.innerHTML = \"<div class='muted-line'>\" + tr(\"engine.busy\") + \"</div>\";\n"
         "    return undefined;\n"
         "  }",
         1,
@@ -178,11 +192,12 @@ function laDispatch(req) {
       ];
       return pyodide.runPython(pyLines.join("\\n"));
     };
-    if (status) status.textContent = "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）";
+    // 状态文案走 i18n（i18n.js 在 <head> 里先于本文件加载）
+    if (status) status.textContent = window.LA_I18N.t("engine.ready");
     if (btn) btn.disabled = false;
   } catch (err) {
     window.LA.error = String(err);
-    if (status) status.textContent = "引擎加载失败：" + err;
+    if (status) status.textContent = window.LA_I18N.t("engine.fail") + err;
   }
 })();
 """.replace("__PYODIDE_URL__", PYODIDE_URL)
@@ -194,7 +209,14 @@ def main():
     web = ROOT / "web"
     web_app_js = (web / "app.js").read_text(encoding="utf-8")
     ai_help_js = (web / "ai-help.js").read_text(encoding="utf-8") if (web / "ai-help.js").exists() else ""
-    ver = _content_version(web_app_js, core, ai_help_js)
+
+    def _read(name):
+        f = web / name
+        return f.read_text(encoding="utf-8") if f.exists() else ""
+
+    i18n_js = _read("i18n.js")
+    notes_js = _read("notes.js")
+    ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -208,10 +230,15 @@ def main():
         encoding="utf-8",
     )
     (OUT / "la-bridge.js").write_text(BRIDGE, encoding="utf-8")
+    # 双语字典与讲义：主页和 AI Help 页都要用，原样复制（版本由 ?v 统一兜住）
+    for name, src in (("i18n.js", i18n_js), ("notes.js", notes_js)):
+        if src:
+            (OUT / name).write_text(src, encoding="utf-8")
     # AI Help 独立页：不依赖 Pyodide 引擎，单独复制；脚本引用同样加 ?v 缓存 bust。
     if (web / "ai-help.html").exists():
         q = f"?v={ver}" if ver else ""
         ah = (web / "ai-help.html").read_text(encoding="utf-8")
+        ah = ah.replace('<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
         ah = ah.replace('<script src="ai-help.js"></script>', f'<script src="ai-help.js{q}"></script>')
         (OUT / "ai-help.html").write_text(ah, encoding="utf-8")
     if (web / "ai-help.js").exists():

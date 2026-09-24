@@ -1,5 +1,8 @@
 "use strict";
 const el = (id) => document.getElementById(id);
+// 复用主页那套双语字典（i18n.js 已在 <head> 先加载）
+const I18N = window.LA_I18N;
+const tr = I18N.t;
 
 // ---------------------------------------------------------------------------
 // 主题：与主页同一套（默认跟随系统，手动选择存 localStorage["la-theme"]）
@@ -17,7 +20,7 @@ const el = (id) => document.getElementById(id);
   }
   function apply(t) {
     document.documentElement.setAttribute("data-theme", t);
-    if (btn) btn.textContent = t === "dark" ? "浅色" : "深色";
+    if (btn) btn.textContent = t === "dark" ? tr("theme.toLight") : tr("theme.toDark");
   }
   function toggle() {
     const next = current() === "dark" ? "light" : "dark";
@@ -26,6 +29,7 @@ const el = (id) => document.getElementById(id);
   }
 
   apply(current());
+  I18N.onChange(() => apply(current()));   // 切语言时按钮文案跟着变
   if (btn) btn.addEventListener("click", toggle);
   if (mq) {
     const onChange = (e) => {
@@ -128,22 +132,22 @@ const el = (id) => document.getElementById(id);
 
   function updateCount() {
     const n = qEl.value.length;
-    countEl.textContent = n + " / " + MAX;
+    countEl.textContent = tr("ai.count", { n: n });
     sendBtn.disabled = !getKey() || n === 0 || n > MAX;
   }
 
   changeKeyBtn.addEventListener("click", () => {
     setKey("");
-    showKeyView("已清除本机 Key，请重新填入。");
+    showKeyView(tr("ai.keyCleared"));
   });
 
   saveKeyBtn.addEventListener("click", () => {
     const k = keyIn.value.trim();
-    if (!k) { keyMsg.textContent = "请先粘贴 Key。"; return; }
+    if (!k) { keyMsg.textContent = tr("ai.noKey"); return; }
     const where = setKey(k);
     showAskView();
     if (!where) {
-      statusEl.textContent = "注意：当前浏览器无法长期保存 Key（可能是隐私模式或用 file:// 打开）。本次会话内可正常使用，刷新页面后需重新填写。";
+      statusEl.textContent = tr("ai.storageWarn");
     }
   });
 
@@ -155,7 +159,7 @@ const el = (id) => document.getElementById(id);
     if (!q || !key) return;
     sendBtn.disabled = true;
     answerEl.textContent = "";
-    statusEl.textContent = "AI 正在思考…";
+    statusEl.textContent = tr("ai.thinking");
     try {
       const resp = await fetch(ENDPOINT, {
         method: "POST",
@@ -166,10 +170,7 @@ const el = (id) => document.getElementById(id);
         body: JSON.stringify({
           model: MODEL,
           messages: [
-            { role: "system", content:
-              "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，" +
-              "尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。" +
-              "除非用户要求更详细，否则回答控制在 300 字以内。" },
+            { role: "system", content: tr("ai.systemPrompt") },
             { role: "user", content: q },
           ],
           temperature: 0.3,
@@ -181,21 +182,21 @@ const el = (id) => document.getElementById(id);
         const msg = data && data.error && data.error.message;
         if (resp.status === 401) {
           setKey("");
-          showKeyView("Key 无效或已过期（" + (msg || "401") + "），请重新填入。");
+          showKeyView(tr("ai.badKey", { msg: msg || "401" }));
           return;
         }
         if (resp.status === 429) {
-          statusEl.textContent = "免费额度被限流了（429），稍等几秒再试一次。";
+          statusEl.textContent = tr("ai.rateLimited");
           return;
         }
-        statusEl.textContent = "出错了：" + (msg || ("HTTP " + resp.status));
+        statusEl.textContent = tr("ai.error", { msg: msg || ("HTTP " + resp.status) });
         return;
       }
       const ans = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
       statusEl.textContent = "";
-      renderAnswer(ans || "（模型没有返回内容）");
+      renderAnswer(ans || tr("ai.empty"));
     } catch (err) {
-      statusEl.textContent = "网络错误：" + err.message + "（需能访问 open.bigmodel.cn）";
+      statusEl.textContent = tr("ai.netError", { msg: err.message });
     } finally {
       sendBtn.disabled = false;
       updateCount();
@@ -205,4 +206,23 @@ const el = (id) => document.getElementById(id);
   // 启动：已存 Key 就直接进提问页，否则显示填 Key
   if (getKey()) showAskView(); else showKeyView("");
   updateCount();
+})();
+
+// ---------------------------------------------------------------------------
+// 中文 / English 一键切换：与主页共用 localStorage["la-lang"]，切完立即重画。
+// ---------------------------------------------------------------------------
+(function initLang() {
+  const btn = document.getElementById("langToggle");
+  function syncButton() { if (btn) btn.textContent = I18N.toggleLabel(); }
+
+  I18N.apply(document);
+  syncButton();
+
+  if (btn) btn.addEventListener("click", () => { I18N.toggle(); });
+
+  // apply() 会把 #aiHelpCount 重填成 "0 / 300"，这里按当前输入长度再刷一次
+  I18N.onChange(() => {
+    syncButton();
+    updateCount();
+  });
 })();
