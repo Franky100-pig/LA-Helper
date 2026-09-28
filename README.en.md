@@ -180,9 +180,10 @@ symbolic matrices and large matrices.
 ## Security boundaries
 The web edition only listens on `127.0.0.1`; it is not a service meant for the public
 internet — do not expose it to your LAN or put it behind a reverse proxy. All matrix
-computation happens inside the local process / browser sandbox and **sends no data**.
+computation happens inside the local process / browser sandbox and **the computation itself
+sends no data**.
 
-**Two exceptions, both triggered by you and both entirely avoidable:**
+**Three exceptions; the first two are triggered by you and are entirely avoidable:**
 
 1. **Importing from a photo.** When you click "Import from image", that image is sent
    directly to the Gemini (Google) API you configured for recognition. The API key is
@@ -193,8 +194,14 @@ computation happens inside the local process / browser sandbox and **sends no da
    you typed (plus a fixed system prompt) is sent to the GLM (Zhipu) API you configured.
    The GLM key lives only in your browser's `localStorage` and goes straight to
    `open.bigmodel.cn` in an `Authorization` header — no intermediary server involved.
+3. **Usage counter (web edition footer only).** A "people who used it" total appears at the
+   bottom of the page, supplied by a free third-party counter (Abacus). Loading the page
+   sends a single anonymous visit count — no matrix content, question, or personal
+   information, and no cookie; a browser that has already been counted only reads the total
+   afterwards. The desktop edition has no such counter, and the footer stays hidden when the
+   number can't be fetched.
 
-If you would rather not make any network call, simply don't use these two buttons;
+If you would rather not make any network call, simply don't use the first two buttons;
 every other feature remains fully offline.
 
 ## Roadmap

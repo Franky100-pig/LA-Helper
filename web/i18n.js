@@ -206,6 +206,10 @@ window.LA_I18N = (function () {
       "ai.keyCleared": "已清除本机 Key，请重新填入。",
       "ai.count": "{n} / 300",
       "ai.systemPrompt": "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。除非用户要求更详细，否则回答控制在 300 字以内。",
+
+      // ---- 使用人数页脚 ----
+      "count.line": "{n} 人用 LA-Helper 学习线代",
+      "count.lineOne": "{n} 人用 LA-Helper 学习线代",
     },
 
     en: {
@@ -396,6 +400,10 @@ window.LA_I18N = (function () {
       "ai.keyCleared": "Saved key cleared — please paste it again.",
       "ai.count": "{n} / 300",
       "ai.systemPrompt": "You are LA Helper's linear algebra tutor for high-school and university students. Answer in English, concisely and accurately, building up step by step. Give the key steps and the intuition, and use LaTeX-style formulas when they help (inline $...$, display $$...$). Unless asked for more detail, keep answers under 300 words.",
+
+      // ---- usage footer ----
+      "count.line": "{n} people used LA-Helper to learn LA",
+      "count.lineOne": "{n} person used LA-Helper to learn LA",
     },
   };
 

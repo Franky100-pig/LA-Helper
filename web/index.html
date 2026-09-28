@@ -437,6 +437,13 @@
   .head-right { display: flex; align-items: center; gap: 8px; }
   /* 顶栏链接也长成 .ghost 按钮的样子 */
   a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
+
+  /* 页脚：使用人数。第三方计数拿不到时 JS 会整行隐藏（默认就是 hidden） */
+  .usage-line {
+    text-align: center; color: var(--muted);
+    font-size: 13px; margin: 26px auto 30px; padding: 0 16px;
+  }
+  .usage-line b { color: var(--accent); font-weight: 700; font-size: 15px; }
 </style>
 </head>
 <body>
@@ -614,6 +621,9 @@
   </section>
   </div><!-- /.col-result -->
 </main>
+
+<!-- 页脚：使用人数（免费第三方计数器，拿不到数字时整行保持隐藏；逻辑在 app.js） -->
+<p id="usageRow" class="usage-line" hidden></p>
 
 <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/heic" hidden>
 <script src="app.js"></script>
