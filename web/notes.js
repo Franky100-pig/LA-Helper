@@ -175,6 +175,22 @@ window.LA_NOTES = {
         { tip: "在本页试一下：填一个旋转矩阵 [[cosθ,−sinθ],[sinθ,cosθ]]（把 θ 换成具体数，如 30°→√3/2 与 1/2），算它的转置和逆，验证 Qᵀ = Q⁻¹；再算特征值，会看到 e^(±iθ)。" },
       ],
     },
+    {
+      id: "practice",
+      title: "更多练习题",
+      tag: "练习",
+      lead: "用计算器验证答案之后，动手做题才能真正掌握。这里有一套带完整步骤的线代作业。",
+      blocks: [
+        { h: "LA-hw：线代作业与解答" },
+        "这个仓库按章节整理了线性代数作业题，并给出自包含的 HTML 解答（MathJax 渲染），打开浏览器就能看。",
+        { ul: [
+          "<b>HW4</b>：行列式、代数余子式与伴随矩阵、Cramer 法则（对应本页的 det / cofactor_matrix 操作）",
+          "每份作业都有 PDF 题目和 HTML 详解，可以先用 LA-Helper 算出结果，再对照解答检查关键步骤。",
+        ] },
+        "<a href=\"https://github.com/Franky100-pig/LA-hw\" target=\"_blank\" rel=\"noopener noreferrer\">前往 Franky100-pig/LA-hw →</a>",
+        { tip: "建议顺序：在 LA-Helper 里算一道题 → 截图或记下步骤 → 打开 LA-hw 的解答 HTML 对照，看看自己的行变换、符号、化简有没有遗漏。" },
+      ],
+    },
   ],
 
   en: [
@@ -342,6 +358,22 @@ window.LA_NOTES = {
         { h: "The link with eigenvalues" },
         "All eigenvalues of an orthogonal matrix lie on the unit circle (in the complex plane) and have modulus 1; real eigenvalues can only be ±1. For a rotation matrix the complex eigenvalues are e^(±iθ).",
         { tip: "Try it here: enter the rotation matrix [[cosθ,−sinθ],[sinθ,cosθ]] with a concrete θ (say 30° → √3/2 and 1/2), compute its transpose and its inverse, and check that Qᵀ = Q⁻¹; then compute the eigenvalues and you will see e^(±iθ)." },
+      ],
+    },
+    {
+      id: "practice",
+      title: "More practice",
+      tag: "Practice",
+      lead: "Verifying answers with a calculator is useful, but you only really get it once you solve problems by hand.",
+      blocks: [
+        { h: "LA-hw: homework and worked solutions" },
+        "This repo collects linear algebra homework problems by chapter, each with a self-contained HTML solution rendered with MathJax — just open it in a browser.",
+        { ul: [
+          "<b>HW4</b>: determinants, cofactors &amp; adjugate, Cramer's rule (matches the det / cofactor_matrix operations on this page).",
+          "Every assignment has a PDF worksheet and an HTML walkthrough. Use LA-Helper to compute a result, then compare with the solution's key steps.",
+        ] },
+        "<a href=\"https://github.com/Franky100-pig/LA-hw\" target=\"_blank\" rel=\"noopener noreferrer\">Go to Franky100-pig/LA-hw →</a>",
+        { tip: "Suggested workflow: solve one problem in LA-Helper → screenshot or write down the steps → open the LA-hw solution HTML and check whether your row operations, signs, and simplifications line up." },
       ],
     },
   ],
