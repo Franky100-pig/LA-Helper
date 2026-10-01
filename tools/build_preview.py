@@ -22,15 +22,16 @@ OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
 PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
-def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js=""):
+def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
+                     notes_page_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build).
 
-    i18n.js / notes.js must be part of the hash: they carry every user-facing
-    string, so a wording-only change has to bust the cache too.
+    i18n.js / notes.js / notes-page.js must be part of the hash: they carry every
+    user-facing string, so a wording-only change has to bust the cache too.
     """
     blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
-            + ai_help_js + i18n_js + notes_js)
+            + ai_help_js + i18n_js + notes_js + notes_page_js)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -67,10 +68,9 @@ def build_index(html, ver=""):
     # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
     # 避免旧 la-bridge.js（带 bug 的桥）被长期缓存导致页面显示 undefined。
     q = f"?v={ver}" if ver else ""
+    # 主页只留 i18n.js：讲义（notes.js）已搬到独立的 notes.html。
     html = html.replace(
         '<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
-    html = html.replace(
-        '<script src="notes.js"></script>', f'<script src="notes.js{q}"></script>')
     html = html.replace(
         "<script src=\"app.js\"></script>",
         '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
@@ -216,7 +216,8 @@ def main():
 
     i18n_js = _read("i18n.js")
     notes_js = _read("notes.js")
-    ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js)
+    notes_page_js = _read("notes-page.js")
+    ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -234,15 +235,28 @@ def main():
     for name, src in (("i18n.js", i18n_js), ("notes.js", notes_js)):
         if src:
             (OUT / name).write_text(src, encoding="utf-8")
-    # AI Help 独立页：不依赖 Pyodide 引擎，单独复制；脚本引用同样加 ?v 缓存 bust。
-    if (web / "ai-help.html").exists():
-        q = f"?v={ver}" if ver else ""
-        ah = (web / "ai-help.html").read_text(encoding="utf-8")
-        ah = ah.replace('<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
-        ah = ah.replace('<script src="ai-help.js"></script>', f'<script src="ai-help.js{q}"></script>')
-        (OUT / "ai-help.html").write_text(ah, encoding="utf-8")
-    if (web / "ai-help.js").exists():
-        (OUT / "ai-help.js").write_text((web / "ai-help.js").read_text(encoding="utf-8"), encoding="utf-8")
+    # 独立子页（AI Help / 讲义）：都不依赖 Pyodide 引擎，单独复制；
+    # 脚本引用同样加 ?v 缓存 bust，保证重新部署后浏览器不会用旧脚本。
+    q = f"?v={ver}" if ver else ""
+
+    def _bust(html_text, scripts):
+        for name in scripts:
+            html_text = html_text.replace(
+                f'<script src="{name}"></script>', f'<script src="{name}{q}"></script>')
+        return html_text
+
+    for page, scripts in (
+        ("ai-help.html", ("i18n.js", "ai-help.js")),
+        ("notes.html", ("i18n.js", "notes.js", "notes-page.js")),
+    ):
+        if (web / page).exists():
+            (OUT / page).write_text(
+                _bust((web / page).read_text(encoding="utf-8"), scripts),
+                encoding="utf-8",
+            )
+    for js in ("ai-help.js", "notes-page.js"):
+        if (web / js).exists():
+            (OUT / js).write_text((web / js).read_text(encoding="utf-8"), encoding="utf-8")
     # 关掉 GitHub Pages 的 Jekyll 处理（否则以下划线开头的文件会被忽略，
     # 且 Jekyll 可能改写内容）。纯静态站不需要它。
     (OUT / ".nojekyll").write_text("", encoding="utf-8")

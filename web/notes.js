@@ -378,3 +378,26 @@ window.LA_NOTES = {
     },
   ],
 };
+
+/* ---------------------------------------------------------------------------
+ * 共用小工具：讲义独立页（notes.html）用，主页不再渲染讲义。
+ * 放在这里而不是各页各写一份，避免两处渲染逻辑漂移。
+ * ------------------------------------------------------------------------- */
+
+/** 取某个语言的讲义列表；语言未知时回落中文。 */
+window.LA_NOTES.byLang = function (lang) {
+  return window.LA_NOTES[lang] || window.LA_NOTES.zh;
+};
+
+/** 把一篇讲义的 blocks 渲染成 HTML（内容是自己写的静态文案，直接当 HTML 用）。 */
+window.LA_NOTES.blocksHtml = function (blocks) {
+  let html = "";
+  for (const b of blocks || []) {
+    if (typeof b === "string") html += "<p>" + b + "</p>";
+    else if (b.h) html += "<h4>" + b.h + "</h4>";
+    else if (b.ul) html += "<ul>" + b.ul.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
+    else if (b.formula) html += "<div class='note-formula'>" + b.formula + "</div>";
+    else if (b.tip) html += "<div class='note-tip'>" + b.tip + "</div>";
+  }
+  return html;
+};

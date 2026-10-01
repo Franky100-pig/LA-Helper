@@ -25,6 +25,14 @@ window.LA_I18N = (function () {
       "app.aiHelp": "AI Help",
       "app.aiHelpTip": "用 AI 解答线代问题（需自备 GLM 免费 Key）",
       "app.langTip": "切换中文 / English",
+      // 「更多工具」下拉：讲义 / AI 答疑 / 练习题库，各自独立页面
+      "tools.label": "更多工具",
+      "tools.notes": "线代小讲义",
+      "tools.notesTip": "9 篇难点精讲，独立页面",
+      "tools.ai": "AI 答疑",
+      "tools.aiTip": "用 AI 解答线代问题（需自备 GLM 免费 Key）",
+      "tools.practice": "练习题（LA-hw）",
+      "tools.practiceTip": "带完整解答的线代作业题（新窗口打开 GitHub）",
       "theme.toLight": "浅色",
       "theme.toDark": "深色",
       "theme.tip": "切换深色 / 浅色模式",
@@ -111,7 +119,11 @@ window.LA_I18N = (function () {
 
       // ---- 讲义 ----
       "notes.label": "线代难点小讲义",
-      "notes.hint": "哪个概念卡住了就点一下 → 右侧显示讲解；点上面的「计算」即切回结果。",
+      "notes.openAll": "查看全部讲义 →",
+      "notes.pageTagline": "把最容易卡住的概念讲清楚；点左侧标题切换，链接可直接分享。",
+      "notes.back": "← 返回计算器",
+      "notes.listTitle": "全部讲义",
+      "notes.notFound": "没有这一篇（链接可能过时了）。",
 
       // ---- 结果区 ----
       "splitter.tip": "拖动调整左右两栏宽度",
@@ -219,6 +231,14 @@ window.LA_I18N = (function () {
       "app.aiHelp": "AI Help",
       "app.aiHelpTip": "Ask an AI about linear algebra (needs your own free GLM key)",
       "app.langTip": "Switch 中文 / English",
+      // "More tools" dropdown: notes / AI help / practice, each on its own page
+      "tools.label": "More tools",
+      "tools.notes": "Study notes",
+      "tools.notesTip": "9 short articles on the tricky concepts",
+      "tools.ai": "AI help",
+      "tools.aiTip": "Ask an AI about linear algebra (needs your own free GLM key)",
+      "tools.practice": "Practice (LA-hw)",
+      "tools.practiceTip": "Homework problems with full solutions (opens GitHub)",
       "theme.toLight": "Light",
       "theme.toDark": "Dark",
       "theme.tip": "Switch dark / light mode",
@@ -305,7 +325,11 @@ window.LA_I18N = (function () {
 
       // ---- study notes ----
       "notes.label": "Linear algebra study notes",
-      "notes.hint": "Stuck on a concept? Click one → it shows on the right; click \"Compute\" above to go back to results.",
+      "notes.openAll": "Browse all articles →",
+      "notes.pageTagline": "The concepts people get stuck on, explained. Click a title on the left to switch — links are shareable.",
+      "notes.back": "← Back to calculator",
+      "notes.listTitle": "All articles",
+      "notes.notFound": "No such article (the link may be out of date).",
 
       // ---- results ----
       "splitter.tip": "Drag to resize the two columns",

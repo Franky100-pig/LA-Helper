@@ -25,9 +25,10 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements-dev.txt
       - run: pytest
-      - name: 前端脚本检查（Node）：i18n 键一致性 + 使用计数逻辑
+      - name: 前端脚本检查（Node）：i18n 键一致性 + 讲义 + 使用计数逻辑
         run: |
           node tools/check_i18n.js
+          node tools/test_notes.js
           node tools/test_counter.js
       - name: 冒烟测试（启动本地服务并请求一次）
         run: |
