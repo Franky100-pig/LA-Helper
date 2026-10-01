@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LA Helper · 线性代数小算</title>
-<!-- 字典与讲义放在 head：它们只是数据 + 函数，先加载好，页面文案才不会先闪一下中文 -->
+<!-- 字典放在 head：它只是数据 + 函数，先加载好，页面文案才不会先闪一下中文。
+     讲义（notes.js）已移到独立的 notes.html，计算器页不再需要它。 -->
 <script src="i18n.js"></script>
-<script src="notes.js"></script>
 <script>
   // 尽早确定主题与语言，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
   (function () {
@@ -115,30 +115,9 @@
   .lib-bar { gap: 10px; }
   .lib-label { font-size: 14px; color: var(--muted); }
 
-  /* 线代难点小讲义（点一篇 → 右侧显示讲解） */
-  .notes-bar { align-items: flex-start; }
-  .notes-hint { flex: 1 1 100%; margin: 0; }
-  .note-chip { font-family: inherit; font-size: 13px; }
-  .notes-body { line-height: 1.75; }
-  .notes-body h4 { color: var(--accent); margin: 16px 0 6px; font-size: 14px; }
-  .notes-body p { margin: 8px 0; }
-  .notes-body ul { margin: 8px 0 8px 1.15em; padding: 0; }
-  .notes-body li { margin: 4px 0; }
-  .notes-body code {
-    background: var(--inset); padding: 1px 5px; border-radius: 4px;
-    font-family: ui-monospace, Menlo, monospace; font-size: 13px;
-  }
-  .note-lead { font-size: 15px; color: var(--text); margin: 6px 0 14px; }
-  .note-formula {
-    background: var(--inset); border: 1px solid var(--border); border-radius: 10px;
-    padding: 10px 14px; margin: 10px 0; overflow-x: auto;
-    font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 14px;
-  }
-  .note-tip {
-    background: var(--inset); border-left: 3px solid var(--accent);
-    border-radius: 6px; padding: 10px 14px; margin: 12px 0;
-    color: var(--text); font-size: 14px;
-  }
+  /* 讲义入口：主页只留一行链接，正文在独立的 notes.html 里 */
+  .notes-bar { align-items: center; justify-content: space-between; }
+  .notes-link { font-size: 13px; text-decoration: none; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; align-items: center; }
   .chip {
     background: var(--panel2); color: var(--text); border: 1px solid var(--border);
@@ -433,8 +412,25 @@
       padding: 9px 14px calc(12px + env(safe-area-inset-bottom, 0px));
     }
   }
-  /* 顶栏右侧按钮组：AI Help（跳转链接）与深浅切换并排靠右 */
+  /* 顶栏右侧按钮组：更多工具（下拉）、语言、深浅切换并排靠右 */
   .head-right { display: flex; align-items: center; gap: 8px; }
+  /* 「更多工具」下拉：纯 details/summary 实现，不需要 JS */
+  .tools { position: relative; }
+  .tools > summary { list-style: none; }
+  .tools > summary::-webkit-details-marker { display: none; }
+  .tools > summary::after { content: " ▾"; }
+  .tools[open] > summary { border-color: var(--accent); color: var(--accent); }
+  .tools-menu {
+    position: absolute; right: 0; top: calc(100% + 6px); z-index: 60;
+    min-width: 200px; background: var(--panel); border: 1px solid var(--border);
+    border-radius: 10px; padding: 6px; display: flex; flex-direction: column; gap: 2px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .18);
+  }
+  .tools-menu a {
+    display: block; padding: 8px 10px; border-radius: 7px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+  }
+  .tools-menu a:hover { background: var(--panel2); color: var(--accent); }
   /* 顶栏链接也长成 .ghost 按钮的样子 */
   a.ghost { text-decoration: none; display: inline-flex; align-items: center; }
 
@@ -453,9 +449,20 @@
     <p data-i18n="app.tagline">本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手</p>
   </div>
   <div class="head-right">
-    <a id="aiHelpBtn" class="ghost" href="ai-help.html"
-       data-i18n="app.aiHelp" data-i18n-attrs="title:app.aiHelpTip"
-       title="用 AI 解答线代问题（需自备 GLM 免费 Key）">AI Help</a>
+    <!-- 更多工具：讲义 / AI 答疑 / 练习题，各自是独立页面（跳转，不覆盖本页） -->
+    <details class="tools">
+      <summary class="ghost" data-i18n="tools.label"
+               data-i18n-attrs="title:tools.label" title="更多工具">更多工具</summary>
+      <nav class="tools-menu">
+        <a href="notes.html" data-i18n="tools.notes"
+           data-i18n-attrs="title:tools.notesTip" title="9 篇难点精讲，独立页面">线代小讲义</a>
+        <a href="ai-help.html" data-i18n="tools.ai"
+           data-i18n-attrs="title:tools.aiTip" title="用 AI 解答线代问题（需自备 GLM 免费 Key）">AI 答疑</a>
+        <a href="https://github.com/Franky100-pig/LA-hw" target="_blank" rel="noopener noreferrer"
+           data-i18n="tools.practice"
+           data-i18n-attrs="title:tools.practiceTip" title="带完整解答的线代作业题（新窗口打开 GitHub）">练习题（LA-hw）</a>
+      </nav>
+    </details>
     <button id="langToggle" class="ghost" type="button"
             data-i18n-attrs="title:app.langTip" title="切换中文 / English">EN</button>
     <!-- 主题按钮的文案由 initTheme 决定（显示「点了会切到」的模式），
@@ -593,11 +600,10 @@
     </aside>
   </section>
 
-  <!-- 线代难点小讲义：点一篇，右侧结果区显示讲解 -->
+  <!-- 线代难点小讲义：正文在独立页面，这里只留一个入口（跳转，不覆盖本页） -->
   <section class="controls notes-bar">
     <span class="lib-label" data-i18n="notes.label">线代难点小讲义</span>
-    <div id="noteChips" class="chips"></div>
-    <p class="hint notes-hint" data-i18n="notes.hint">哪个概念卡住了就点一下 → 右侧显示讲解；点上面的「计算」即切回结果。</p>
+    <a class="notes-link" href="notes.html" data-i18n="notes.openAll">查看全部讲义 →</a>
   </section>
   </div><!-- /.col-input -->
 

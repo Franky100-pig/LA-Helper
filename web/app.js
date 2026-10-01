@@ -1,15 +1,9 @@
 "use strict";
 
-// 双语：所有面向用户的文案统一走 i18n.js 的 t()；小讲义走 notes.js（中英两套）。
-// 两个文件都在 index.html 的 <head> 里先于本文件加载。
+// 双语：所有面向用户的文案统一走 i18n.js 的 t()（它在 index.html 的 <head> 里先加载）。
+// 小讲义（notes.js）已搬到独立的 notes.html，本页不再引用。
 const I18N = window.LA_I18N;
 const tr = I18N.t;
-const NOTES_BY_LANG = window.LA_NOTES;
-
-/** 当前语言的小讲义（切语言时按 id 重画即可，两种语言 id 一致）。 */
-function notes() {
-  return NOTES_BY_LANG[I18N.get()] || NOTES_BY_LANG.zh;
-}
 
 // 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
 // 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
@@ -61,8 +55,6 @@ const previewBox = el("previewBox");
 
 let inFlight = null;
 let lastResult = null;
-// 右侧现在显示的是什么：「计算结果」还是「小讲义」。切换小数显示时只重画结果。
-let lastView = "result";
 
 const state = { lib: {}, editing: "A" };
 
@@ -726,8 +718,6 @@ function revealResult() {
 
 async function renderResult(res) {
   lastResult = res;
-  lastView = "result";
-  document.querySelectorAll("#noteChips .chip.on").forEach(c => c.classList.remove("on"));
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
     revealResult();
@@ -875,8 +865,7 @@ el("imageInput").addEventListener("change", onImageChosen);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
     renderPreview();
-    // 右侧正显示讲义时不要把它覆盖掉
-    if (lastView === "result" && lastResult) renderResult(lastResult);
+    if (lastResult) renderResult(lastResult);
   });
 }
 
@@ -979,61 +968,8 @@ refreshAll();
 })();
 
 
-// ---------------------------------------------------------------------------
-// 线代难点小讲义：点左侧的一篇，右侧结果区显示讲解。
-// 内容放在这里（会打包进静态预览版）；样式见 index.html 的 .notes-body / .note-*。
-// blocks 里每一项：字符串 = 段落；{h} 小标题；{ul} 项目符号；{formula} 公式块；
-// {tip} 提示块。内容是自己写的静态文案，直接当 HTML 用（所以 < 写成 &lt;）。
-// ---------------------------------------------------------------------------
-
-function renderNoteChips() {
-  const box = el("noteChips");
-  if (!box) return;
-  box.innerHTML = "";
-  for (const n of notes()) {
-    const chip = document.createElement("button");
-    chip.type = "button";
-    chip.className = "chip note-chip";
-    chip.dataset.note = n.id;
-    chip.textContent = n.title;
-    chip.title = n.lead;
-    chip.addEventListener("click", () => renderNote(n.id));
-    box.appendChild(chip);
-  }
-}
-
-function noteBlocksHtml(blocks) {
-  let html = "";
-  for (const b of blocks) {
-    if (typeof b === "string") html += "<p>" + b + "</p>";
-    else if (b.h) html += "<h4>" + b.h + "</h4>";
-    else if (b.ul) {
-      html += "<ul>" + b.ul.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
-    } else if (b.formula) {
-      html += "<div class='note-formula'>" + b.formula + "</div>";
-    } else if (b.tip) {
-      html += "<div class='note-tip'>" + b.tip + "</div>";
-    }
-  }
-  return html;
-}
-
-/** 在右侧结果区显示一篇讲义（再点「计算」就切回结果）。 */
-function renderNote(id) {
-  const n = notes().find((x) => x.id === id);
-  if (!n) return;
-  for (const c of document.querySelectorAll("#noteChips .chip")) {
-    c.classList.toggle("on", c.dataset.note === id);
-  }
-  resultCard.innerHTML =
-    "<h3>" + n.title + " <span class='badge'>" + n.tag + "</span></h3>" +
-    "<p class='note-lead'>" + n.lead + "</p>" +
-    "<div class='notes-body'>" + noteBlocksHtml(n.blocks) + "</div>";
-  lastView = "note";
-  revealResult();
-}
-
-renderNoteChips();
+// 讲义（原「点一篇 → 右侧显示讲解」）已拆到独立的 notes.html：
+// 计算器页只留一个跳转入口，正文与目录都在那边渲染。
 
 // ---------------------------------------------------------------------------
 // 快捷键指南表：14 行「写法 / 含义 / 对应操作」由 i18n.js 的 guide.rows 渲染，
@@ -1056,7 +992,7 @@ function renderGuideRows() {
 
 // ---------------------------------------------------------------------------
 // 中文 / English 一键切换：点一下改语言（存 localStorage），并把依赖语言的
-// 动态内容一起重画 —— 指南表、讲义 chips、算式提示，以及右侧当前显示的东西。
+// 动态内容一起重画 —— 指南表、算式提示，以及右侧当前显示的结果。
 // ---------------------------------------------------------------------------
 (function initLang() {
   const btn = document.getElementById("langToggle");
@@ -1074,20 +1010,13 @@ function renderGuideRows() {
   }
 
   I18N.onChange(() => {
-    // chips 重建会丢掉选中态，所以先记下正在看哪一篇
-    const activeEl = document.querySelector("#noteChips .chip.on");
-    const activeNote = activeEl ? activeEl.dataset.note : null;
-
     renderGuideRows();
     updateExprHint();
     syncButton();
-    renderNoteChips();
     setMsg("");                       // 旧语言留下的提示不留着
 
-    if (activeNote) {
-      renderNote(activeNote);         // 讲义按新语言重画
-    } else if (lastResult) {
-      renderResult(lastResult);       // 否则重画上一次的计算结果
+    if (lastResult) {
+      renderResult(lastResult);       // 重画上一次的计算结果
     } else {
       resultCard.innerHTML =
         "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
