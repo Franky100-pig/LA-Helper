@@ -84,8 +84,12 @@ function boot({ sharedKey = "sk-public-test", stored = null, fetchImpl = null } 
 
   vm.runInContext(fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"), sandbox, { filename: "i18n.js" });
   let src = fs.readFileSync(path.join(WEB, "ai-help.js"), "utf8");
-  // SHARED_KEY 是源码常量，测两种模式就替换这一个值
-  src = src.replace('const SHARED_KEY = "";', `const SHARED_KEY = ${JSON.stringify(sharedKey)};`);
+  // SHARED_KEY 是源码常量，测两种模式就替换这一个值。
+  // 用正则而不是字面量匹配：真实 key 一旦填进去，字面量 `""` 就不存在了。
+  const before = src;
+  src = src.replace(/const SHARED_KEY = "[^"]*";/,
+                    `const SHARED_KEY = ${JSON.stringify(sharedKey)};`);
+  if (src === before) throw new Error("没找到 SHARED_KEY 常量，源码结构变了？");
   // getKey/setKey/... 都关在 initAiHelp 的 IIFE 里，外部看不见。
   // 所以把导出语句**插进 IIFE 内部**（它还在同一层作用域里）。
   const IIFE_END = "  // 启动：已存 Key 就直接进提问页，否则显示填 Key";
