@@ -92,6 +92,9 @@ const referenced = new Set();
 // 3a. tr("k") / t("k") / I18N.t("k") / LA_I18N.t("k")
 //     匹配函数调用形式，引号可单可双；忽略带换行的情况。
 const callRe = /(?:tr|I18N\.t|LA_I18N\.t)\(\s*["']([^"']+)["']/g;
+// 3a-2. tr(cond ? "a" : "b") —— 条件选 key。两个分支都要校验，
+//      否则 tr(hasOwn ? "x" : "y") 这类写法会静默漏检（实测踩过）。
+const ternaryRe = /(?:tr|I18N\.t|LA_I18N\.t)\(\s*[^,()]*\?\s*["']([^"']+)["']\s*:\s*["']([^"']+)["']/g;
 // 3b. HTML 属性 data-i18n / data-i18n-html
 const attrRe = /data-i18n(?:-html)?=["']([^"']+)["']/g;
 // 3c. data-i18n-attrs="title:k,placeholder:k"  -> 提取冒号后的 key
@@ -101,6 +104,7 @@ for (const file of sources) {
   const text = fs.readFileSync(file, "utf8");
   let m;
   while ((m = callRe.exec(text)) !== null) referenced.add(m[1]);
+  while ((m = ternaryRe.exec(text)) !== null) { referenced.add(m[1]); referenced.add(m[2]); }
   while ((m = attrRe.exec(text)) !== null) referenced.add(m[1]);
   while ((m = attrsRe.exec(text)) !== null) {
     m[1].split(",").forEach((pair) => {
