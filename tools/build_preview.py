@@ -23,15 +23,16 @@ PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
 
 
 def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
-                     notes_page_js=""):
+                     notes_page_js="", examples_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build).
 
-    i18n.js / notes.js / notes-page.js must be part of the hash: they carry every
-    user-facing string, so a wording-only change has to bust the cache too.
+    i18n.js / notes.js / notes-page.js / examples.js must be part of the hash:
+    they carry every user-facing string and the example matrices, so a
+    wording-only or data-only change has to bust the cache too.
     """
     blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
-            + ai_help_js + i18n_js + notes_js + notes_page_js)
+            + ai_help_js + i18n_js + notes_js + notes_page_js + examples_js)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -68,9 +69,11 @@ def build_index(html, ver=""):
     # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
     # 避免旧 la-bridge.js（带 bug 的桥）被长期缓存导致页面显示 undefined。
     q = f"?v={ver}" if ver else ""
-    # 主页只留 i18n.js：讲义（notes.js）已搬到独立的 notes.html。
+    # 主页只留 i18n.js + examples.js：讲义（notes.js）已搬到独立的 notes.html。
     html = html.replace(
         '<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
+    html = html.replace(
+        '<script src="examples.js"></script>', f'<script src="examples.js{q}"></script>')
     html = html.replace(
         "<script src=\"app.js\"></script>",
         '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
@@ -217,7 +220,9 @@ def main():
     i18n_js = _read("i18n.js")
     notes_js = _read("notes.js")
     notes_page_js = _read("notes-page.js")
-    ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js)
+    examples_js = _read("examples.js")
+    ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js,
+                           examples_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -231,8 +236,9 @@ def main():
         encoding="utf-8",
     )
     (OUT / "la-bridge.js").write_text(BRIDGE, encoding="utf-8")
-    # 双语字典与讲义：主页和 AI Help 页都要用，原样复制（版本由 ?v 统一兜住）
-    for name, src in (("i18n.js", i18n_js), ("notes.js", notes_js)):
+    # 双语字典、示例与讲义：主页和 AI Help 页都要用，原样复制（版本由 ?v 统一兜住）
+    for name, src in (("i18n.js", i18n_js), ("notes.js", notes_js),
+                      ("examples.js", examples_js)):
         if src:
             (OUT / name).write_text(src, encoding="utf-8")
     # 独立子页（AI Help / 讲义）：都不依赖 Pyodide 引擎，单独复制；
