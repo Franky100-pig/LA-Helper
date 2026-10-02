@@ -693,7 +693,9 @@ async function renderEigen(res) {
     if (p.geometric !== undefined && p.geometric < p.multiplicity) {
       line += tr("eigen.geometric", { n: p.geometric });
     }
-    line += "）</div>";
+    // 右括号必须来自字典：中文是全角「）」，英文是半角「)」。
+    // 以前这里硬编码了全角，于是英文界面渲染成 (algebraic multiplicity 2）
+    line += tr("eigen.closeParen") + "</div>";
     if (p.exact && p.exact !== p.value && !isSymbolic) {
       line += `<details class="exact"><summary>${tr("eigen.exact")}</summary><code>${escapeHtml(p.exact)}</code></details>`;
     } else if (p.exact && p.exact !== p.value) {
@@ -1334,6 +1336,7 @@ function renderGuideRows() {
     updateExprHint();
     syncButton();
     setMsg("");                       // 旧语言留下的提示不留着
+    I18N.syncDocTitle("app.title");   // 标签页标题也要跟着换语言
 
     if (lastResult) {
       renderResult(lastResult);       // 重画上一次的计算结果
@@ -1343,6 +1346,7 @@ function renderGuideRows() {
       setExportEnabled(false);        // 没有结果就没什么可导出的
     }
   });
+  I18N.syncDocTitle("app.title");
 })();
 
 // ---------------------------------------------------------------------------
