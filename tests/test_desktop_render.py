@@ -224,7 +224,9 @@ class _FakeVar:
 class _DetHarness:
     _op_key = app_mod.LAApp._op_key
     _det_op = app_mod.LAApp._det_op
+    _det_label = app_mod.LAApp._det_label
     compute_dropdown = app_mod.LAApp.compute_dropdown
+    save_progress = app_mod.LAApp.save_progress
 
     def __init__(self, method):
         self.op_cb = types.SimpleNamespace(
@@ -241,6 +243,10 @@ class _DetHarness:
 
 def _catch_payload(monkeypatch):
     seen = {}
+    # 进度保存会写 ~/.la_helper_settings.json，测试里必须挡掉 —— 否则每次跑测试
+    # 都在动开发者真实的设置文件（还会顺手抹掉 theme / api_key）。
+    monkeypatch.setattr(app_mod, "save_settings", lambda d: None)
+    monkeypatch.setattr(app_mod, "load_settings", lambda: {})
 
     def fake_dispatch(payload):
         seen.clear()
