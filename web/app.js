@@ -1,9 +1,11 @@
 "use strict";
 
 // 双语：所有面向用户的文案统一走 i18n.js 的 t()（它在 index.html 的 <head> 里先加载）。
-// 小讲义（notes.js）已搬到独立的 notes.html，本页不再引用。
+// 小讲义（notes.js）已搬到独立的 notes.html，本页不再引用；这里只用 examples.js
+// 里那张「运算 → 讲义 id」的映射表来生成推荐链接。
 const I18N = window.LA_I18N;
 const tr = I18N.t;
+const EXAMPLES = window.LA_EXAMPLES;
 
 // 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
 // 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
@@ -748,6 +750,7 @@ async function renderResult(res) {
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
     setExportEnabled(false);
+    hideArticlePick();
     revealResult();
     return;
   }
@@ -808,6 +811,8 @@ async function renderResult(res) {
   }
   resultCard.innerHTML = html || "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
   setExportEnabled(!!html);   // 真算出了东西才给导出按钮
+  // 讲义推荐：只在真算出了东西、且这个运算有对应讲义时出现
+  if (html) showArticlePick(lastRawOp); else hideArticlePick();
   revealResult();
 }
 
@@ -821,6 +826,7 @@ async function request(payload) {
 
   resultCard.innerHTML = "<div class='muted-line'>" + tr("result.computing") + "</div>";
   setExportEnabled(false);   // 算的过程中别让上一次的结果被导出
+  hideArticlePick();         // 同理，上一次的讲义推荐也不该留着
   try {
     const resp = await fetch("/api/compute", {
       method: "POST",
@@ -845,6 +851,25 @@ async function request(payload) {
   }
 }
 
+/** 这次结果是由哪个运算产生的 —— 决定推荐哪篇讲义。 */
+let lastRawOp = null;
+
+/**
+ * 表达式路径推出的运算名。只认明确的函数调用形式，认不出来就返回 null
+ * （宁可不给推荐，也不要推错 —— 推错等于给了一条不相关的讲义）。
+ */
+function inferOpFromExpr(text) {
+  if (/\bp?inv\s*\(/i.test(text)) return /\bp\s*inv\s*\(/i.test(text) ? "pseudo_inverse" : "inverse";
+  if (/\bdet\s*\(/i.test(text)) return "det";
+  if (/\brank\s*\(/i.test(text)) return "rank";
+  if (/\bref\s*\(/i.test(text)) return "ref";
+  if (/\btranspose\s*\(|\bT\s*\(/i.test(text)) return "transpose";
+  if (/\blu\s*\(/i.test(text)) return "lu";
+  if (/\bsolve\s*\(/i.test(text)) return "solve";
+  if (/\beigen\s*\(/i.test(text)) return "eigen";
+  return null;
+}
+
 /** 下拉框路径（主路径）。 */
 async function compute() {
   const rawOp = opSelect.value;
@@ -854,6 +879,7 @@ async function compute() {
     : rawOp;
   const payload = { op: op, A: dataOf(leftSel.value), showSteps: showSteps.checked };
   if (OPS_NEED_B.has(rawOp)) payload.B = dataOf(rightSel.value);
+  lastRawOp = rawOp;
   const res = await request(payload);
   if (res) await renderResult(res);
 }
@@ -862,12 +888,253 @@ async function compute() {
 async function runExpr() {
   const text = exprIn.value.trim();
   if (!text) { exprIn.focus(); return; }
+  lastRawOp = inferOpFromExpr(text);
   const res = await request({
     expr: text,
     matrices: matrixData(),
     showSteps: showSteps.checked,
   });
   if (res) await renderResult(res);
+}
+
+// ---------------------------------------------------------------------------
+// 记住本机进度
+//
+// 之前 localStorage 只存主题/语言/API key，学生做完第 3 题关掉标签页，
+// 回来网格又是空的 —— 这是「来一次就不回」最可能的原因，而且计数看不出来。
+// 现在把整个工作区（矩阵库 + 当前选择）存下来，下次打开原样恢复。
+//
+// 只存这台设备自己的东西，不上传、不同步、没有账号。存不了（隐私模式 /
+// file://）就静默降级成「不记进度」，功能不受影响。
+// ---------------------------------------------------------------------------
+
+const PROGRESS_KEY = "la.progress";
+const PROGRESS_VERSION = 1;
+
+/** 存不存得下要先探一下：隐私模式里 localStorage 存在但 setItem 会抛。 */
+function storageWorks() {
+  try {
+    localStorage.setItem("la-probe", "1");
+    localStorage.removeItem("la-probe");
+    return true;
+  } catch (_) {
+    return false;
+  }
+}
+
+const canPersist = storageWorks();
+
+/** 把二维字符串数组安全地转成矩阵；形状不对就返回 null。 */
+function matrixFromCells(cells) {
+  if (!Array.isArray(cells) || !cells.length) return null;
+  const rows = cells.length;
+  const cols = Array.isArray(cells[0]) ? cells[0].length : 0;
+  if (!cols) return null;
+  for (const row of cells) {
+    if (!Array.isArray(row) || row.length !== cols) return null;
+  }
+  const out = blankCells(rows, cols);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      out[r][c] = String(cells[r][c] == null ? "" : cells[r][c]);
+    }
+  }
+  return { rows, cols, cells: out };
+}
+
+/** 当前工作区的可序列化快照。 */
+function snapshotProgress() {
+  const lib = {};
+  for (const name of nameList()) {
+    const m = state.lib[name];
+    lib[name] = { rows: m.rows, cols: m.cols, cells: m.cells };
+  }
+  return {
+    v: PROGRESS_VERSION,
+    lib,
+    editing: state.editing,
+    op: opSelect.value,
+    left: leftSel.value,
+    right: rightSel.value,
+    detMethod: detMethod ? detMethod.value : null,
+    showSteps: showSteps.checked,
+    showDecimals: showDecimals.checked,
+    expr: exprIn.value,
+  };
+}
+
+let saveTimer = null;
+
+/** 改动频繁（每敲一个数字），所以攒一下再写。 */
+function scheduleSave() {
+  if (!canPersist) return;
+  if (saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try {
+      localStorage.setItem(PROGRESS_KEY, JSON.stringify(snapshotProgress()));
+    } catch (_) { /* 配额满 / 被禁：进度记不住，不影响使用 */ }
+  }, 400);
+}
+
+/** 恢复上次进度。数据损坏、版本不认识、形状非法 → 全部退回默认，绝不白屏。 */
+function restoreProgress() {
+  if (!canPersist) return false;
+  let data;
+  try {
+    const raw = localStorage.getItem(PROGRESS_KEY);
+    if (!raw) return false;
+    data = JSON.parse(raw);
+  } catch (_) {
+    return false;
+  }
+  if (!data || data.v !== PROGRESS_VERSION || !data.lib) return false;
+
+  // 先把 lib 全建好再换过去，避免半途中失败留下残缺状态
+  const lib = {};
+  for (const name of Object.keys(data.lib)) {
+    if (!NAME_RE.test(name)) continue;
+    const m = matrixFromCells(data.lib[name].cells);
+    if (m) lib[name] = m;
+  }
+  const names = Object.keys(lib);
+  if (!names.length) return false;
+
+  state.lib = lib;
+  state.editing = lib[data.editing] ? data.editing : names[0];
+
+  // 控件的还原要放在 refreshOperandOptions 之前，否则它会用旧值覆盖回去
+  if (Array.prototype.some.call(opSelect.options, (o) => o.value === data.op)) {
+    opSelect.value = data.op;
+  }
+  if (showSteps) showSteps.checked = data.showSteps !== false;
+  if (showDecimals) showDecimals.checked = !!data.showDecimals;
+  if (detMethod && data.detMethod) detMethod.value = data.detMethod;
+  exprIn.value = typeof data.expr === "string" ? data.expr : "";
+  // 操作数要等 lib 换完、选项重建之后再定
+  restoreOperands(data, names);
+  return true;
+}
+
+function restoreOperands(data, names) {
+  const prevL = data.left, prevR = data.right;
+  refreshOperandOptions();
+  if (names.indexOf(prevL) >= 0) leftSel.value = prevL;
+  if (names.indexOf(prevR) >= 0) rightSel.value = prevR;
+}
+
+function resetProgress() {
+  try { localStorage.removeItem(PROGRESS_KEY); } catch (_) { /* ignore */ }
+  state.lib = {};
+  DEFAULT_NAMES.forEach((n) => { state.lib[n] = newMatrix(3, 3); });
+  state.editing = "A";
+  exprIn.value = "";
+  refreshAll();
+  setMsg(tr("progress.resetDone"), "good");
+  lastResult = null;
+  resultCard.innerHTML = "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
+  setExportEnabled(false);
+  hideArticlePick();
+}
+
+// ---------------------------------------------------------------------------
+// 新手引导：载入示例
+//
+// 落地时是一片空白网格 + 17 项下拉框，用户要 5 个决策才看见第一个步骤。
+// 这里给出两条捷径：按当前运算载入示例（按钮），或一键玩一个场景（芯片）。
+// ---------------------------------------------------------------------------
+
+/** 把 [[..],[..]] 灌进 state.lib[name]，尺寸随之改变。 */
+function setMatrixCells(name, cells) {
+  const rows = cells.length;
+  const cols = cells[0].length;
+  state.lib[name] = { rows, cols, cells: cells.map((r) => r.slice()) };
+}
+
+/**
+ * 载入某个运算的示例。
+ * 例子里出现的矩阵会覆盖同名矩阵，多余的旧矩阵删掉（示例要能自己看懂，
+ * 留一堆没用的 A/B/C/D 反而干扰）。
+ */
+function loadExampleFor(op) {
+  const ex = EXAMPLES.ops[op];
+  if (!ex) { setMsg(tr("msg.settingsSaved"), ""); return; }
+  applyExample(ex, { op });
+}
+
+function applyExample(ex, opts) {
+  opts = opts || {};
+  state.lib = {};
+  setMatrixCells("A", ex.A);
+  if (ex.B) setMatrixCells("B", ex.B);
+  state.editing = "A";
+  if (opts.op && Array.prototype.some.call(opSelect.options, (o) => o.value === opts.op)) {
+    opSelect.value = opts.op;
+  }
+  if (opts.detMethod && detMethod) detMethod.value = opts.detMethod;
+  refreshAll();
+  if (ex.left) leftSel.value = ex.left;
+  if (ex.right) rightSel.value = ex.right;
+  refreshOperandOptions();
+  setMsg(tr("example.loaded"), "good");
+  // 关键一步：直接算给用户看，而不是让他再点一次「计算」。
+  // 这一下把「看见价值」从 5 个决策压到 1 个。
+  compute();
+}
+
+// --- 场景芯片 ---------------------------------------------------------------
+
+function starterLabel(id) {
+  // 场景标题放在 i18n 里（startSingular / startCofactor / startSolve），
+  // 这里按 key 取；examples.js 里的 pick 字段就是那个 key。
+  return tr(id);
+}
+
+function renderStarterChips() {
+  const box = el("starterChips");
+  if (!box) return;
+  box.innerHTML = "";
+  for (const st of EXAMPLES.starters) {
+    const chip = document.createElement("button");
+    chip.type = "button";
+    chip.className = "chip";
+    // 标题来自 i18n，不从数据里取，保证切语言时立刻跟着变
+    chip.textContent = starterLabel(st.pick || st.id);
+    chip.addEventListener("click", () => applyExample(st, { op: st.op, detMethod: st.detMethod }));
+    box.appendChild(chip);
+  }
+}
+
+// --- 算完之后的讲义推荐 -----------------------------------------------------
+
+/**
+ * 找到这次运算该推荐哪篇讲义。
+ * 行列式有两种算法，推荐的讲义不一样：行变换法 → row-reduction，
+ * 余子式展开 → cofactor。找不到就不显示，不硬凑。
+ */
+function articleFor(rawOp) {
+  if (rawOp === "det") {
+    const m = (detMethod && detMethod.value) || "row_reduction";
+    return EXAMPLES.detArticles[m] || null;
+  }
+  return EXAMPLES.articles[rawOp] || null;
+}
+
+function hideArticlePick() {
+  const a = el("articlePick");
+  if (a) a.hidden = true;
+}
+
+/** 在结果末尾挂一条「想知道为什么」的讲义链接。 */
+function showArticlePick(rawOp) {
+  const a = el("articlePick");
+  const titleEl = el("articlePickTitle");
+  if (!a || !titleEl) return;
+  const art = articleFor(rawOp);
+  if (!art) { a.hidden = true; return; }
+  titleEl.textContent = art.title[I18N.get()] || art.title.zh;
+  a.href = "notes.html#" + art.id;
+  a.hidden = false;
 }
 
 // --- 绑定 -------------------------------------------------------------------
@@ -894,16 +1161,37 @@ el("saveSettings").addEventListener("click", () => {
 el("importImage").addEventListener("click", importFromImage);
 el("imageInput").addEventListener("change", onImageChosen);
 el("exportPdf").addEventListener("click", exportPdf);
+el("loadExample").addEventListener("click", () => loadExampleFor(opSelect.value));
+if (el("resetProgress")) el("resetProgress").addEventListener("click", resetProgress);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
     renderPreview();
     if (lastResult) renderResult(lastResult);
+    scheduleSave();
   });
 }
 
+// 任何会改变工作区的操作都顺手存一下（400ms 防抖在 scheduleSave 里）
+opSelect.addEventListener("change", scheduleSave);
+leftSel.addEventListener("change", scheduleSave);
+rightSel.addEventListener("change", scheduleSave);
+if (detMethod) detMethod.addEventListener("change", scheduleSave);
+if (showSteps) showSteps.addEventListener("change", scheduleSave);
+exprIn.addEventListener("input", scheduleSave);
+for (const ev of ["input", "change", "paste"]) {
+  grid.addEventListener(ev, scheduleSave);
+}
+
+// 先按默认建库，再尝试恢复上次的进度 —— 恢复不了就是全新开始，两条路都合法。
+// refreshAll 放在最后无条件调用：它会重画芯片/编辑器/操作数，且是幂等的
+// （refreshOperandOptions 会保留仍然存在的左右操作数），所以恢复后再跑一遍安全。
 DEFAULT_NAMES.forEach(n => { state.lib[n] = newMatrix(3, 3); });
 state.editing = "A";
+restoreProgress();
 refreshAll();
+renderStarterChips();
+// 语言切换后场景芯片的标题要跟着变（文案在 i18n 里，芯片是动态生成的）
+I18N.onChange(() => { renderStarterChips(); });
 
 // ---------------------------------------------------------------------------
 // 宽屏分栏的可拖动分隔条：调整输入列 / 结果列的宽度比例。
