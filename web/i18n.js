@@ -151,6 +151,27 @@ window.LA_I18N = (function () {
       "cofactor.detHint": "det(A) = {det}；{tail}",
       "cofactor.invertible": "当 det(A) ≠ 0 时，A⁻¹ = adj(A) / det(A)。",
       "cofactor.singular": "（det = 0，矩阵不可逆，A⁻¹ 不存在）。",
+
+      // ---- 新手引导 ----
+      "guide.title": "第一次用？先载入一个示例",
+      "guide.hint": "选好运算后点「载入示例」，矩阵会自动填好，直接点计算就能看到推导过程。",
+      "btn.loadExample": "载入示例",
+      "btn.loadExampleTip": "把当前运算的示例矩阵填进编辑区",
+      "example.loaded": "已载入示例，改数字或直接点计算都行。",
+      "example.starters": "或者试试这些场景：",
+      "startSingular": "为什么这个矩阵没有逆",
+      "startCofactor": "用余子式算行列式",
+      "startSolve": "解一个方程组",
+      "btn.clear": "清空",
+      "btn.clearTip": "清空编辑区（不影响已保存的进度设置）",
+      "starters.hint": "一句话看完新功能，点一下就会自动算给你看。",
+
+      // ---- 算完之后的讲义推荐 ----
+      "article.why": "想知道为什么？读这篇有更深的理解",
+      "article.read": "看讲义",
+      "btn.resetProgress": "清空我的进度",
+      "btn.resetProgressTip": "删掉这台设备上保存的矩阵与设置，回到全新状态",
+      "progress.resetDone": "已清空本机保存的进度。",
       "eigen.title": "特征值 / 特征向量",
       "eigen.algebraic": "（代数重数 {n}",
       "eigen.geometric": "，几何重数 {n} → <span class=\"warn\">不可对角化</span>",
@@ -369,6 +390,27 @@ window.LA_I18N = (function () {
       "eigen.exact": "Exact value",
       "eigen.exactForm": "Exact form: {v}",
       "eigen.notDiag": "(not diagonalisable)",
+
+      // ---- onboarding ----
+      "guide.title": "First time here? Load an example",
+      "guide.hint": "Pick an operation, then press \"Load example\" — the matrices fill themselves in, so you can hit Compute and watch the steps straight away.",
+      "btn.loadExample": "Load example",
+      "btn.loadExampleTip": "Fill the editor with a worked example for the selected operation",
+      "example.loaded": "Example loaded. Tweak the numbers or just hit Compute.",
+      "example.starters": "Or try one of these:",
+      "startSingular": "Why this matrix has no inverse",
+      "startCofactor": "Determinant by cofactor expansion",
+      "startSolve": "Solve a system of equations",
+      "btn.clear": "Clear",
+      "btn.clearTip": "Empty the editor (saved progress is not affected)",
+      "starters.hint": "One click each, and it computes the answer for you.",
+
+      // ---- related article after a result ----
+      "article.why": "Want to know why? Read this for a deeper insight",
+      "article.read": "Read the note",
+      "btn.resetProgress": "Reset my progress",
+      "btn.resetProgressTip": "Delete the matrices and settings saved on this device and start fresh",
+      "progress.resetDone": "Saved progress cleared.",
 
       // ---- engine status (static preview) ----
       "engine.loading": "Loading the compute engine (first time takes ~10s, then it is instant)…",
