@@ -52,6 +52,18 @@ const tr = I18N.t;
   const MODEL = "glm-4-flash";
   const MAX = 300;
 
+  // 公共共享 Key（GLM-4-Flash 免费额度）。
+  //
+  // 为什么敢公开：这是纯静态页，浏览器直连 open.bigmodel.cn，Key 必然要出现在
+  // 前端代码里 —— 区别只在于「官方发一个」还是「每个人自己去注册一个」。
+  // 之前要求用户先注册、拿 Key、再粘贴，转化率几乎为零。
+  //
+  // 代价（知情选择，不是疏忽）：
+  // · 共享额度 → 有人滥用会触发 429，所有人一起变慢；
+  // · 这个 Key 随时可能失效或被回收；
+  // · 介意的话在「更换 Key」里填自己的，自己的会存在本机并优先生效。
+  const SHARED_KEY = "";   // ← 填入即可启用；留空则回到「必须自己填 Key」
+
   const keyBox = el("aiHelpKeyBox");
   const askBox = el("aiHelpAskBox");
   const keyIn = el("aiHelpKeyIn");
@@ -63,6 +75,13 @@ const tr = I18N.t;
   const changeKeyBtn = el("aiHelpChangeKey");
   const answerEl = el("aiHelpAnswer");
   const statusEl = el("aiHelpStatus");
+  const sharedNote = el("aiHelpSharedNote");
+
+  // 有公共 Key 时提示一下「你可以直接用，也可以换成自己的」
+  if (sharedNote) {
+    sharedNote.hidden = !SHARED_KEY;
+    if (SHARED_KEY) sharedNote.textContent = tr("ai.sharedNote");
+  }
 
   // Key 存储：优先 localStorage；被浏览器禁用时回落到 sessionStorage；
   // 再不行就用内存变量兜底，保证本次会话「提问」按钮不会因存不住 Key 而失活。
@@ -79,17 +98,20 @@ const tr = I18N.t;
       catch (__){ return null; }
     }
   }
-  function getKey() { return memKey || readStore(); }
+  function getKey() { return memKey || readStore() || SHARED_KEY; }
   function setKey(k) {
     memKey = k || "";
     return writeStore(k);
   }
+  /** 用户是否填了自己的 Key（决定保存/更换按钮的语义）。 */
+  function hasOwnKey() { return !!(memKey || readStore()); }
 
   function showKeyView(msg) {
     keyBox.hidden = false;
     askBox.hidden = true;
     if (msg) keyMsg.textContent = msg;
-    keyIn.value = "";
+    // 有公共 Key 就预填，用户可以直接点「保存」；没有才留空让他粘贴
+    keyIn.value = hasOwnKey() ? getKey() : "";
     setTimeout(() => keyIn.focus(), 30);
   }
   function showAskView() {
@@ -138,12 +160,20 @@ const tr = I18N.t;
 
   changeKeyBtn.addEventListener("click", () => {
     setKey("");
+    // 注意：清掉的只是「我自己存的 Key」。公共 Key 是代码里的常量，
+    // 所以点了「更换 Key」之后依然能用公共 Key —— 这正是「更换」该有的行为，
+    // 不是把用户彻底挡在门外。
     showKeyView(tr("ai.keyCleared"));
   });
 
   saveKeyBtn.addEventListener("click", () => {
     const k = keyIn.value.trim();
-    if (!k) { keyMsg.textContent = tr("ai.noKey"); return; }
+    // 留空表示「用公共 Key」：不是错误，别把人拦在这一步
+    if (!k) {
+      if (SHARED_KEY) { setKey(""); showAskView(); }
+      else { keyMsg.textContent = tr("ai.noKey"); }
+      return;
+    }
     const where = setKey(k);
     showAskView();
     if (!where) {
@@ -157,6 +187,9 @@ const tr = I18N.t;
     const q = qEl.value.trim();
     const key = getKey();
     if (!q || !key) return;
+    // 先记下用的是「自己的 Key」还是「公共 Key」：下面的错误处理要靠它
+    // 决定是提示 Key 无效，还是提示共享 Key 挂了。
+    const hasOwnKeyBefore = hasOwnKey();
     sendBtn.disabled = true;
     answerEl.textContent = "";
     statusEl.textContent = tr("ai.thinking");
@@ -182,11 +215,16 @@ const tr = I18N.t;
         const msg = data && data.error && data.error.message;
         if (resp.status === 401) {
           setKey("");
-          showKeyView(tr("ai.badKey", { msg: msg || "401" }));
+          // 用的是公共 Key 却 401 → 多半是共享 Key 失效/被回收了。
+          // 直接把人推回「填自己的 Key」，别让一个死掉的共享 Key
+          // 变成整页功能不可用。
+          showKeyView(tr(hasOwnKeyBefore ? "ai.badKey" : "ai.sharedKeyDead",
+                         { msg: msg || "401" }));
           return;
         }
         if (resp.status === 429) {
-          statusEl.textContent = tr("ai.rateLimited");
+          // 共享额度被打满时，自己的 Key 往往是好的 —— 直接提示换 Key 试试
+          statusEl.textContent = tr(hasOwnKeyBefore ? "ai.rateLimited" : "ai.sharedRateLimited");
           return;
         }
         statusEl.textContent = tr("ai.error", { msg: msg || ("HTTP " + resp.status) });
