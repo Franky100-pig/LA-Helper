@@ -28,9 +28,10 @@ if ROOT not in sys.path:
 
 from core import engine, photo, format_math      # noqa: E402
 from core import __version__ as APP_VERSION      # noqa: E402
+from core import examples as core_examples        # noqa: E402
 from desktop import update as update_mod         # noqa: E402
 from desktop.model import (                       # noqa: E402
-    LibraryModel, MIN_DIM, MAX_DIM, format_matrix, clamp_dim,
+    LibraryModel, MIN_DIM, MAX_DIM, NAME_RE, format_matrix, clamp_dim,
 )
 
 # ---- 本地设置（API key 等，仅存于本机，绝不入库）----
@@ -76,6 +77,7 @@ OPS = [
     ("solve", "增广矩阵求解 Ax=b"),
     ("ref", "REF 行阶梯形"),
     ("det", "行列式 det(A)"),
+    ("cofactor_matrix", "余子式矩阵 C & 伴随矩阵 adj(A)"),
     ("rank", "秩 rank(A)"),
     ("eigen", "特征值 / 特征向量"),
 ]
@@ -83,6 +85,17 @@ OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
 # 行列式有两种算法：下拉框里仍是同一项「行列式 det(A)」，旁边的小下拉切换算法。
 DET_METHODS = ["行变换法（推荐）", "代数余子式展开"]
 DET_METHOD_OPS = {"行变换法（推荐）": "det", "代数余子式展开": "det_cofactor"}
+# 反查用：引擎 op -> 下拉框里那一项的序号
+DET_METHOD_LABELS = {v: k for k, v in DET_METHOD_OPS.items()}
+
+# 讲义在线阅读地址（桌面端没有内置讲义，算完给一条链接跳过去）
+NOTES_BASE_URL = "https://franky100-pig.github.io/LA-Helper/notes.html"
+# 三个一键上手场景的中文标题（与 web/examples.js 的 pick 对应）
+STARTER_LABELS = {
+    "startSingular": "为什么这个矩阵没有逆",
+    "startCofactor": "用余子式算行列式",
+    "startSolve": "解一个方程组",
+}
 
 
 # 结果区默认最小行数（比原先更高）；内容超过视口时整窗滚动，结果框本身不内滚
@@ -147,6 +160,11 @@ class LAApp:
         self._build_result()
 
         self.refresh_all()
+
+        # 还原上次的工作区（做完第 3 题关掉窗口，明天回来矩阵还在）。
+        # refresh_all 已经跑过一次且是幂等的，所以无论还原成功与否都安全。
+        self.last_op = None
+        self.restore_progress()
 
         # 启动后稍等再在后台线程里查一次新版本（不阻塞界面、失败静默）
         self.root.after(1500, self._maybe_check_updates)
@@ -325,6 +343,7 @@ class LAApp:
         self.dec_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(bar, text="小数显示", variable=self.dec_var).pack(side="left", padx=6)
 
+        ttk.Button(bar, text="载入示例", command=self.load_example).pack(side="right", padx=(8, 0))
         ttk.Button(bar, text="设置", command=self.open_settings).pack(side="right", padx=(8, 0))
         ttk.Button(bar, text="计算", command=self.compute_dropdown).pack(side="right", padx=(12, 0))
         # 深 / 浅色切换：文字显示「点了会切到」的模式
@@ -332,6 +351,17 @@ class LAApp:
             value="浅色" if self.theme == "dark" else "深色")
         ttk.Button(bar, textvariable=self.theme_btn_var, width=6,
                    command=self.toggle_theme).pack(side="right", padx=(8, 0))
+
+        # 新手引导：三个场景芯片。空白网格 + 15 项下拉框原本要 5 个决策才看到
+        # 第一个步骤，这里一键就填好并直接算出来。
+        sbar = ttk.Frame(self.inner)
+        sbar.pack(fill="x", padx=12, pady=(0, 6))
+        ttk.Label(sbar, text="或者试试：").pack(side="left", padx=(0, 6))
+        for st in core_examples.STARTERS:
+            ttk.Button(
+                sbar, text=STARTER_LABELS.get(st["id"], st["id"]),
+                command=lambda s=st: self.apply_example(s),
+            ).pack(side="left", padx=3)
 
     def _op_key(self):
         idx = self.op_cb.current()
@@ -499,6 +529,7 @@ class LAApp:
     def on_cell_commit(self, r, c, value):
         self.model.set_cell(self.model.editing, r, c, value)
         self.render_preview()
+        self.save_progress()
 
     def on_dim_change(self):
         if self._rebuilding:
@@ -654,6 +685,14 @@ class LAApp:
             self.set_msg("设置已保存")
         ttk.Button(win, text="保存", command=_save).pack(side="right", padx=12, pady=(0, 12))
 
+        # 清空本机进度：与网页版「清空我的进度」对应
+        ttk.Button(win, text="清空我的进度", command=self._clear_progress_from_settings
+                   ).pack(side="right", padx=12, pady=(0, 12))
+
+    def _clear_progress_from_settings(self):
+        self.clear_progress()
+        self.set_msg("已清空本机保存的进度。")
+
     # ---- 从图片导入矩阵 ------------------------------------------------------
     def import_from_image(self):
         path = filedialog.askopenfilename(
@@ -758,6 +797,17 @@ class LAApp:
                                font=("Menlo", 14))
         self.out.config(state="disabled")
 
+        # 讲义推荐按钮：默认不显示，算完有对应讲义时才出现
+        self._article_note = None
+        self._article_btn_var = tk.StringVar()
+        self.article_btn = ttk.Button(
+            rf, textvariable=self._article_btn_var, command=self._open_article_from_btn)
+        self._refresh_widget_colors()
+
+    def _open_article_from_btn(self):
+        if self._article_note:
+            self._open_article(self._article_note)
+
     def _write(self, text, tag=None):
         self.out.config(state="normal")
         self.out.insert("end", text + "\n", tag)
@@ -831,8 +881,45 @@ class LAApp:
                 if mat:
                     self._write("   " + format_matrix(mat, dec).replace("\n", "\n   "),
                                 "mat")
+        self._write_article_hint(raw_op=getattr(self, "last_op", None),
+                                 det_method=self._det_label())
         self.out.config(state="disabled")
         self._fit_result_height()
+
+    def _det_label(self):
+        """当前选的 det 算法标签。取不到就按推荐的行变换法算。"""
+        var = getattr(self, "det_method_var", None)
+        try:
+            return var.get() if var is not None else DET_METHODS[0]
+        except Exception:
+            return DET_METHODS[0]
+
+    def _write_article_hint(self, raw_op, det_method=None):
+        """算完在结果下方显示一个「读讲义」按钮（桌面端跳在线讲义）。
+
+        「算」和「懂」是这个工具的两半，网页版把它们缝在同一个页面里；
+        桌面端没有内置讲义，就给一个能点开的按钮。
+        """
+        btn = getattr(self, "article_btn", None)
+        if btn is None:
+            return
+        if not raw_op:
+            btn.pack_forget()
+            self._article_note = None
+            return
+        method = "cofactor" if det_method == DET_METHODS[1] else "row_reduction"
+        art = core_examples.article_for(raw_op, method)
+        if not art:
+            btn.pack_forget()      # 没有诚实的对应讲义就不显示，不硬凑
+            self._article_note = None
+            return
+        note_id, title = art
+        self._article_note = note_id
+        self._article_btn_var.set(f"📖 想知道为什么？读这篇：{title}")
+        btn.pack(anchor="w", padx=10, pady=(0, 10))
+
+    def _open_article(self, note_id):
+        webbrowser.open(f"{NOTES_BASE_URL}#{note_id}")
 
     def _fit_result_height(self):
         """让结果框高度恰好容纳全部内容（不出现内部滚动条）。"""
@@ -857,6 +944,141 @@ class LAApp:
         # decimal when requested, so scalar results stay readable in both modes.
         return format_math.to_text(v, dec)
 
+    # ---- 新手引导：载入示例 ----
+    def load_example(self):
+        """把当前运算的示例填进库，并**直接算出来**。
+
+        直接算这一步是关键：原本用户要先看懂网格要填什么、再翻 15 项下拉、
+        再选左右操作数、最后点计算 —— 5 个决策才看见第一个步骤。
+        """
+        ex = core_examples.example_for(self._op_key())
+        if ex:
+            self.apply_example(ex)
+
+    def apply_example(self, ex):
+        """灌入一个示例（web/examples.js 的同一份数据，来自 core.examples）。"""
+        # 只保留示例用到的矩阵，多余的 A/B/C/D 只会干扰阅读
+        self.model.lib = {}
+        for name in ("A", "B"):
+            cells = ex.get(name)
+            if not cells:
+                continue
+            self.model.lib[name] = {
+                "rows": len(cells),
+                "cols": len(cells[0]),
+                "cells": [list(r) for r in cells],
+            }
+        self.model.editing = "A"
+        if ex.get("op"):
+            for i, (key, _) in enumerate(OPS):
+                if key == ex["op"]:
+                    self.op_cb.current(i)
+                    break
+        if ex.get("detMethod"):
+            label = DET_METHOD_LABELS.get(
+                "det_cofactor" if ex["detMethod"] == "cofactor" else "det")
+            if label:
+                self.det_method_var.set(label)
+        self.refresh_all()
+        if ex.get("left"):
+            self.left_var.set(ex["left"])
+        if ex.get("right"):
+            self.right_var.set(ex["right"])
+        self.save_progress()
+        self.compute_dropdown()
+
+    # ---- 记住本机进度 ----
+    # 网页端存在 localStorage["la.progress"]，桌面端存在同一份 settings JSON 里
+    # （该文件本来就是 0600 的，因为它存着 API key）。好处同样是：做完第 3 题
+    # 关掉窗口，明天回来矩阵还在，而不是又从空白开始。
+    PROGRESS_VERSION = 1
+
+    def save_progress(self):
+        # 存不下一律静默失败：设置文件写不了（只读目录 / 权限）不该弄坏界面
+        try:
+            s = load_settings()
+            s["progress"] = {
+                "v": self.PROGRESS_VERSION,
+                "lib": self.model.lib,
+                "editing": self.model.editing,
+                "op": self._op_key(),
+                "left": self.left_var.get(),
+                "right": self.right_var.get(),
+                "detMethod": self.det_method_var.get(),
+                "showSteps": self.steps_var.get(),
+                "showDecimals": self.dec_var.get(),
+                "expr": self.expr_var.get(),
+            }
+            save_settings(s)
+        except Exception:
+            pass
+
+    def restore_progress(self):
+        """还原上次进度。数据损坏 / 版本不认 / 形状非法 → 全部退回默认。"""
+        p = (load_settings() or {}).get("progress")
+        if not isinstance(p, dict) or p.get("v") != self.PROGRESS_VERSION:
+            return False
+        lib = p.get("lib")
+        if not isinstance(lib, dict) or not lib:
+            return False
+
+        restored = {}
+        for name, m in lib.items():
+            if not isinstance(m, dict):
+                continue
+            cells = m.get("cells")
+            if not isinstance(cells, list) or not cells:
+                continue
+            cols = len(cells[0]) if isinstance(cells[0], list) else 0
+            # 每行长度必须一致，否则网格画出来是歪的
+            if not cols or not all(isinstance(r, list) and len(r) == cols for r in cells):
+                continue
+            rows = len(cells)
+            if rows < MIN_DIM or rows > MAX_DIM or cols < MIN_DIM or cols > MAX_DIM:
+                continue
+            if not NAME_RE.match(str(name)):
+                continue
+            restored[str(name)] = {
+                "rows": rows, "cols": cols,
+                "cells": [[str(c) if c is not None else "" for c in r] for r in cells],
+            }
+        if not restored:
+            return False
+
+        self.model.lib = restored
+        editing = str(p.get("editing") or "")
+        self.model.editing = editing if editing in restored else sorted(restored)[0]
+
+        for i, (key, _) in enumerate(OPS):
+            if key == p.get("op"):
+                self.op_cb.current(i)
+                break
+        if p.get("detMethod") in DET_METHOD_OPS:
+            self.det_method_var.set(p["detMethod"])
+        if isinstance(p.get("showSteps"), bool):
+            self.steps_var.set(p["showSteps"])
+        if isinstance(p.get("showDecimals"), bool):
+            self.dec_var.set(p["showDecimals"])
+        if isinstance(p.get("expr"), str):
+            self.expr_var.set(p["expr"])
+        self.refresh_all()
+        for var, key in ((self.left_var, "left"), (self.right_var, "right")):
+            if p.get(key) in restored:
+                var.set(p[key])
+        self.refresh_operand_options()
+        return True
+
+    def clear_progress(self):
+        s = load_settings()
+        s.pop("progress", None)
+        save_settings(s)
+        self.model = LibraryModel()
+        self.expr_var.set("")
+        self.refresh_all()
+
+    def _open_article(self, note_id):
+        webbrowser.open(f"{NOTES_BASE_URL}#{note_id}")
+
     # ---- 计算 ----
     def compute_dropdown(self):
         raw_op = self._op_key()
@@ -871,7 +1093,9 @@ class LAApp:
             res = engine.dispatch(payload)
         except Exception as e:
             res = {"ok": False, "error": f"{type(e).__name__}: {e}"}
+        self.last_op = raw_op
         self.render_result(res)
+        self.save_progress()
 
     def compute_expr(self):
         text = self.expr_var.get().strip()
