@@ -100,3 +100,24 @@ def test_solve_none():
 def test_left_inverse_missing_reports_note():
     r = compute("left_inverse", [[1, 2], [2, 4], [3, 6]])
     assert r["ok"] and r["type"] == "inverse_status" and r["exists"] is False
+
+
+def test_inverse_singular_reports_status_not_exception():
+    # 奇异矩阵没有逆，但这是个值得讲清楚的结果，不该把 ValueError 的英文
+    # 原文甩到界面上（曾经就是这样，新手示例的第一次点击会看到它）。
+    r = compute("inverse", [[1, 2], [2, 4]])
+    assert r["ok"] and r["type"] == "inverse_status"
+    assert r["exists"] is False and "det(A)" in r["note"]
+
+
+def test_inverse_singular_with_steps_still_reports_status():
+    # showSteps=True 时也不能退回抛异常（判定奇异的 determinant 调用
+    # 必须传 record_steps=False，否则会白算一遍步骤）。
+    r = compute("inverse", [[1, 2], [2, 4]], show_steps=True)
+    assert r["ok"] and r["type"] == "inverse_status" and r["exists"] is False
+
+
+def test_inverse_regular_still_returns_matrix():
+    r = compute("inverse", [[1, 1], [1, -1]])
+    assert r["ok"] and r["type"] == "matrix"
+    assert r["data"] == [["1/2", "1/2"], ["1/2", "-1/2"]]

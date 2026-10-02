@@ -75,6 +75,18 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             R = ops.transpose(A)
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": []}
         elif op == "inverse":
+            # 奇异矩阵没有逆。这不是「出错」，而是一个值得讲清楚的结果，
+            # 所以走和 left/right inverse 一样的 inverse_status 通道，
+            # 而不是把 ValueError 的英文原文抛给界面。
+            # 用 determinant 判奇异（方阵 det=0 等价于不可逆），不新增公开 API。
+            if not A.is_square():
+                return {"ok": False,
+                        "error": f"inverse needs a square matrix, got {A.rows}×{A.cols}"}
+            d, _ = det_rank.determinant(A, record_steps=False)
+            if d == 0:
+                return {"ok": True, "type": "inverse_status", "exists": False,
+                        "note": "det(A) = 0：A is singular, so A⁻¹ does not exist",
+                        "steps": []}
             R, steps = inv_mod.inverse(A, record_steps=show_steps)
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": steps}
         elif op == "left_inverse":
