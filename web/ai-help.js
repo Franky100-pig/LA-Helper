@@ -44,13 +44,13 @@ const tr = I18N.t;
 // ---------------------------------------------------------------------------
 // AI Help：用 GLM-4-Flash（免费）直连解答线代问题。
 // 纯静态页无后端：浏览器直接 fetch open.bigmodel.cn（已验证 CORS 允许任意来源），
-// Key 只存本机 localStorage，不经过任何中转。问题限制 ≤300 字。
+// Key 只存本机 localStorage，不经过任何中转。问题限制 ≤500 字。
 // ---------------------------------------------------------------------------
 (function initAiHelp() {
   const KEY_STORE = "la-glm-key";
   const ENDPOINT = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
   const MODEL = "glm-4-flash";
-  const MAX = 300;
+  const MAX = 500;
 
   // 公共共享 Key（GLM-4-Flash 免费额度）。
   //
@@ -261,7 +261,7 @@ const tr = I18N.t;
 
   if (btn) btn.addEventListener("click", () => { I18N.toggle(); });
 
-  // apply() 会把 #aiHelpCount 重填成 "0 / 300"，这里按当前输入长度再刷一次
+  // apply() 会把 #aiHelpCount 重填成 "0 / 500"，这里按当前输入长度再刷一次
   I18N.onChange(() => {
     syncButton();
     updateCount();
