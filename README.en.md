@@ -36,6 +36,20 @@ Just pick the one that fits your workflow:
   matrix (or a screenshot), have Google Gemini's vision model read it into numbers, and it
   is filled into the editor grid — just double-check it afterwards (a misread digit can
   always be corrected by hand)
+- **A worked example for every operation, one click away** (all editions): pick an
+  operation, press "Load example", and the matrices fill themselves in and **compute
+  immediately** — no need to invent numbers, hunt through the dropdown, and pick operands
+  first. There are also three one-click scenarios ("why this matrix has no inverse" /
+  "determinant by cofactor expansion" / "solve a system of equations")
+- **A related study note after every result** (a link under the result on the web and
+  online preview; a button in the desktop app): "Want to know why? Read this" — jumping
+  straight to the one note that explains what you just did
+- **Remembers your progress on this device** (all editions): matrices, operation, toggles
+  and the expression box are stored locally, so closing the window and coming back
+  tomorrow leaves your work intact. One click clears it. Desktop keeps it in
+  `~/.la_helper_settings.json` (already owner-only `0600` because it holds your API key);
+  the web editions use `localStorage`. Both stay on your machine — never uploaded,
+  never synced, no account.
 
 ## How to use it (two ways, identical results)
 
@@ -199,6 +213,19 @@ sends no data**.
    you typed (plus a fixed system prompt) is sent to the GLM (Zhipu) API you configured.
    The GLM key lives only in your browser's `localStorage` and goes straight to
    `open.bigmodel.cn` in an `Authorization` header — no intermediary server involved.
+
+   > **About the built-in shared key:** the page ships with a public GLM-4-Flash key that
+   > everyone shares, so you can **ask without signing up at all**. Because it is shared, it
+   > comes with two trade-offs: the quota is shared (if others use it up you may hit a 429),
+   > and the key can stop working at any time. So:
+   > - you can always press "Change key" and paste your own free key (get one at
+   >   open.bigmodel.cn); once you do, yours always wins over the shared one;
+   > - if the shared key ever fails, the page says so plainly and walks you through adding
+   >   your own, rather than failing silently.
+   >
+   > That key is in the front-end source (a static page talks to GLM directly, so the key is
+   > necessarily visible). It is a convenience that saves you a signup step, not a security
+   > boundary — supply your own if you'd rather not depend on it.
 3. **Usage counter (web edition footer only).** A "people who used it" total appears at the
    bottom of the page, supplied by a free third-party counter (Abacus). Loading the page
    sends a single anonymous visit count — no matrix content, question, or personal
@@ -213,4 +240,8 @@ every other feature remains fully offline.
 - [ ] More factorisations (QR / SVD), Gram-Schmidt, least squares
 - [ ] Structured steps (per-step matrix snapshot and current pivot, with step-through / highlighting)
 - [x] Import a matrix from a photo (Gemini vision, desktop + web)
+- [x] A worked example per operation, loadable in one click (desktop + web)
+- [x] Related study note after every result ("Want to know why? Read this")
+- [x] Remembers your progress on this device (desktop + web)
+- [ ] Deep-link a computation into the URL (`#op=det&m=…`), so one link = one problem you can send to someone
 - [ ] Optional "partial pivoting" strategy for REF, defaulting to the textbook presentation
