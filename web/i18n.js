@@ -222,6 +222,11 @@ window.LA_I18N = (function () {
       // ---- 使用人数页脚 ----
       "count.line": "{n} 人用 LA-Helper 学习线代",
       "count.lineOne": "{n} 人用 LA-Helper 学习线代",
+
+      // ---- 导出 PDF ----
+      "btn.exportPdf": "导出 PDF",
+      "btn.exportPdfTip": "导出为 PDF：在打印对话框里把「目标 / 打印机」选成「存储为 PDF」，再点保存。",
+      "print.brand": "LA Helper · 线性代数小算",
     },
 
     en: {
@@ -428,6 +433,11 @@ window.LA_I18N = (function () {
       // ---- usage footer ----
       "count.line": "{n} people used LA-Helper to learn LA",
       "count.lineOne": "{n} person used LA-Helper to learn LA",
+
+      // ---- PDF export ----
+      "btn.exportPdf": "Export PDF",
+      "btn.exportPdfTip": "Export as PDF: in the print dialog choose \"Save as PDF\" as the destination, then save.",
+      "print.brand": "LA Helper · Linear Algebra Calculator",
     },
   };
 

@@ -716,10 +716,38 @@ function revealResult() {
   box.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
+// --- 导出 PDF ---------------------------------------------------------------
+// 不引入任何第三方库：打印样式（index.html 的 @media print）会把调色板换成浅色、
+// 并把除结果卡以外的界面全部藏掉，所以「打印 → 存储为 PDF」拿到的就是
+// 纯结果 + 推导步骤。零依赖，离线也能用，中文与公式不会变成图片或乱码。
+
+/** 有结果才显示「导出 PDF」按钮；报错 / 计算中 / 空状态一律隐藏。 */
+function setExportEnabled(on) {
+  const bar = el("resultTools");
+  if (bar) bar.hidden = !on;
+}
+
+function exportPdf() {
+  // 落款：让导出的 PDF 自己说清楚是什么时候算的
+  const d = el("printDate");
+  if (d) {
+    let stamp = "";
+    try {
+      stamp = new Date().toLocaleString(I18N.get() === "en" ? "en-US" : "zh-CN", {
+        year: "numeric", month: "long", day: "numeric",
+        hour: "2-digit", minute: "2-digit",
+      });
+    } catch (_) { stamp = ""; }   // 老浏览器不认 options 就算了，落款留空
+    d.textContent = stamp;
+  }
+  window.print();
+}
+
 async function renderResult(res) {
   lastResult = res;
   if (!res.ok) {
     resultCard.innerHTML = `<div class="error">⚠️ ${escapeHtml(res.error)}</div>`;
+    setExportEnabled(false);
     revealResult();
     return;
   }
@@ -779,6 +807,7 @@ async function renderResult(res) {
     html += steps;
   }
   resultCard.innerHTML = html || "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
+  setExportEnabled(!!html);   // 真算出了东西才给导出按钮
   revealResult();
 }
 
@@ -791,6 +820,7 @@ async function request(payload) {
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
   resultCard.innerHTML = "<div class='muted-line'>" + tr("result.computing") + "</div>";
+  setExportEnabled(false);   // 算的过程中别让上一次的结果被导出
   try {
     const resp = await fetch("/api/compute", {
       method: "POST",
@@ -807,6 +837,7 @@ async function request(payload) {
     } else {
       resultCard.innerHTML = `<div class="error">${tr("result.failed", { err: escapeHtml(e) })}</div>`;
     }
+    setExportEnabled(false);
     return null;
   } finally {
     clearTimeout(timer);
@@ -862,6 +893,7 @@ el("saveSettings").addEventListener("click", () => {
 });
 el("importImage").addEventListener("click", importFromImage);
 el("imageInput").addEventListener("change", onImageChosen);
+el("exportPdf").addEventListener("click", exportPdf);
 if (showDecimals) {
   showDecimals.addEventListener("change", () => {
     renderPreview();
@@ -1020,6 +1052,7 @@ function renderGuideRows() {
     } else {
       resultCard.innerHTML =
         "<div class='muted-line'>" + tr("result.noneOutput") + "</div>";
+      setExportEnabled(false);        // 没有结果就没什么可导出的
     }
   });
 })();

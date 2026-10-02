@@ -440,6 +440,59 @@
     font-size: 13px; margin: 26px auto 30px; padding: 0 16px;
   }
   .usage-line b { color: var(--accent); font-weight: 700; font-size: 15px; }
+
+  /* 结果区工具条：目前只有「导出 PDF」。没算出结果时整条隐藏（默认 hidden） */
+  .result-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
+  .result-tools[hidden] { display: none; }
+
+  /* 只出现在导出的 PDF 里的落款（屏幕上不显示） */
+  .print-only { display: none; }
+
+  /* ------------- 导出 PDF：打印样式 -------------
+     思路：打印时把整套调色板换成浅色（深色主题直接打印就是一整页黑底，
+     既费墨又难读），再把除结果卡以外的界面全部藏掉。于是「打印 → 存储为
+     PDF」拿到的就是纯结果 + 推导步骤。全程不动 DOM，屏幕上的样子毫无变化。 */
+  @page { margin: 14mm; }
+  @media print {
+    /* 必须把 [data-theme=...] 两个选择器都列上：带属性选择器的规则特异性更高，
+       只写 :root 的话浅色主题下这条会被 :root[data-theme="light"] 压过去。 */
+    :root,
+    :root[data-theme="light"],
+    :root[data-theme="dark"] {
+      --bg: #ffffff; --panel: #ffffff; --panel2: #ffffff;
+      --accent: #1f5c99; --accent2: #8a4a00; --text: #111111; --muted: #555555;
+      --border: #bbbbbb; --ok: #14682f; --bad: #a01818;
+      --inset: #f5f5f5; --inset-focus: #efefef;
+      --header-grad: none; --guide-border: #dddddd;
+      --placeholder: #777777; --preview-auto: #777777; --on-accent: #ffffff;
+    }
+    header, .col-input, #colSplitter, #engineStatus, #usageRow,
+    #resultTools, #settingsPanel, input[type="file"] { display: none !important; }
+
+    html, body { background: #fff !important; color: #111 !important; }
+    body { display: block !important; min-height: 0 !important; }
+    main {
+      display: block !important; max-width: none !important; width: auto !important;
+      margin: 0 !important; padding: 0 !important;
+    }
+    .col-result, .result-area {
+      display: block !important; width: auto !important;
+      margin: 0 !important; padding: 0 !important;
+    }
+    .result-card {
+      border: none !important; border-radius: 0 !important; box-shadow: none !important;
+      padding: 0 !important; max-height: none !important;
+      height: auto !important; overflow: visible !important;
+    }
+    .print-only { display: block !important; }
+    .print-brand { margin: 0 0 2px; font-size: 15px; font-weight: 700; color: #111; }
+    .print-date {
+      margin: 0 0 16px; padding-bottom: 8px; font-size: 12px; color: #555;
+      border-bottom: 1px solid #ddd;
+    }
+    /* 步骤条目、矩阵块别被分页切成两半 */
+    .steps li, .matrix-box, .lu-row, .eig { break-inside: avoid; page-break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
@@ -613,7 +666,18 @@
        data-i18n-attrs="title:splitter.tip,aria-label:splitter.tip"></div>
 
   <div class="col-result">
+  <!-- 结果工具条：算出结果后才出现，否则整条隐藏（逻辑在 app.js 的 setExportEnabled） -->
+  <div id="resultTools" class="result-tools" hidden>
+    <button id="exportPdf" class="ghost" type="button"
+            data-i18n="btn.exportPdf" data-i18n-attrs="title:btn.exportPdfTip"
+            title="导出 PDF（在打印对话框里把「目标」选成「存储为 PDF」）">导出 PDF</button>
+  </div>
   <section id="result" class="result-area">
+    <!-- 落款：只在导出的 PDF 里显示，屏幕上不可见 -->
+    <div class="print-only">
+      <p class="print-brand" data-i18n="print.brand">LA Helper · 线性代数小算</p>
+      <p class="print-date" id="printDate"></p>
+    </div>
     <div class="result-card">
       <div class="empty-state">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">

@@ -27,6 +27,11 @@ Just pick the one that fits your workflow:
 - **Determinant, rank, REF (row echelon form)** (RREF is used internally by solve / inverse)
 - **Eigenvalues / eigenvectors** (exact for small matrices; ≥5×5 switches to a numerical solver automatically, avoiding `CRootOf` and long stalls)
 - Every operation can toggle **"show steps"** and **decimal display**
+- **Export the steps to PDF** (web / online preview): after computing, click "Export PDF" and
+  pick "Save as PDF" as the destination in the print dialog. What you get is a light-themed A4
+  sheet containing **only the result and the worked steps** — the palette flips to light
+  automatically, the input panel and footer are excluded, and steps and matrices are never
+  split across pages. No third-party library, works offline
 - **Import a matrix from a photo** (desktop + web / online preview): take a picture of a
   matrix (or a screenshot), have Google Gemini's vision model read it into numbers, and it
   is filled into the editor grid — just double-check it afterwards (a misread digit can
