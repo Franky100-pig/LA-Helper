@@ -97,14 +97,14 @@
       op: "inverse",
       A: [["1", "2"], ["2", "4"]],
       // 这题没有逆 —— 正好撞上「det=0 就不可逆」，结果区会直接告诉你原因。
-      pick: "singular",
+      pick: "startSingular",
     },
     {
       id: "startCofactor",
       op: "det",
       detMethod: "cofactor",
       A: [["2", "0", "1"], ["1", "3", "2"], ["4", "1", "0"]],
-      pick: "cofactor",
+      pick: "startCofactor",
     },
     {
       id: "startSolve",
@@ -112,7 +112,7 @@
       A: [["2", "1"], ["1", "3"]],
       B: [["5"], ["10"]],
       left: "A", right: "B",
-      pick: "solve",
+      pick: "startSolve",
     },
   ];
 
