@@ -80,7 +80,7 @@ console.log("\n[2] 被引用的 key 是否都存在");
 // 页面与脚本清单：新增页面（如 notes.html）要加进来，否则它的 key 无人校验。
 const PAGE_FILES = [
   "index.html", "ai-help.html", "notes.html",
-  "app.js", "ai-help.js", "notes-page.js",
+  "app.js", "ai-help.js", "notes-page.js", "examples.js",
 ];
 const sources = [
   ...PAGE_FILES.map((f) => path.join(WEB, f)),
@@ -127,6 +127,37 @@ if (missingEn.length) {
   missingEn.forEach((k) => err(`引用了 "${k}"，但 en 字典缺失`));
 } else {
   ok(`被引用的 ${referenced.size} 个 key 在 en 中全部存在`);
+}
+
+// ---------------------------------------------------------------------------
+// 4. 运行时才解析的 key：examples.js 里的 pick
+//
+// 场景芯片的标题是 tr(st.pick) 这样在运行时算出来的，源码里看不到字面量，
+// 所以第 2 节扫不到。写错时表现是「芯片显示成 singular 而不是中文标题」——
+// 静默降级、不报错，只有肉眼能发现。这里显式校验一次。
+// ---------------------------------------------------------------------------
+console.log("\n[3] 运行时解析的 key（examples.js 的 pick）");
+const exFile = path.join(WEB, "examples.js");
+const pickMissing = [];
+if (fs.existsSync(exFile)) {
+  const exSrc = fs.readFileSync(exFile, "utf8");
+  for (const m of exSrc.matchAll(/pick:\s*["']([^"']+)["']/g)) {
+    const k = m[1];
+    if (!zh[k]) pickMissing.push(`${k}（zh）`);
+    if (!en[k]) pickMissing.push(`${k}（en）`);
+  }
+  // 场景芯片也用 id 兜底，两者都该是合法 key
+  for (const m of exSrc.matchAll(/\bid:\s*["']([^"']+)["']/g)) {
+    const k = m[1];
+    if (!k.startsWith("start")) continue;
+    if (!zh[k]) pickMissing.push(`${k}（zh, id）`);
+    if (!en[k]) pickMissing.push(`${k}（en, id）`);
+  }
+}
+if (pickMissing.length) {
+  pickMissing.forEach((k) => err(`examples.js 引用了 "${k}"，但字典里没有`));
+} else {
+  ok("examples.js 的 pick / id 都能在字典里找到");
 }
 
 // ---------------------------------------------------------------------------
