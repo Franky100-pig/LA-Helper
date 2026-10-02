@@ -237,6 +237,9 @@ window.LA_I18N = (function () {
       "ai.netError": "网络错误：{msg}（需能访问 open.bigmodel.cn）",
       "ai.storageWarn": "注意：当前浏览器无法长期保存 Key（可能是隐私模式或用 file:// 打开）。本次会话内可正常使用，刷新页面后需重新填写。",
       "ai.keyCleared": "已清除本机 Key，请重新填入。",
+      "ai.sharedNote": "已内置一个公共 Key，直接用即可；想用自己申请的，点「更换 Key」。",
+      "ai.sharedKeyDead": "公共 Key 暂时失效了（{msg}）。请填入你自己的免费 Key：open.bigmodel.cn → APIKey。",
+      "ai.sharedRateLimited": "公共 Key 的免费额度暂时被打满了。稍等几分钟再试，或填入你自己的 Key。",
       "ai.count": "{n} / 300",
       "ai.systemPrompt": "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。除非用户要求更详细，否则回答控制在 300 字以内。",
 
@@ -469,6 +472,9 @@ window.LA_I18N = (function () {
       "ai.netError": "Network error: {msg} (needs access to open.bigmodel.cn)",
       "ai.storageWarn": "Note: this browser can't save the key permanently (private mode, or opened via file://). It works for this session, but you'll need to paste it again after a reload.",
       "ai.keyCleared": "Saved key cleared — please paste it again.",
+      "ai.sharedNote": "A shared public key is built in — just start asking. Prefer your own? Press \"Change key\".",
+      "ai.sharedKeyDead": "The shared public key stopped working ({msg}). Paste your own free key from open.bigmodel.cn → APIKey.",
+      "ai.sharedRateLimited": "The shared key's free quota is temporarily used up. Try again in a few minutes, or paste your own key.",
       "ai.count": "{n} / 300",
       "ai.systemPrompt": "You are LA Helper's linear algebra tutor for high-school and university students. Answer in English, concisely and accurately, building up step by step. Give the key steps and the intuition, and use LaTeX-style formulas when they help (inline $...$, display $$...$). Unless asked for more detail, keep answers under 300 words.",
 

@@ -73,6 +73,13 @@
   main { max-width: 720px; margin: 0 auto; padding: 24px; }
   .ai-card { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 20px; }
   .hint { color: var(--muted); font-size: 13px; }
+  /* 公共 Key 提示：轻一点，但别弱到看不见 —— 它决定了用户是否要自己去注册 */
+  .ai-shared-note {
+    color: var(--accent); background: var(--inset);
+    border-left: 3px solid var(--accent); border-radius: 6px;
+    padding: 8px 12px; margin: 8px 0 0;
+  }
+  .ai-shared-note[hidden] { display: none; }
   .ai-key-box, .ai-ask-box { display: flex; flex-direction: column; gap: 12px; }
   .ai-key-row { display: flex; gap: 8px; align-items: center; }
   .grow { flex: 1 1 auto; }
@@ -159,6 +166,8 @@
         <button id="aiHelpSaveKey" class="primary" type="button" data-i18n="ai.saveKey">保存</button>
       </div>
       <p class="hint" id="aiHelpKeyMsg"></p>
+      <!-- 有内置公共 Key 时才出现（由 ai-help.js 控制 hidden） -->
+      <p class="hint ai-shared-note" id="aiHelpSharedNote" hidden></p>
     </div>
 
     <!-- 已配置 Key：提问框 -->
