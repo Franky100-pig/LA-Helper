@@ -260,6 +260,27 @@ function responder(status) {
   eq(s.els.aiHelpCount.textContent, `${maxJs + 1} / ${maxJs}`, "14 计数器显示当前长度 / 上限");
 }
 
+// ==== 回答长度：max_tokens 必须留得比 systemPrompt 允许的长度宽松 ========
+// 踩过的坑：max_tokens 曾经是 600，而 prompt 说「可以写到 300 字」。
+// 带 LaTeX 的答案 token 数远超字数（$...$、$$...$$、\\frac 都是多 token），
+// 于是回答会在半句话处被截断 —— 表现为「AI 突然不说了」，很容易被误判成
+// 模型故障或网络问题。
+{
+  const js2 = fs.readFileSync(path.join(WEB, "ai-help.js"), "utf8");
+  const mt = Number((js2.match(/max_tokens:\s*(\d+)/) || [])[1]);
+  ok(Number.isFinite(mt), "15 读得到 max_tokens");
+  ok(mt >= 2000, `15 max_tokens 应 >= 2000（实际 ${mt}）—— 太小会把回答截断在半句`);
+
+  // prompt 里承诺的字数也要同步放宽，且中英两处都要改
+  const i18n2 = fs.readFileSync(path.join(WEB, "i18n.js"), "utf8");
+  const prompts = [...i18n2.matchAll(/"ai\.systemPrompt":\s*"([^"]*)"/g)].map((m) => m[1]);
+  eq(prompts.length, 2, "15 中英各有一条 systemPrompt");
+  ok(prompts.every((p) => /600/.test(p)),
+     "15 两条 prompt 都应提到 600 字/词（与放宽后的上限一致）");
+  ok(prompts.every((p) => !/300 字|300 words/.test(p)),
+     "15 旧的 300 字说法应已从 prompt 中移除");
+}
+
 console.log(`ai-key: ${pass} 项通过，${fails.length} 项失败`);
 if (fails.length) {
   console.log("FAIL");
