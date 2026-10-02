@@ -216,16 +216,20 @@ sends no data**.
 
    > **About the built-in shared key:** the page ships with a public GLM-4-Flash key that
    > everyone shares, so you can **ask without signing up at all**. Because it is shared, it
-   > comes with two trade-offs: the quota is shared (if others use it up you may hit a 429),
-   > and the key can stop working at any time. So:
-   > - you can always press "Change key" and paste your own free key (get one at
-   >   open.bigmodel.cn); once you do, yours always wins over the shared one;
-   > - if the shared key ever fails, the page says so plainly and walks you through adding
-   >   your own, rather than failing silently.
+   > comes with a few trade-offs:
+   > - the quota is shared — if others use it up you may hit a 429, and the page will tell you
+   >   to retry in a few minutes or switch to your own key;
+   > - the key can stop working or be reclaimed at any time;
+   > - anyone can lift it out of the page source and use it, so it may be abused.
+   >
+   > In practice: once you paste your own free key (get one at open.bigmodel.cn) under
+   > "Change key", **yours always wins** and the shared key stops mattering to you. If the
+   > shared key ever dies, the page says so plainly and walks you through adding your own
+   > rather than failing silently.
    >
    > That key is in the front-end source (a static page talks to GLM directly, so the key is
    > necessarily visible). It is a convenience that saves you a signup step, not a security
-   > boundary — supply your own if you'd rather not depend on it.
+   > boundary — get your own if you'd rather not share a quota.
 3. **Usage counter (web edition footer only).** A "people who used it" total appears at the
    bottom of the page, supplied by a free third-party counter (Abacus). Loading the page
    sends a single anonymous visit count — no matrix content, question, or personal
