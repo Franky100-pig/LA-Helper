@@ -62,7 +62,10 @@ const tr = I18N.t;
   // · 共享额度 → 有人滥用会触发 429，所有人一起变慢；
   // · 这个 Key 随时可能失效或被回收；
   // · 介意的话在「更换 Key」里填自己的，自己的会存在本机并优先生效。
-  const SHARED_KEY = "";   // ← 填入即可启用；留空则回到「必须自己填 Key」
+  //
+  // 换成空字符串即可一键停用，用户会回到「必须自己填 Key」的状态。
+  // 停用/启用都不需要改其他地方：所有相关分支都测过两种模式。
+  const SHARED_KEY = "ad05fe8940a849849b24a01e70b031bc.D0WSOEaNzjKc6phP";
 
   const keyBox = el("aiHelpKeyBox");
   const askBox = el("aiHelpAskBox");
