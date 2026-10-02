@@ -5,8 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>LA Helper · 线性代数小算</title>
 <!-- 字典放在 head：它只是数据 + 函数，先加载好，页面文案才不会先闪一下中文。
+     examples.js 提供「每个运算的示例矩阵」和「运算 → 讲义」映射。
      讲义（notes.js）已移到独立的 notes.html，计算器页不再需要它。 -->
 <script src="i18n.js"></script>
+<script src="examples.js"></script>
 <script>
   // 尽早确定主题与语言，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
   (function () {
@@ -118,6 +120,9 @@
   /* 讲义入口：主页只留一行链接，正文在独立的 notes.html 里 */
   .notes-bar { align-items: center; justify-content: space-between; }
   .notes-link { font-size: 13px; text-decoration: none; }
+  /* 新手引导：场景芯片那一行，视觉上比控件区轻一点，别跟主操作抢注意力 */
+  .guide-bar { background: var(--inset); }
+  .starters-hint { flex: 1 1 100%; margin: 0; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto; align-items: center; }
   .chip {
     background: var(--panel2); color: var(--text); border: 1px solid var(--border);
@@ -445,6 +450,19 @@
   .result-tools { display: flex; justify-content: flex-end; gap: 8px; margin-bottom: 8px; }
   .result-tools[hidden] { display: none; }
 
+  /* 算完之后挂在结果末尾的讲义推荐：把「算」和「懂」缝在一起。
+     刻意做得很轻 —— 它是邀请，不是广告条。 */
+  .article-pick {
+    display: block; margin-top: 18px; padding: 12px 14px;
+    background: var(--inset); border: 1px solid var(--border);
+    border-left: 3px solid var(--accent); border-radius: 10px;
+    text-decoration: none; color: var(--text);
+  }
+  .article-pick:hover { border-color: var(--accent); }
+  .article-pick .ap-why { display: block; font-size: 12px; color: var(--muted); margin-bottom: 3px; }
+  .article-pick .ap-title { display: block; font-size: 14px; font-weight: 600; color: var(--accent); }
+  .article-pick[hidden] { display: none; }
+
   /* 只出现在导出的 PDF 里的落款（屏幕上不显示） */
   .print-only { display: none; }
 
@@ -467,7 +485,8 @@
       --placeholder: #777777; --preview-auto: #777777; --on-accent: #ffffff;
     }
     header, .col-input, #colSplitter, #engineStatus, #usageRow,
-    #resultTools, #settingsPanel, input[type="file"] { display: none !important; }
+    /* 讲义推荐是「学」的邀请，不是推导的一部分，不进 PDF */
+    #resultTools, #settingsPanel, #articlePick, #starterBar, input[type="file"] { display: none !important; }
 
     html, body { background: #fff !important; color: #111 !important; }
     body { display: block !important; min-height: 0 !important; }
@@ -561,7 +580,16 @@
     <label id="rightWrap"><span data-i18n="operand.right">右操作数</span> <select id="rightSel"></select></label>
     <label><input type="checkbox" id="showSteps" checked> <span data-i18n="opt.showSteps">显示步骤</span></label>
     <label><input type="checkbox" id="showDecimals"> <span data-i18n="opt.showDecimals">小数显示</span></label>
+    <button id="loadExample" class="ghost" type="button"
+            data-i18n="btn.loadExample" data-i18n-attrs="title:btn.loadExampleTip"
+            title="把当前运算的示例矩阵填进编辑区">载入示例</button>
     <button id="compute" data-i18n="btn.compute">计算</button>
+  </section>
+  <!-- 新手引导：默认展开（大部分访客是第一次来），三个场景一键填好并直接算出来 -->
+  <section class="controls guide-bar" id="starterBar">
+    <span class="lib-label" data-i18n="example.starters">或者试试这些场景：</span>
+    <div class="chips" id="starterChips"></div>
+    <p class="hint starters-hint" data-i18n="starters.hint">一句话看完新功能，点一下就会自动算给你看。</p>
   </section>
 
   <!-- 表达式快捷键 -->
@@ -623,6 +651,9 @@
       <button id="saveSettings" data-i18n="btn.save">保存</button>
     </div>
     <p class="settings-hint" data-i18n-html="settings.hint">免费获取：https://aistudio.google.com → 左侧「Get API key」。密钥只存在你本地浏览器，不会上传到任何服务器（计算时仅直接发给 Google）。</p>
+    <button id="resetProgress" class="ghost danger" type="button"
+            data-i18n="btn.resetProgress" data-i18n-attrs="title:btn.resetProgressTip"
+            title="删掉这台设备上保存的矩阵与设置，回到全新状态">清空我的进度</button>
   </section>
 
   <section class="matrices">
@@ -679,6 +710,11 @@
       <p class="print-date" id="printDate"></p>
     </div>
     <div class="result-card">
+      <!-- 算完之后的讲义推荐（app.js 填 href 与标题；没有对应讲义时保持 hidden） -->
+      <a id="articlePick" class="article-pick" href="#" hidden>
+        <span class="ap-why" data-i18n="article.why">想知道为什么？读这篇有更深的理解</span>
+        <span class="ap-title" id="articlePickTitle"></span>
+      </a>
       <div class="empty-state">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="3" y="3" width="18" height="18" rx="2" />
