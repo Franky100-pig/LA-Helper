@@ -220,10 +220,44 @@ function responder(status) {
 {
   const s = boot({ sharedKey: "" });
   s.t.updateCount();
-  eq(s.els.aiHelpSend.disabled, true, "13 没有 Key 时提问按钮禁用");
-  s.els.aiHelpQ.value = "";
-  s.t.updateCount();
   eq(s.els.aiHelpSend.disabled, true, "13 问题为空时也禁用");
+}
+
+// ==== 长度上限：JS 的 MAX 与 HTML 的 maxlength 必须一致 ====================
+// 这个数字散在四处：ai-help.js 的 MAX、ai-help.html 的 maxlength、
+// i18n 的 "{n} / 500"、以及 HTML 里的默认文本。改一处漏三处的话，
+// 用户会遇到「打不到上限就被截断」或「计数器显示的和实际不符」。
+{
+  const html = fs.readFileSync(path.join(WEB, "ai-help.html"), "utf8");
+  const js = fs.readFileSync(path.join(WEB, "ai-help.js"), "utf8");
+
+  const maxJs = Number((js.match(/const MAX = (\d+);/) || [])[1]);
+  const maxAttr = Number((html.match(/id="aiHelpQ"[^>]*maxlength="(\d+)"/) || [])[1]);
+  ok(Number.isFinite(maxJs) && maxJs > 0, "14 能在 ai-help.js 里读到 MAX");
+  ok(Number.isFinite(maxAttr) && maxAttr > 0, "14 能在 ai-help.html 里读到 maxlength");
+  eq(maxAttr, maxJs, "14 textarea 的 maxlength 与 JS 的 MAX 一致");
+
+  // i18n 的计数字符串
+  const i18nSrc = fs.readFileSync(path.join(WEB, "i18n.js"), "utf8");
+  const counts = [...i18nSrc.matchAll(/"ai\.count":\s*"\{n\} \/ (\d+)"/g)].map((m) => Number(m[1]));
+  eq(counts.length, 2, "14 中英两处都有 ai.count");
+  for (const n of counts) {
+    eq(n, maxJs, `14 i18n 里的计数器上限（${n}）与 MAX 一致`);
+  }
+  // HTML 里的默认文本也要跟上（i18n 生效前用户会看到它）
+  const dflt = (html.match(/id="aiHelpCount"[^>]*>([^<]*)</) || [])[1];
+  ok(dflt && dflt.includes(String(maxJs)),
+     `14 HTML 默认文本里的上限应含 ${maxJs}，实际：${dflt}`);
+
+  // 真正生效的边界：到 MAX-1 能发，超过 MAX 按钮禁用
+  const s = boot({ sharedKey: "sk-public" });
+  s.els.aiHelpQ.value = "x".repeat(maxJs);
+  s.t.updateCount();
+  eq(s.els.aiHelpSend.disabled, false, "14 正好等于上限时仍可发送");
+  s.els.aiHelpQ.value = "x".repeat(maxJs + 1);
+  s.t.updateCount();
+  eq(s.els.aiHelpSend.disabled, true, "14 超过上限时禁用发送");
+  eq(s.els.aiHelpCount.textContent, `${maxJs + 1} / ${maxJs}`, "14 计数器显示当前长度 / 上限");
 }
 
 console.log(`ai-key: ${pass} 项通过，${fails.length} 项失败`);
