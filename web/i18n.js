@@ -241,7 +241,7 @@ window.LA_I18N = (function () {
       "ai.sharedKeyDead": "公共 Key 暂时失效了（{msg}）。请填入你自己的免费 Key：open.bigmodel.cn → APIKey。",
       "ai.sharedRateLimited": "公共 Key 的免费额度暂时被打满了。稍等几分钟再试，或填入你自己的 Key。",
       "ai.count": "{n} / 500",
-      "ai.systemPrompt": "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。除非用户要求更详细，否则回答控制在 300 字以内。",
+      "ai.systemPrompt": "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。先给结论，再展开推导；除非用户要求更详细，否则回答控制在 600 字以内。",
 
       // ---- 使用人数页脚 ----
       "count.line": "{n} 人用 LA-Helper 学习线代",
@@ -476,7 +476,7 @@ window.LA_I18N = (function () {
       "ai.sharedKeyDead": "The shared public key stopped working ({msg}). Paste your own free key from open.bigmodel.cn → APIKey.",
       "ai.sharedRateLimited": "The shared key's free quota is temporarily used up. Try again in a few minutes, or paste your own key.",
       "ai.count": "{n} / 500",
-      "ai.systemPrompt": "You are LA Helper's linear algebra tutor for high-school and university students. Answer in English, concisely and accurately, building up step by step. Give the key steps and the intuition, and use LaTeX-style formulas when they help (inline $...$, display $$...$). Unless asked for more detail, keep answers under 300 words.",
+      "ai.systemPrompt": "You are LA Helper's linear algebra tutor for high-school and university students. Answer in English, concisely and accurately, building up step by step. Give the key steps and the intuition, and use LaTeX-style formulas when they help (inline $...$, display $$...$). Lead with the result, then show the derivation; unless asked for more detail, keep answers under 600 words.",
 
       // ---- usage footer ----
       "count.line": "{n} people used LA-Helper to learn LA",

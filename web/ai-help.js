@@ -210,7 +210,10 @@ const tr = I18N.t;
             { role: "user", content: q },
           ],
           temperature: 0.3,
-          max_tokens: 600,
+          // 上限要留得比「回答长度」宽松：systemPrompt 允许写到几百字，
+          // 而带 LaTeX 公式的答案 token 数远超字数（中英都不止），
+          // 卡太紧会让回答在半句话处被截断。
+          max_tokens: 2000,
         }),
       });
       const data = await resp.json().catch(() => ({}));
