@@ -37,6 +37,10 @@ jobs:
           node tools/test_ai_key.js
       - name: 示例矩阵能真的算出来（喂给真正的 core 引擎）
         run: python tools/test_examples.py
+      - name: 引擎文案不许把中文漏到英文界面
+        run: python tools/check_core_i18n.py
+      - name: 验证上面那个检查器自己没坏
+        run: python tools/test_core_i18n.py
       - name: 冒烟测试（启动本地服务并请求一次）
         run: |
           python web/app.py --no-browser --port 8123 &

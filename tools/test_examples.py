@@ -78,21 +78,19 @@ def check_js_matches_core(js_ex: dict) -> list:
     js_arts = dict(js_ex.get("articles", {}))
     for method, v in js_ex.get("detArticles", {}).items():
         js_arts[f"det:{method}"] = v
-    all_arts = {k: (v[0], v[1]) for k, v in core_ex.ARTICLES.items()}
-    all_arts.update({f"det:{k}": v for k, v in core_ex.DET_ARTICLES.items()})
-    for key, want in all_arts.items():
+    # core 现在是两种语言的出处（标题进了 core/i18n.py），所以两边都要比 ——
+    # 以前 core 只有中文，英文的唯一真相在 notes.js，core 侧根本无从校验。
+    for key, (note_id, titles) in core_ex.article_pairs().items():
         got = js_arts.get(key)
         if got is None:
             fails.append(f"[js/core] JS 缺讲义映射: {key}")
             continue
-        if got["id"] != want[0]:
-            fails.append(f"[js/core] {key} 讲义 id: core={want[0]} js={got['id']}")
-        if got["title"]["zh"] != want[1]:
-            fails.append(f"[js/core] {key} 中文标题: core={want[1]!r} js={got['title']['zh']!r}")
-        # 英文标题也要在（core 只有中文，英文的唯一真相在 notes.js，
-        # 那一侧由下面 check_js_against_notes 校验）
-        if not (got.get("title", {}).get("en") or "").strip():
-            fails.append(f"[js/core] {key} 英文标题为空 —— 英文界面会显示空白")
+        if got["id"] != note_id:
+            fails.append(f"[js/core] {key} 讲义 id: core={note_id} js={got['id']}")
+        for lang in ("zh", "en"):
+            if got["title"].get(lang) != titles[lang]:
+                fails.append(f"[js/core] {key} {lang} 标题: "
+                             f"core={titles[lang]!r} js={got['title'].get(lang)!r}")
 
     # 三个上手场景
     js_start = {s["id"]: s for s in js_ex.get("starters", [])}

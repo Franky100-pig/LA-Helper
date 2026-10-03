@@ -19,6 +19,7 @@ Design notes
   case: the two algorithms deserve two different notes, so it lives in
   ``DET_ARTICLES`` keyed by method.
 """
+from . import i18n
 
 # Cells are strings, matching how both UIs store a grid (empty means "0").
 # fmt: off
@@ -132,23 +133,23 @@ STARTERS = [
 # in notes.js; tools/test_examples.py asserts all three agree so they cannot
 # drift. Desktop shows only the id (it opens the note in a browser).
 ARTICLES = {
-    "multiply": ("matmul", "矩阵乘法为什么这么怪"),
-    "inverse": ("singular", "det = 0 为什么就没有逆"),
-    "left_inverse": ("rank", "秩到底在说什么"),
-    "right_inverse": ("rank", "秩到底在说什么"),
-    "pseudo_inverse": ("rank", "秩到底在说什么"),
-    "lu": ("row-reduction", "为什么行列式能用行变换来算"),
-    "solve": ("row-reduction", "为什么行列式能用行变换来算"),
-    "ref": ("row-reduction", "为什么行列式能用行变换来算"),
-    "cofactor_matrix": ("adjugate", "伴随矩阵与求逆公式"),
-    "rank": ("rank", "秩到底在说什么"),
-    "eigen": ("eigen", "特征值 / 特征向量的几何意义"),
+    "multiply": ("matmul", "note.matmul"),
+    "inverse": ("singular", "note.det_zero"),
+    "left_inverse": ("rank", "note.rank"),
+    "right_inverse": ("rank", "note.rank"),
+    "pseudo_inverse": ("rank", "note.rank"),
+    "lu": ("row-reduction", "note.row_reduction"),
+    "solve": ("row-reduction", "note.row_reduction"),
+    "ref": ("row-reduction", "note.row_reduction"),
+    "cofactor_matrix": ("adjugate", "note.adjugate"),
+    "rank": ("rank", "note.rank"),
+    "eigen": ("eigen", "note.eigen"),
 }
 
 # det is keyed by method: the two algorithms deserve two different notes.
 DET_ARTICLES = {
-    "row_reduction": ("row-reduction", "为什么行列式能用行变换来算"),
-    "cofactor": ("cofactor", "代数余子式到底在干什么"),
+    "row_reduction": ("row-reduction", "note.row_reduction"),
+    "cofactor": ("cofactor", "note.cofactor"),
 }
 # fmt: on
 
@@ -165,7 +166,30 @@ def article_for(op, det_method="row_reduction"):
     """(note id, title) for ``op``, or None when nothing honest applies.
 
     Returning None is a normal outcome: the caller shows no recommendation.
+
+    The title comes back already resolved to one language, so callers keep the
+    plain ``(id, title)`` shape they had before titles became bilingual.
     """
-    if op == "det":
-        return DET_ARTICLES.get(det_method)
-    return ARTICLES.get(op)
+    art = DET_ARTICLES.get(det_method) if op == "det" else ARTICLES.get(op)
+    if not art:
+        return None
+    note_id, title_key = art
+    return note_id, i18n.tr(title_key)
+
+
+def article_pairs():
+    """``{key: (note id, {"zh":…, "en":…})}`` for the cross-language checks.
+
+    Only tools/test_examples.py needs this: it asserts that core, web/examples.js
+    and notes.js all carry the same titles in *both* languages. Returning the
+    raw keys instead would just move the failure to "somebody forgot to call
+    tr()".
+    """
+    out = {}
+    for k, (note_id, title_key) in ARTICLES.items():
+        out[k] = (note_id, {lang: i18n.tr(title_key, _lang=lang)
+                            for lang in ("zh", "en")})
+    for k, (note_id, title_key) in DET_ARTICLES.items():
+        out[f"det:{k}"] = (note_id, {lang: i18n.tr(title_key, _lang=lang)
+                                     for lang in ("zh", "en")})
+    return out

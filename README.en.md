@@ -19,6 +19,9 @@ Just pick the one that fits your workflow:
 ![The web app computing det(A) by cofactor expansion, with Show steps on so every step is listed on the right](docs/screenshot.png)
 
 ## Features
+- **Interface *and* derivations in both languages** — not just the buttons: every
+  step description, every error message and every recommended-article title follows
+  the interface language
 - Matrix input / display, transpose, addition, subtraction, **scalar multiplication**
 - **Matrix multiplication** (automatic dimension checking, up to 16×16)
 - **Square-matrix inverse** (Gauss-Jordan, with steps)

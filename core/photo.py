@@ -21,6 +21,8 @@ import re
 import urllib.error
 import urllib.request
 
+from . import i18n
+
 MODELS = ("gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.5-pro")
 DEFAULT_MODEL = MODELS[0]
 GEMINI_ENDPOINT = (
@@ -82,7 +84,7 @@ def parse_matrix_response(text):
     """
     raw = (text or "").strip()
     if not raw:
-        raise PhotoError("模型返回为空。", raw=raw)
+        raise PhotoError(i18n.tr("err.photo.empty_reply"), raw=raw)
     if raw.upper().startswith("ERROR"):
         raise PhotoError(raw, raw=raw)
 
@@ -111,20 +113,21 @@ def parse_matrix_response(text):
             pass
 
     if data is None or not isinstance(data, list) or not data:
-        raise PhotoError(f"无法从模型返回中解析出矩阵：\n{text}", raw=text)
+        raise PhotoError(i18n.tr("err.photo.unparsable", text=text), raw=text)
 
     rows = []
     width = None
     for r in data:
         if not isinstance(r, (list, tuple)):
             raise PhotoError(
-                f"返回不是矩形数组（某行不是列表）：{r!r}", raw=text)
+                i18n.tr("err.photo.not_rectangular", row=repr(r)), raw=text)
         cells = [str(c) for c in r]
         if width is None:
             width = len(cells)
         elif len(cells) != width:
             raise PhotoError(
-                f"各行长度不一致（期望 {width}，实际 {len(cells)}）：{cells}",
+                i18n.tr("err.photo.ragged", expected=width, got=len(cells),
+                             cells=cells),
                 raw=text)
         rows.append(cells)
     return rows
@@ -133,9 +136,9 @@ def parse_matrix_response(text):
 def call_gemini_vision(api_key, model, image_bytes, mime, prompt=None):
     """Call Gemini vision and return the raw text reply (desktop path)."""
     if not api_key:
-        raise PhotoError("未配置 Gemini API Key。请在设置中填入。")
+        raise PhotoError(i18n.tr("err.photo.no_key"))
     if not is_valid_model(model):
-        raise PhotoError(f"模型名不合法：{model!r}（只允许字母、数字、. _ -）")
+        raise PhotoError(i18n.tr("err.photo.bad_model", model=repr(model)))
     url = GEMINI_ENDPOINT.format(model=model)
     body = {
         "contents": [{
@@ -167,14 +170,15 @@ def call_gemini_vision(api_key, model, image_bytes, mime, prompt=None):
             payload = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode("utf-8", "replace")[:500]
-        raise PhotoError(f"Gemini API 返回错误 {exc.code}：{detail}", raw=detail)
+        raise PhotoError(i18n.tr("err.photo.api_error", code=exc.code, detail=detail),
+                       raw=detail)
     except Exception as exc:  # network / timeout / JSON
-        raise PhotoError(f"调用 Gemini 失败：{exc}", raw=str(exc))
+        raise PhotoError(i18n.tr("err.photo.call_failed", detail=exc), raw=str(exc))
 
     try:
         return payload["candidates"][0]["content"]["parts"][0]["text"]
     except (KeyError, IndexError, TypeError):
-        raise PhotoError("Gemini 返回格式异常。", raw=json.dumps(payload)[:500])
+        raise PhotoError(i18n.tr("err.photo.bad_shape"), raw=json.dumps(payload)[:500])
 
 
 def image_to_matrix(api_key, model, image_bytes, mime, prompt=None):
