@@ -123,7 +123,14 @@
     const btn = el("langToggle");
     const syncButton = () => { if (btn) btn.textContent = I18N.toggleLabel(); };
 
+    // 讲义页的 <title> 挂不上 data-i18n（<title> 不在 apply() 的扫描范围内），
+    // 平时由 renderArticle() 按当前文章重设。但 articles() 为空时 renderArticle
+    // 会直接 return，标题就停在 HTML 里写死的那句中文上 —— 切到英文也不变。
+    // 这里先按字典兜一层，route() 随后会用文章标题盖掉它。
+    const syncTitle = () => I18N.syncDocTitle("notes.label");
+
     I18N.apply(document);
+    syncTitle();
     renderList(null);
     route();
     syncButton();
@@ -132,6 +139,7 @@
 
     I18N.onChange(() => {
       syncButton();
+      syncTitle();
       route();          // 按当前 hash 用新语言重画（目录一起重建）
     });
   })();
