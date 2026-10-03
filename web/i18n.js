@@ -102,6 +102,7 @@ window.LA_I18N = (function () {
       "settings.apiKey": "API Key",
       "settings.apiKeyPh": "粘贴 aistudio.google.com 免费获取的 key",
       "settings.model": "模型",
+      "settings.modelDefault": "gemini-2.5-flash（默认）",
       "btn.save": "保存",
       "settings.hint": "免费获取：https://aistudio.google.com → 左侧「Get API key」。密钥只存在你本地浏览器，不会上传到任何服务器（计算时仅直接发给 Google）。",
 
@@ -158,13 +159,11 @@ window.LA_I18N = (function () {
       "btn.loadExample": "载入示例",
       "btn.loadExampleTip": "把当前运算的示例矩阵填进编辑区",
       "example.loaded": "已载入示例，改数字或直接点计算都行。",
-      "example.starters": "或者试试这些场景：",
       "startSingular": "为什么这个矩阵没有逆",
       "startCofactor": "用余子式算行列式",
       "startSolve": "解一个方程组",
       "btn.clear": "清空",
       "btn.clearTip": "清空编辑区（不影响已保存的进度设置）",
-      "starters.hint": "一句话看完新功能，点一下就会自动算给你看。",
 
       // ---- 算完之后的讲义推荐 ----
       "article.why": "想知道为什么？读这篇有更深的理解",
@@ -175,6 +174,7 @@ window.LA_I18N = (function () {
       "eigen.title": "特征值 / 特征向量",
       "eigen.algebraic": "（代数重数 {n}",
       "eigen.geometric": "，几何重数 {n} → <span class=\"warn\">不可对角化</span>",
+      "eigen.closeParen": "）",
       "eigen.block": "特征值",
       "eigen.exact": "精确值",
       "eigen.exactForm": "精确形式：{v}",
@@ -337,6 +337,7 @@ window.LA_I18N = (function () {
       "settings.apiKey": "API key",
       "settings.apiKeyPh": "Paste the free key from aistudio.google.com",
       "settings.model": "Model",
+      "settings.modelDefault": "gemini-2.5-flash (default)",
       "btn.save": "Save",
       "settings.hint": "Get one free: https://aistudio.google.com → \"Get API key\" in the left sidebar. The key lives only in your browser and is never uploaded anywhere (it is sent straight to Google when computing).",
 
@@ -389,6 +390,7 @@ window.LA_I18N = (function () {
       "eigen.title": "Eigenvalues / eigenvectors",
       "eigen.algebraic": "(algebraic multiplicity {n}",
       "eigen.geometric": ", geometric multiplicity {n} → <span class=\"warn\">not diagonalisable</span>",
+      "eigen.closeParen": ")",
       "eigen.block": "Eigenvalues",
       "eigen.exact": "Exact value",
       "eigen.exactForm": "Exact form: {v}",
@@ -400,13 +402,11 @@ window.LA_I18N = (function () {
       "btn.loadExample": "Load example",
       "btn.loadExampleTip": "Fill the editor with a worked example for the selected operation",
       "example.loaded": "Example loaded. Tweak the numbers or just hit Compute.",
-      "example.starters": "Or try one of these:",
       "startSingular": "Why this matrix has no inverse",
       "startCofactor": "Determinant by cofactor expansion",
       "startSolve": "Solve a system of equations",
       "btn.clear": "Clear",
       "btn.clearTip": "Empty the editor (saved progress is not affected)",
-      "starters.hint": "One click each, and it computes the answer for you.",
 
       // ---- related article after a result ----
       "article.why": "Want to know why? Read this for a deeper insight",
@@ -576,6 +576,20 @@ window.LA_I18N = (function () {
   /** 切换按钮上显示的是「点了会变成的那一种」。 */
   function toggleLabel() { return get() === "zh" ? "EN" : "中文"; }
 
+  /**
+   * 同步浏览器标签页标题。
+   *
+   * `<title>` 不是普通元素，apply() 扫不到它，所以切语言时不会跟着变 ——
+   * 英文界面下标签页仍写着「LA Helper · 线性代数小算」。标题挂在标签上，
+   * 一眼就能看到，比页面里任何一处文案都显眼，所以值得单独接。
+   *
+   * 讲义页会传自己的 key（标题随当前文章变化，见 notes-page.js）。
+   */
+  function syncDocTitle(key) {
+    var s = key ? t(key) : "";
+    if (s) document.title = s + " · LA Helper";
+  }
+
   return {
     dict: DICT,
     get: get,
@@ -586,5 +600,6 @@ window.LA_I18N = (function () {
     switchTo: switchTo,
     toggle: toggle,
     toggleLabel: toggleLabel,
+    syncDocTitle: syncDocTitle,
   };
 })();

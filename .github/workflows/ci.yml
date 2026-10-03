@@ -25,9 +25,11 @@ jobs:
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements-dev.txt
       - run: pytest
-      - name: 前端脚本检查（Node）：i18n + 讲义 + 计数 + 导出 + 新手引导 + 公共 Key
+      - name: 前端脚本检查（Node）：i18n + 界面语言 + 讲义 + 计数 + 导出 + 新手引导
         run: |
           node tools/check_i18n.js
+          node tools/check_no_hardcoded_zh.js
+          node tools/test_no_hardcoded_zh.js
           node tools/test_notes.js
           node tools/test_counter.js
           node tools/test_export.js

@@ -74,7 +74,7 @@ def check_js_matches_core(js_ex: dict) -> list:
             if want.get(key) != got.get(key):
                 fails.append(f"[js/core] {op}.{key}: core={want.get(key)!r} js={got.get(key)!r}")
 
-    # 讲义映射：id 与中文标题都要一致
+    # 讲义映射：id 与中英两种标题都要一致
     js_arts = dict(js_ex.get("articles", {}))
     for method, v in js_ex.get("detArticles", {}).items():
         js_arts[f"det:{method}"] = v
@@ -89,6 +89,10 @@ def check_js_matches_core(js_ex: dict) -> list:
             fails.append(f"[js/core] {key} 讲义 id: core={want[0]} js={got['id']}")
         if got["title"]["zh"] != want[1]:
             fails.append(f"[js/core] {key} 中文标题: core={want[1]!r} js={got['title']['zh']!r}")
+        # 英文标题也要在（core 只有中文，英文的唯一真相在 notes.js，
+        # 那一侧由下面 check_js_against_notes 校验）
+        if not (got.get("title", {}).get("en") or "").strip():
+            fails.append(f"[js/core] {key} 英文标题为空 —— 英文界面会显示空白")
 
     # 三个上手场景
     js_start = {s["id"]: s for s in js_ex.get("starters", [])}
@@ -178,9 +182,25 @@ def main() -> int:
     # 讲义映射：引用的 id 必须真的存在于 notes.js，且标题不能漂移
     notes_src = (ROOT / "web" / "notes.js").read_text(encoding="utf-8")
     note_ids = set(re.findall(r'id: "([^"]+)"', notes_src))
-    titles: dict[str, set[str]] = {}
-    for m in re.finditer(r'id: "([^"]+)",\s*\n\s*title: "([^"]+)"', notes_src):
-        titles.setdefault(m.group(1), set()).add(m.group(2))
+
+    # 按语言分开收集标题。之前是把同一 id 的中英标题塞进**同一个 set**，
+    # 于是「英文槽位里放了中文标题」这种跨语言串位也能通过 —— 英文界面
+    # 就会显示中文，而你以为它是校验过的。这里按 zh/en 分段切开。
+    def _titles_by_lang(lang: str) -> dict:
+        # 取 `  zh: [` 到 `  en: [`（或文件尾）之间的片段
+        start = notes_src.index(f"\n  {lang}: [")
+        rest = notes_src[start + 1:]
+        nxt = re.search(r"\n  (?:zh|en): \[", rest[1:])
+        seg = rest[:nxt.start() + 1] if nxt else rest
+        out = {}
+        for m in re.finditer(r'id:\s*"([^"]+)",\s*\n\s*title:\s*"([^"]+)"', seg):
+            out.setdefault(m.group(1), set()).add(m.group(2))
+        return out
+
+    titles_by_lang = {"zh": _titles_by_lang("zh"), "en": _titles_by_lang("en")}
+    for lang, t in titles_by_lang.items():
+        if not t:
+            failures.append(f"notes.js: 没能解析出 {lang} 的讲义标题（结构变了？）")
 
     arts = dict(js_ex.get("articles", {}))
     for k, v in js_ex.get("detArticles", {}).items():
@@ -191,8 +211,10 @@ def main() -> int:
             continue
         for lang in ("zh", "en"):
             t = art["title"][lang]
-            if t not in titles.get(art["id"], set()):
-                failures.append(f"讲义映射 {key}: {lang} 标题与 notes.js 不一致 -> {t!r}")
+            pool = titles_by_lang[lang].get(art["id"], set())
+            if t not in pool:
+                failures.append(
+                    f"讲义映射 {key}: {lang} 标题与 notes.js 的 {lang} 段不一致 -> {t!r}")
 
     print(f"examples: core 跑了 {checked}/{len(EXPECTED_OPS)} 个运算，"
           f"{len(core_ex.STARTERS)} 个上手场景，{len(arts)} 条讲义映射；"
