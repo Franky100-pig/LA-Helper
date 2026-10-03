@@ -53,6 +53,15 @@ const CASES = [
     to: 'title: { zh: "秩到底在说什么", en: "" } },',
     expect: "examples.js",
   },
+  {
+    // ai-help.html 的标题是纯英文（AI Help 两边都一样），而且它的脚本从不改标题
+    // —— 正好是「没人接管」的那一类，所以拿它验 <title> 这条规则。
+    name: "页面 <title> 写死中文，且没有任何脚本去改它",
+    file: "ai-help.html",
+    from: "<title>AI Help · LA Helper</title>",
+    to: "<title>AI 答疑 · LA Helper</title>",
+    expect: "ai-help.html",
+  },
 ];
 
 for (const c of CASES) {
@@ -64,6 +73,24 @@ for (const c of CASES) {
   fs.writeFileSync(p, orig, "utf8");   // 还原
   ok(!r.ok && r.out.includes(c.expect),
      `${c.name} → 应被报出（含 ${c.expect}）`);
+}
+
+// --- 反向对照：证明上一条不是「把所有 <title> 都报一遍」 ------------------------
+// notes.html 的静态标题本来就是中文，但 notes-page.js 每次渲染都会重设它，
+// 所以不该被报出来。只做正向断言的话，一个「见 title 就报警」的检查器也能全绿。
+{
+  const p = path.join(WEB, "notes.html");
+  const orig = fs.readFileSync(p, "utf8");
+  const from = "<title>线代难点小讲义 · LA Helper</title>";
+  const to = "<title>临时中文标题 · LA Helper</title>";
+  if (!orig.includes(from)) {
+    fails.push("反向对照：锚点没找到，测试自身失效");
+  } else {
+    fs.writeFileSync(p, orig.replace(from, to), "utf8");
+    const r = run();
+    fs.writeFileSync(p, orig, "utf8");   // 还原
+    ok(r.ok, "反向对照：有人接管的 <title>（讲义页）不该被误报");
+  }
 }
 
 // 还原后必须重新变干净，确认上面的还原写回是有效的

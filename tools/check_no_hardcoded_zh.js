@@ -88,10 +88,48 @@ const VOID = new Set(["area", "base", "br", "col", "embed", "hr", "img", "input"
  * 所以这里用一个小解析器：按开闭标签维护栈，文本节点归属于栈顶元素，
  * 属性值归属于所在标签。这样判定是「元素级」的，不会被邻居干扰。
  */
+/**
+ * <title> 挂不上 data-i18n，只能由 JS 在运行时改写，所以它天然不归 apply() 管。
+ *
+ * 早先这里对所有 <title> 无条件放行，注释写着「由 i18n.syncDocTitle() /
+ * notes-page.js 接管」—— 但那只是**这两页**的事实，被写成了对所有页面都成立。
+ * 后果是：新加一页把标题写死成中文、又没有脚本去改它，检查器一声不响，
+ * 而 <title> 恰恰是全页面最显眼的位置（浏览器标签、收藏、history 列表）。
+ *
+ * 改成静态判断「这一页有没有人真的在改标题」：本页引用的脚本里出现
+ * document.title = 或 syncDocTitle("…") 即视为已接管。判定跟着代码一起变 ——
+ * 有人删掉那行赋值，下一次跑检查就又会被报出来。
+ *
+ * 两条正则都要求引号 / 等号：syncDocTitle 要引号才不会匹配到 i18n.js 里的
+ * 函数定义 `function syncDocTitle(key)`。而 i18n.js 本身整个从扫描里排除 ——
+ * 它是共享库，只**提供**这两个能力，不替任何一页决定标题；把它算进去的话
+ * 每个页面都会被判成「已接管」，这条规则就等于形同虚设（实测踩过：
+ * ai-help.html 改成中文标题仍然一声不响）。
+ */
+const TITLE_WIRING = /document\.title\s*=|syncDocTitle\(\s*["']/;
+const TITLE_WIRING_EXEMPT = new Set(["i18n.js"]);
+
+function titleIsManaged(rawSrc) {
+  if (TITLE_WIRING.test(rawSrc)) return true;                 // 内联脚本
+  const srcRe = /<script[^>]*src=["']([^"']+)["']/g;
+  let m;
+  while ((m = srcRe.exec(rawSrc)) !== null) {
+    const s = m[1];
+    if (/^(https?:)?\/\//.test(s)) continue;                  // CDN 的 katex 之类
+    if (TITLE_WIRING_EXEMPT.has(path.basename(s))) continue;
+    const p = path.join(WEB, s);
+    if (!fs.existsSync(p)) continue;
+    if (TITLE_WIRING.test(fs.readFileSync(p, "utf8"))) return true;
+  }
+  return false;
+}
+
 function scanHtml(file) {
   const p = path.join(WEB, file);
   if (!fs.existsSync(p)) return;
-  const src = blankNonContent(fs.readFileSync(p, "utf8"));
+  const raw = fs.readFileSync(p, "utf8");
+  const src = blankNonContent(raw);
+  const titleManaged = titleIsManaged(raw);
   // 行号：预先算好每个 offset 的行，避免 O(n^2)
   const lineStarts = [0];
   for (let i = 0; i < src.length; i++) if (src[i] === "\n") lineStarts.push(i + 1);
@@ -128,11 +166,11 @@ function scanHtml(file) {
     }
     // 属性值里的中文：该标签自己没接 i18n 才算漏网
     if (CJK.test(attrs) && !isWired) report(m.index, full);
-    // <title> 由 i18n.syncDocTitle() / notes-page.js 接管，标记为已处理。
+    // <title> 由该页自己的脚本在运行时改写（见 titleIsManaged）才算已处理。
     // 注意仍然要压栈 —— 否则 title 的文本会落到父元素 <head> 上被误判。
     if (name.toLowerCase() === "title") {
       if (!VOID.has(name.toLowerCase()) && !/\/\s*$/.test(attrs)) {
-        stack.push({ name, wired: true });
+        stack.push({ name, wired: titleManaged });
       }
       continue;
     }
