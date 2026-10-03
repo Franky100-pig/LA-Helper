@@ -21,12 +21,14 @@ failures = []
 
 
 def run():
+    """Run the guard, returning ``(exit code, combined output)``."""
     p = subprocess.run([sys.executable, str(CHECK)], capture_output=True, text=True,
                        cwd=str(ROOT))
     return p.returncode, p.stdout + p.stderr
 
 
 def expect_clean(label):
+    """Assert the guard passes — used for the baseline and after restoring."""
     global passed
     code, out = run()
     if code == 0:

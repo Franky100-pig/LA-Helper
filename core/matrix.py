@@ -140,7 +140,19 @@ def step(text, M=None):
 
 
 class Matrix:
+    """A dense matrix of exact SymPy values, parsed from a list of string rows.
+
+    Parsing is a whitelist, not ``sympify``: see the module docstring for why a
+    learning calculator must reject "abc" and refuse to expand "9**9**9".
+    """
+
     def __init__(self, data, allow_symbols=False):
+        """Parse ``data`` (a list of rows of strings) into exact SymPy values.
+
+        ``allow_symbols`` additionally accepts a single letter per cell, which
+        the photo-import path uses. Raises ValueError with a message meant for
+        a student on anything unparseable, oversized or ragged.
+        """
         if data is None or (hasattr(data, "__len__") and len(data) == 0):
             self.rows = 0
             self.cols = 0

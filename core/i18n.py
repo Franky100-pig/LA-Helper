@@ -43,6 +43,7 @@ def set_lang(lang):
 
 
 def get_lang():
+    """The language steps and errors are currently rendered in."""
     return _LANG
 
 

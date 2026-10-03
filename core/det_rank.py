@@ -38,6 +38,10 @@ def determinant(A, record_steps=True, method="row_reduction"):
 
 
 def _determinant_row_reduction(A, record_steps=True):
+    """det(A) via P·A = L·U, so the steps are the elimination steps.
+
+    Returns ``(det, steps)``; ``steps`` is empty when ``record_steps`` is off.
+    """
     det = sp.simplify(A.to_sympy().det())
     if not record_steps:
         return det, []
@@ -123,6 +127,11 @@ def _cofactor_value(data, steps, depth):
 
 
 def _determinant_cofactor(A, record_steps=True):
+    """det(A) by cofactor expansion along the sparsest row/column.
+
+    O(n!), hence MAX_COFACTOR_DIM. The steps read as a tree: each level expands
+    one minor, and a level closes with its own subtotal.
+    """
     n = A.rows
     if n > MAX_COFACTOR_DIM:
         raise ValueError(i18n.tr("err.det.cofactor_too_big",

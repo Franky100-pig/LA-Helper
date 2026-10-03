@@ -161,6 +161,7 @@ class _Parser:
         return tok
 
     def _expect_op(self, op):
+        """Consume the next token, which must be the operator ``op``."""
         k, t, pos = self._peek()
         if k != "op" or t != op:
             got = t if k != "end" else i18n.tr("err.expr.end_of_input")
@@ -170,6 +171,7 @@ class _Parser:
 
     # -- grammar
     def parse(self, depth=0):
+        """Parse a whole expression and reject anything left over."""
         node = self.expr(depth)
         k, t, pos = self._peek()
         if k != "end":
@@ -206,6 +208,7 @@ class _Parser:
         return base
 
     def atom(self, depth):
+        """Parse the tightest-binding form: a name, a call, or a parenthesised expression."""
         if depth > _MAX_DEPTH:
             raise ExprError(i18n.tr("err.expr.too_deep", limit=_MAX_DEPTH))
         k, t, pos = self._peek()
@@ -251,6 +254,7 @@ def _func_spec(name):
 
 
 def _check_arity(name, spec, argc):
+    """Reject a call whose argument count is outside the function's spec."""
     low, high = spec[0], spec[1]
     if not (low <= argc <= high):
         want = str(low) if low == high else f"{low}-{high}"
@@ -258,6 +262,7 @@ def _check_arity(name, spec, argc):
 
 
 def _lookup(name, lib):
+    """Resolve a matrix name from the library, with a usable error if it is missing."""
     if name not in lib:
         have = (i18n.tr("err.expr.list_separator").join(sorted(lib))
                 if lib else i18n.tr("err.expr.library_empty"))
@@ -377,6 +382,7 @@ def _eval(node, lib):
 
 
 def _as_matrix(v, where):
+    """Require a matrix argument, naming the function in the error message."""
     if not isinstance(v, Matrix):
         raise ExprError(i18n.tr("err.expr.needs_matrix", where=where))
     return v

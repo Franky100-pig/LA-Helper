@@ -38,6 +38,7 @@ problems = []
 
 
 def note(where, text):
+    """Record one problem, tagged with where it came from."""
     problems.append(f"{where}: {text}")
 
 
@@ -89,6 +90,7 @@ def docstring_lines(path):
 
 
 def scan_sources():
+    """Rule 1: no hardcoded CJK in core/ outside the dictionary."""
     for p in sorted(CORE.glob("*.py")):
         if p.name == "i18n.py":
             continue
@@ -105,6 +107,7 @@ def scan_sources():
 
 # --- 2 & 3. 字典完整、占位符一致 -------------------------------------------
 def scan_dict():
+    """Rules 2 and 3: every key has both languages, with matching placeholders."""
     for key, entry in sorted(i18n.MESSAGES.items()):
         if not isinstance(entry, dict):
             note("i18n.py", f"{key} 的值不是 dict")
@@ -150,6 +153,11 @@ def _strings_in(result):
 
 
 def scan_output():
+    """Rule 4: actually run the engine and look at what a student would read.
+
+    The only rule that notices a ``lang`` that never reached a call site — the
+    source-level rules cannot see that.
+    """
     for probe in PROBES:
         req = dict(probe, lang="en")
         for text in _strings_in(engine.dispatch(req)):

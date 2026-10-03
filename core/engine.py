@@ -50,6 +50,15 @@ def dispatch(req):
 
 
 def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
+    """Run one dropdown operation and return a JSON-friendly result dict.
+
+    The desktop app calls this directly (it has no language switcher, so the
+    engine keeps its default Chinese); the web editions go through
+    :func:`dispatch`, which sets the language from the request first.
+
+    Never raises: a bad matrix or a failed operation comes back as
+    ``{"ok": False, "error": …}``, because every caller is a UI.
+    """
     try:
         A, err = _parse("A", A_data, allow_symbols)
         if err:
