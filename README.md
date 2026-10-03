@@ -11,7 +11,7 @@
 |---|---|---|
 | 🖥 **桌面版** | 平时写作业，想双击就开 | 下载 [Releases](https://github.com/Franky100-pig/LA-Helper/releases) 里的安装包，免装 Python、免联网 |
 | 🌐 **网页版** | 已经装着 Python，想改代码 | `python web/app.py`，自动开浏览器 |
-| ☁️ **在线预览版** | 想在同学电脑 / 手机上演示 | 打开 <https://27f263035b214ac598c05e6f0dc76cff.app.workbuddy.host>，浏览器里跑真 Python |
+| ☁️ **在线预览版** | 想在同学电脑 / 手机上演示 | 打开 <https://la-helper.app.workbuddy.host>，浏览器里跑真 Python |
 
 ## 功能
 - 矩阵输入 / 展示、转置、加减、**标量乘**

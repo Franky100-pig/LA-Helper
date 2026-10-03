@@ -14,7 +14,7 @@ Just pick the one that fits your workflow:
 |---|---|---|
 | 🖥 **Desktop** | Everyday homework; double-click and go | Download an installer from [Releases](https://github.com/Franky100-pig/LA-Helper/releases) — no Python, no internet |
 | 🌐 **Web (local)** | You already have Python and want to tweak the code | `python web/app.py` — opens your browser |
-| ☁️ **Online preview** | Demoing on a classmate's laptop or a phone | Open <https://27f263035b214ac598c05e6f0dc76cff.app.workbuddy.host> — real Python running in the browser |
+| ☁️ **Online preview** | Demoing on a classmate's laptop or a phone | Open <https://la-helper.app.workbuddy.host> — real Python running in the browser |
 
 ## Features
 - Matrix input / display, transpose, addition, subtraction, **scalar multiplication**
