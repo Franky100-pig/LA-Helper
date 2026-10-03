@@ -16,6 +16,7 @@ from .engine import compute, MAX_DIM
 from . import ops
 from . import inverse as inv_mod
 from . import det_rank
+from . import i18n
 
 
 class ExprError(ValueError):
@@ -98,7 +99,7 @@ class Call:
 def tokenize(text):
     """Whitelist scan. Returns [(kind, text, pos), ...] ending with "end"."""
     if len(text) > MAX_EXPR_LEN:
-        raise ExprError(f"表达式过长（超过 {MAX_EXPR_LEN} 字符）")
+        raise ExprError(i18n.tr("err.expr.too_long", limit=MAX_EXPR_LEN))
     tokens = []
     i, n = 0, len(text)
     while i < n:
@@ -115,20 +116,21 @@ def tokenize(text):
         if m:
             name = m.group(0)
             if name.startswith("_"):
-                raise ExprError(f"位置 {i + 1}：不认识的名称 {name!r}")
+                raise ExprError(i18n.tr("err.expr.unknown_name",
+                                     pos=i + 1, name=repr(name)))
             tokens.append(("name", name, i))
             i = m.end()
             continue
         if text.startswith("**", i):
             raise ExprError(
-                f"位置 {i + 1}：幂运算请用单个 ^（例如 A^2），不支持 **"
+                i18n.tr("err.expr.double_star", pos=i + 1)
             )
         ch = text[i]
         if ch in _OPS:
             tokens.append(("op", ch, i))
             i += 1
             continue
-        raise ExprError(f"位置 {i + 1}：无法识别的字符 {ch!r}")
+        raise ExprError(i18n.tr("err.expr.bad_char", pos=i + 1, char=repr(ch)))
     tokens.append(("end", "", n))
     return tokens
 
@@ -161,8 +163,9 @@ class _Parser:
     def _expect_op(self, op):
         k, t, pos = self._peek()
         if k != "op" or t != op:
-            got = t if k != "end" else "表达式末尾"
-            raise ExprError(f"位置 {pos + 1}：应为 {op!r}，实际是 {got}")
+            got = t if k != "end" else i18n.tr("err.expr.end_of_input")
+            raise ExprError(i18n.tr("err.expr.expected_op",
+                                         pos=pos + 1, op=repr(op), got=got))
         return self._take()
 
     # -- grammar
@@ -170,7 +173,7 @@ class _Parser:
         node = self.expr(depth)
         k, t, pos = self._peek()
         if k != "end":
-            raise ExprError(f"位置 {pos + 1}：多余的 {t!r}")
+            raise ExprError(i18n.tr("err.expr.trailing", pos=pos + 1, token=repr(t)))
         return node
 
     def expr(self, depth):
@@ -204,7 +207,7 @@ class _Parser:
 
     def atom(self, depth):
         if depth > _MAX_DEPTH:
-            raise ExprError(f"表达式嵌套过深（超过 {_MAX_DEPTH} 层）")
+            raise ExprError(i18n.tr("err.expr.too_deep", limit=_MAX_DEPTH))
         k, t, pos = self._peek()
         if k == "op" and t == "(":
             self._take()
@@ -232,8 +235,8 @@ class _Parser:
                 return Call(t, args)
             return Name(t)
         if k == "end":
-            raise ExprError("表达式不完整：末尾还缺一个操作数")
-        raise ExprError(f"位置 {pos + 1}：意外的 {t!r}")
+            raise ExprError(i18n.tr("err.expr.incomplete"))
+        raise ExprError(i18n.tr("err.expr.unexpected", pos=pos + 1, token=repr(t)))
 
 
 def parse(text):
@@ -251,17 +254,19 @@ def _check_arity(name, spec, argc):
     low, high = spec[0], spec[1]
     if not (low <= argc <= high):
         want = str(low) if low == high else f"{low}-{high}"
-        raise ExprError(f"函数 {name} 需要 {want} 个参数，收到 {argc} 个")
+        raise ExprError(i18n.tr("err.expr.arity", name=name, want=want, got=argc))
 
 
 def _lookup(name, lib):
     if name not in lib:
-        have = "、".join(sorted(lib)) if lib else "空"
-        raise ExprError(f"未知矩阵 {name}（当前矩阵库：{have}）")
+        have = (i18n.tr("err.expr.list_separator").join(sorted(lib))
+                if lib else i18n.tr("err.expr.library_empty"))
+        raise ExprError(i18n.tr("err.expr.unknown_matrix", name=name, have=have))
     M = Matrix(lib[name])
     if M.rows > MAX_DIM or M.cols > MAX_DIM:
         raise ExprError(
-            f"矩阵 {name} 是 {M.rows}×{M.cols}，超过上限 {MAX_DIM}×{MAX_DIM}"
+            i18n.tr("err.expr.matrix_too_big", name=name, rows=M.rows,
+                      cols=M.cols, limit=MAX_DIM)
         )
     return M
 
@@ -303,11 +308,11 @@ def _eval(node, lib):
     if isinstance(node, Call):
         spec = _func_spec(node.name)
         if spec is None:
-            raise ExprError(f"未知函数 {node.name}")
+            raise ExprError(i18n.tr("err.expr.unknown_function", name=node.name))
         _check_arity(node.name, spec, len(node.args))
         if spec[3]:
             raise ExprError(
-                f"函数 {node.name} 的结果是多项，只能单独使用，不能参与计算"
+                i18n.tr("err.expr.poly_result", name=node.name)
             )
         M = _as_matrix(_eval(node.args[0], lib), node.name)
         if node.name.lower() in ("inv",) or node.name == "inv":
@@ -336,13 +341,13 @@ def _eval(node, lib):
             return ops.add(L, R)
         if not Lm and not Rm:
             return L + R
-        raise ExprError("不能把矩阵和标量相加")
+        raise ExprError(i18n.tr("err.expr.add_mixed"))
     if op == "-":
         if Lm and Rm:
             return ops.sub(L, R)
         if not Lm and not Rm:
             return L - R
-        raise ExprError("不能把矩阵和标量相减")
+        raise ExprError(i18n.tr("err.expr.sub_mixed"))
     if op == "*":
         if Lm and Rm:
             return ops.mul(L, R)
@@ -353,27 +358,27 @@ def _eval(node, lib):
         return L * R
     if op == "/":
         if Rm:
-            raise ExprError("不支持矩阵除法；若要算 A 乘 B 的逆，请写 A * inv(B)")
+            raise ExprError(i18n.tr("err.expr.matrix_div"))
         if Lm:
             return ops.scalar_mul(L, 1 / R)
         return L / R
     if op == "^":
         if isinstance(R, Matrix):
-            raise ExprError("幂指数不能是矩阵；请写整数，如 A^2、A^-1")
+            raise ExprError(i18n.tr("err.expr.pow_matrix"))
         if not isinstance(R, int) and not R.is_Integer:
-            raise ExprError("幂指数必须是整数（如 A^2、A^-1）")
+            raise ExprError(i18n.tr("err.expr.pow_not_int"))
         n = int(R)
         if abs(n) > _MAX_POWER:
-            raise ExprError(f"幂指数过大（上限 {_MAX_POWER}）")
+            raise ExprError(i18n.tr("err.expr.pow_too_big", limit=_MAX_POWER))
         if Lm:
             return _mat_power(L, n)
         return L ** n
-    raise ExprError(f"不支持的运算符 {op!r}")
+    raise ExprError(i18n.tr("err.expr.bad_operator", op=repr(op)))
 
 
 def _as_matrix(v, where):
     if not isinstance(v, Matrix):
-        raise ExprError(f"{where} 需要矩阵参数，实际收到标量")
+        raise ExprError(i18n.tr("err.expr.needs_matrix", where=where))
     return v
 
 
