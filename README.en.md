@@ -16,6 +16,8 @@ Just pick the one that fits your workflow:
 | 🌐 **Web (local)** | You already have Python and want to tweak the code | `python web/app.py` — opens your browser |
 | ☁️ **Online preview** | Demoing on a classmate's laptop or a phone | Open <https://la-helper.app.workbuddy.host> — real Python running in the browser |
 
+![The web app computing det(A) by cofactor expansion, with Show steps on so every step is listed on the right](docs/screenshot.png)
+
 ## Features
 - Matrix input / display, transpose, addition, subtraction, **scalar multiplication**
 - **Matrix multiplication** (automatic dimension checking, up to 16×16)

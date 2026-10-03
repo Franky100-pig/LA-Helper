@@ -13,6 +13,8 @@
 | 🌐 **网页版** | 已经装着 Python，想改代码 | `python web/app.py`，自动开浏览器 |
 | ☁️ **在线预览版** | 想在同学电脑 / 手机上演示 | 打开 <https://la-helper.app.workbuddy.host>，浏览器里跑真 Python |
 
+![网页版界面：用代数余子式展开算 det(A)，勾了 Show steps，右侧逐步列出推导过程](docs/screenshot.png)
+
 ## 功能
 - 矩阵输入 / 展示、转置、加减、**标量乘**
 - **矩阵乘法**（自动维度校验，输入上限 16×16）
