@@ -347,15 +347,53 @@ MESSAGES = {
         "zh": "Gemini 返回格式异常。",
         "en": "Gemini returned an unexpected shape.",
     },
+
+    # --- examples.py: the study-note titles recommended under a result ------
+    # Also duplicated in web/examples.js and notes.js; tools/test_examples.py
+    # asserts all three agree, in both languages, so they cannot drift.
+    "note.matmul": {
+        "zh": "矩阵乘法为什么这么怪",
+        "en": "Why matrix multiplication looks so weird",
+    },
+    "note.det_zero": {
+        "zh": "det = 0 为什么就没有逆",
+        "en": "Why det = 0 means there is no inverse",
+    },
+    "note.rank": {
+        "zh": "秩到底在说什么",
+        "en": "What rank is really saying",
+    },
+    "note.row_reduction": {
+        "zh": "为什么行列式能用行变换来算",
+        "en": "Why row operations can compute a determinant",
+    },
+    "note.adjugate": {
+        "zh": "伴随矩阵与求逆公式",
+        "en": "The adjugate and the inverse formula",
+    },
+    "note.eigen": {
+        "zh": "特征值 / 特征向量的几何意义",
+        "en": "The geometry of eigenvalues and eigenvectors",
+    },
+    "note.cofactor": {
+        "zh": "代数余子式到底在干什么",
+        "en": "What cofactors are actually doing",
+    },
 }
 
 
-def tr(key, **kw):
-    """Look up ``key`` in the current language and interpolate ``kw`` into it."""
+def tr(key, _lang=None, **kw):
+    """Look up ``key`` and interpolate ``kw`` into it.
+
+    ``_lang`` overrides the module language for this one call. It exists for the
+    cross-language consistency checks (tools/test_examples.py needs both titles
+    at once, without flipping global state); ordinary code should not pass it.
+    """
     entry = MESSAGES.get(key)
     if entry is None:                      # a typo, not a translation gap
         return key
-    text = entry.get(_LANG) or entry.get(FALLBACK_LANG) or key
+    lang = _lang if _lang in ("zh", "en") else _LANG
+    text = entry.get(lang) or entry.get(FALLBACK_LANG) or key
     if not kw:
         return text
     try:
