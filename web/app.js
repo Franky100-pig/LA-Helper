@@ -468,7 +468,7 @@ async function onImageChosen(e) {
   }
   let parsed;
   try {
-    parsed = window.LA.parsePhoto(rawText);
+    parsed = window.LA.parsePhoto(rawText, I18N.get());
   } catch (err) {
     showRawResult(tr("photo.parseFail"), rawText);
     return;
@@ -829,6 +829,10 @@ async function request(payload) {
   resultCard.innerHTML = "<div class='muted-line'>" + tr("result.computing") + "</div>";
   setExportEnabled(false);   // 算的过程中别让上一次的结果被导出
   hideArticlePick();         // 同理，上一次的讲义推荐也不该留着
+  // 引擎侧的步骤与报错跟着界面语言走（core/i18n.py）。放在这里而不是
+  // 各个 payload 构造处：三处调用（运算 / 载入示例 / 表达式）都过 request()，
+  // 漏一处就会导致「界面英文、报错中文」这种最难发现的半吊子。
+  payload.lang = I18N.get();
   try {
     const resp = await fetch("/api/compute", {
       method: "POST",

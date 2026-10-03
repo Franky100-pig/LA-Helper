@@ -147,13 +147,16 @@ function laDispatch(req) {
     window.LA.ready = true;
     // 图片导入：浏览器把 Gemini 返回的原始文本交给共享 Python 解析器
     // （与桌面端 core.photo.parse_matrix_response 同一份实现，保证两端一致）。
-    window.LA.parsePhoto = (rawText) => {
-      if (!rawText || !String(rawText).trim()) {
-        return { ok: false, error: "模型返回为空。", raw: String(rawText || "") };
-      }
+    window.LA.parsePhoto = (rawText, lang) => {
+      // 空回复不在这里短路：Python 侧 photo.parse_matrix_response 已经有
+      // 一模一样的判断（而且现在会按语言给出对应文案）。原先 JS 里又抄了一份
+      // 硬编码中文，两份迟早会漂 —— 删掉这份，让 Python 当唯一出处。
       const pyLines = [
         "import json",
         "import photo",
+        "import i18n",
+        // 图片导入不经过 engine.dispatch，语言得在这里单独设一次
+        "i18n.set_lang(" + JSON.stringify(lang || "zh") + ")",
         "try:",
         "    _m = photo.parse_matrix_response(" + JSON.stringify(JSON.stringify(rawText)) + ")",
         '    _out = {"ok": True, "matrix": _m}',
