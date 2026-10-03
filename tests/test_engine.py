@@ -1,5 +1,5 @@
 """Contract tests for core.engine.compute — the only entry point the web UI uses."""
-from core.engine import compute, MAX_DIM
+from core.engine import compute, dispatch, MAX_DIM
 
 
 def test_add():
@@ -66,7 +66,13 @@ def test_typo_is_rejected_not_silently_symbolic():
 
 
 def test_second_matrix_needed():
+    # This message used to be an English literal, so the Chinese UI showed
+    # "This operation needs a second matrix B / b." Now it follows the
+    # language like every other error — asserted both ways so neither can
+    # silently drift back.
     r = compute("solve", [[1, 2], [3, 4]])
+    assert not r["ok"] and "第二个矩阵" in r["error"]
+    r = dispatch({"op": "solve", "A": [[1, 2], [3, 4]], "lang": "en"})
     assert not r["ok"] and "second matrix" in r["error"]
 
 
@@ -83,7 +89,10 @@ def test_det_with_row_swap():
 
 
 def test_inverse_non_square_reports_error():
+    # Same story as test_second_matrix_needed: this one was English-only too.
     r = compute("inverse", [[1, 2, 3], [4, 5, 6]])
+    assert not r["ok"] and "方阵" in r["error"]
+    r = dispatch({"op": "inverse", "A": [[1, 2, 3], [4, 5, 6]], "lang": "en"})
     assert not r["ok"] and "square" in r["error"]
 
 
