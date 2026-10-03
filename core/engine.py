@@ -1,5 +1,6 @@
 """Dispatch an operation to the core modules; produce a JSON-friendly result."""
 from .matrix import Matrix
+from . import i18n
 from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod
 
 # Hard upper bound on input size: exact arithmetic on a 100x100 would happily
@@ -16,13 +17,12 @@ def _parse(name, data, allow_symbols=False):
     try:
         M = Matrix(data, allow_symbols=allow_symbols)
     except Exception as e:
-        return None, f"矩阵 {name} 输入有误：{e}"
+        return None, i18n.tr("err.engine.parse", name=name, detail=e)
     if M.is_empty():
-        return None, f"矩阵 {name} 为空，请至少填写一个元素"
+        return None, i18n.tr("err.engine.empty", name=name)
     if M.rows > MAX_DIM or M.cols > MAX_DIM:
-        return None, (
-            f"矩阵 {name} 是 {M.rows}×{M.cols}，超过上限 {MAX_DIM}×{MAX_DIM}"
-        )
+        return None, i18n.tr("err.engine.too_big", name=name,
+                             rows=M.rows, cols=M.cols, limit=MAX_DIM)
     return M, None
 
 
@@ -32,9 +32,15 @@ def dispatch(req):
     A request either carries ``op`` (the dropdown path) or ``expr`` (the
     expression shortcut). Both funnel into the same underlying operations, so
     the two paths can never drift apart.
+
+    ``req["lang"]`` ("zh" / "en") decides the language of every step and error
+    this call produces. It is read here, once, before any work starts — see
+    core/i18n.py for why the language is module-level rather than a parameter.
+    Callers that omit it get the previous behaviour (Chinese).
     """
     if not isinstance(req, dict):
-        return {"ok": False, "error": "bad request"}
+        return {"ok": False, "error": i18n.tr("err.engine.bad_request")}
+    i18n.set_lang(req.get("lang"))
     show_steps = bool(req.get("showSteps", True))
     if req.get("expr"):
         from . import expr as expr_mod          # local import: expr imports us
@@ -51,7 +57,7 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
 
         need_B = op in ("add", "sub", "multiply", "solve", "scalar")
         if need_B and B_data is None:
-            return {"ok": False, "error": "This operation needs a second matrix B / b."}
+            return {"ok": False, "error": i18n.tr("err.engine.needs_b")}
 
         def B_matrix():
             return _parse("B", B_data, allow_symbols)
@@ -68,7 +74,7 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                 return {"ok": False, "error": err}
             if B.shape != (1, 1):
                 return {"ok": False,
-                        "error": "标量乘法需要在 B 中填 1×1 的常数（把 B 设成 1 行 1 列）"}
+                        "error": i18n.tr("err.engine.scalar_needs_1x1")}
             R = ops.scalar_mul(A, B.data[0][0])
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": []}
         elif op == "transpose":
@@ -81,11 +87,12 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             # 用 determinant 判奇异（方阵 det=0 等价于不可逆），不新增公开 API。
             if not A.is_square():
                 return {"ok": False,
-                        "error": f"inverse needs a square matrix, got {A.rows}×{A.cols}"}
+                        "error": i18n.tr("err.engine.inverse_needs_square",
+                                       rows=A.rows, cols=A.cols)}
             d, _ = det_rank.determinant(A, record_steps=False)
             if d == 0:
                 return {"ok": True, "type": "inverse_status", "exists": False,
-                        "note": "det(A) = 0：A is singular, so A⁻¹ does not exist",
+                        "note": i18n.tr("note.engine.det_zero"),
                         "steps": []}
             R, steps = inv_mod.inverse(A, record_steps=show_steps)
             return {"ok": True, "type": "matrix", "data": _mat(R), "steps": steps}
@@ -152,6 +159,6 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                                "vectors": [_mat(v) for v in p["vectors"]]}
                               for p in pairs], "steps": []}
         else:
-            return {"ok": False, "error": f"Unknown operation: {op}"}
+            return {"ok": False, "error": i18n.tr("err.engine.unknown_op", op=op)}
     except Exception as e:
         return {"ok": False, "error": f"{type(e).__name__}: {e}"}
