@@ -11,6 +11,8 @@ import re
 
 import sympy as sp
 
+from . import i18n
+
 MAX_CELL_LEN = 64
 
 # A cell like "1e99999999999999999999999999" would make SymPy materialise
@@ -71,8 +73,7 @@ def _check_exponent(s):
         digits = m.group(1).lstrip("+-")
         if len(digits) > 6 or int(digits) > MAX_EXPONENT:
             raise ValueError(
-                f"指数过大 {s!r}：绝对值上限 {MAX_EXPONENT}"
-                "（避免生成天文数字，正常矩阵用不到这么大的量级）"
+                i18n.tr("err.matrix.exp_absurd", s=repr(s), limit=MAX_EXPONENT)
             )
 
 
@@ -80,9 +81,10 @@ def _parse_cell(s, allow_symbols=False):
     """Parse one grid cell. Whitelist only: numbers, and optionally symbols."""
     s = s.strip()
     if not s:
-        raise ValueError("单元格为空，请填 0 或删除该行/列")
+        raise ValueError(i18n.tr("err.matrix.cell_empty"))
     if len(s) > MAX_CELL_LEN:
-        raise ValueError(f"单元格内容过长（>{MAX_CELL_LEN} 字符）：{s[:20]}…")
+        raise ValueError(i18n.tr("err.matrix.cell_too_long",
+                                 limit=MAX_CELL_LEN, preview=s[:20]))
     if _NUMBER_RE.match(s):
         _check_exponent(s)
         try:
@@ -91,20 +93,20 @@ def _parse_cell(s, allow_symbols=False):
             # "1/0" matches the number whitelist but has a zero denominator;
             # SymPy's own message ("string-float not recognized") is meaningless
             # to a student, so say it plainly instead.
-            raise ValueError(f"分母不能为 0：{s!r}")
+            raise ValueError(i18n.tr("err.matrix.zero_denominator", s=repr(s)))
         except Exception:
             try:
                 return sp.Rational(sp.Float(s))
             except Exception:
                 raise ValueError(
-                    f"无法识别的输入 {s!r}；仅支持整数、小数、分数（如 1/3）"
+                    i18n.tr("err.matrix.cell_unrecognized", s=repr(s), extra="")
                 )
     if allow_symbols and _SYMBOL_RE.match(s):
         return sp.Symbol(s)
-    raise ValueError(
-        f"无法识别的输入 {s!r}；仅支持整数、小数、分数（如 1/3）"
-        + ("或单个字母变量" if allow_symbols else "")
-    )
+    raise ValueError(i18n.tr(
+        "err.matrix.cell_unrecognized", s=repr(s),
+        extra=i18n.tr("err.matrix.symbols_suffix") if allow_symbols else "",
+    ))
 
 
 def fmt_expr(x):
@@ -145,17 +147,18 @@ class Matrix:
             self.data = []
             return
         if not isinstance(data, (list, tuple)):
-            raise ValueError(f"矩阵需要是「行」的列表，收到 {type(data).__name__}")
+            raise ValueError(i18n.tr("err.matrix.not_rows",
+                                     got=type(data).__name__))
         self.rows = len(data)
         for i, row in enumerate(data):
             if not isinstance(row, (list, tuple)):
-                raise ValueError(f"第 {i + 1} 行需要是「元素」的列表，收到 {type(row).__name__}")
+                raise ValueError(i18n.tr("err.matrix.row_not_cells",
+                                         row=i + 1, got=type(row).__name__))
         self.cols = len(data[0])
         for i, row in enumerate(data):
             if len(row) != self.cols:
-                raise ValueError(
-                    f"row {i} has length {len(row)}, expected {self.cols}"
-                )
+                raise ValueError(i18n.tr("err.matrix.ragged_row", row=i,
+                                         length=len(row), expected=self.cols))
         self.data = [[_to_sympy_scalar(v, allow_symbols=allow_symbols) for v in row]
                      for row in data]
 
