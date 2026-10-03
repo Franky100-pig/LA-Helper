@@ -2,8 +2,9 @@
 /* i18n 静态校验：
  *   1) 加载 web/i18n.js，检查 zh / en 两套字典的「键」完全一致（含数组同构）。
  *   2) 扫描 web 下的 HTML / JS（以及 tools/build_preview.py 里注入的字符串），
- *      找出被引用的 key（tr("k") / data-i18n / data-i18n-html / data-i18n-attrs），
- *      确认每个被引用的 key 在字典里都存在（中、英任一存在即可，缺译会被标记）。
+ *      找出被引用的 key（tr("k") / data-i18n / data-i18n-html / data-i18n-attrs /
+ *      I18N.syncDocTitle("k")），确认每个被引用的 key 在字典里都存在
+ *      （中、英任一存在即可，缺译会被标记）。
  *
  * 任一检查不通过则 exit(1)，方便接到 CI / 提交钩子里。
  */
@@ -99,6 +100,12 @@ const ternaryRe = /(?:tr|I18N\.t|LA_I18N\.t)\(\s*[^,()]*\?\s*["']([^"']+)["']\s*
 const attrRe = /data-i18n(?:-html)?=["']([^"']+)["']/g;
 // 3c. data-i18n-attrs="title:k,placeholder:k"  -> 提取冒号后的 key
 const attrsRe = /data-i18n-attrs=["']([^"']+)["']/g;
+// 3d. I18N.syncDocTitle("k") —— <title> 挂不上 data-i18n，只能这样改。
+//     之前漏了这一类，于是 syncDocTitle 里的 key 无人校验：拼错时它会静默
+//     不动（函数里是 `if (s) document.title = ...`），英文界面就留下一个
+//     中文标签页，而 check_i18n 全绿。要求引号正是为了只认「调用」不认
+//     i18n.js 里的函数定义 `function syncDocTitle(key)`。
+const docTitleRe = /(?:I18N\.|LA_I18N\.)?syncDocTitle\(\s*["']([^"']+)["']/g;
 
 for (const file of sources) {
   const text = fs.readFileSync(file, "utf8");
@@ -106,6 +113,7 @@ for (const file of sources) {
   while ((m = callRe.exec(text)) !== null) referenced.add(m[1]);
   while ((m = ternaryRe.exec(text)) !== null) { referenced.add(m[1]); referenced.add(m[2]); }
   while ((m = attrRe.exec(text)) !== null) referenced.add(m[1]);
+  while ((m = docTitleRe.exec(text)) !== null) referenced.add(m[1]);
   while ((m = attrsRe.exec(text)) !== null) {
     m[1].split(",").forEach((pair) => {
       const bits = pair.split(":");
