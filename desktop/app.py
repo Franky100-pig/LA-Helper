@@ -201,10 +201,13 @@ class LAApp:
     def _on_update_result(self, res, force):
         status = res.get("status")
         if status == update_mod.NEW:
-            if messagebox.askyesno(
-                    "发现新版本",
-                    "检测到新版本 %s（当前 %s）。\n\n是否打开下载页面？"
-                    % (res.get("tag"), APP_VERSION)):
+            # 弹窗里直接说这次改了什么 —— 让人点进网页才看得见更新要点，
+            # 太容易就此跳过升级。notes 由 update.py 从 Release 说明里摘好。
+            msg = "检测到新版本 %s（当前 %s）。" % (res.get("tag"), APP_VERSION)
+            notes = res.get("notes") or ""
+            if notes:
+                msg += "\n\n本次更新要点：\n" + notes
+            if messagebox.askyesno("发现新版本", msg + "\n\n是否打开下载页面？"):
                 webbrowser.open(res.get("url") or update_mod.RELEASES_PAGE)
         elif force and status == update_mod.LATEST:
             messagebox.showinfo("检查更新", "已是最新版本（%s）。" % APP_VERSION)

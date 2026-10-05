@@ -40,7 +40,11 @@ def is_newer(latest, current):
 
 
 def fetch_latest_release(timeout=6.0):
-    """返回最新 Release 的 (tag, html_url)；失败时返回 None。"""
+    """返回最新 Release 的 (tag, html_url, body)；失败时返回 None。
+
+    ``body`` 一并取回：光有版本号没法告诉用户「这次改了什么」，弹窗里直接
+    展示要点比让人点进网页更快。body 缺失时是空串，不影响前两个字段。
+    """
     req = urllib.request.Request(
         API_LATEST,
         headers={"Accept": "application/vnd.github+json",
@@ -54,15 +58,55 @@ def fetch_latest_release(timeout=6.0):
     tag = data.get("tag_name")
     if not isinstance(tag, str) or not tag.strip():
         return None
-    return tag.strip(), (data.get("html_url") or RELEASES_PAGE)
+    return (tag.strip(), (data.get("html_url") or RELEASES_PAGE),
+            (data.get("body") or ""))
+
+
+def release_highlights(body, limit=8, max_chars=420):
+    """从 Release 说明里挑出「更新要点」，供弹窗显示。
+
+    只取 Markdown 的小节标题（``**…**``）与条目（``- …``），丢掉下载表格、
+    "### 本次更新" 这类标题和说明段落 —— 弹窗空间有限，宁可少而清楚。
+    条目在 Release 里常常软换行折成两行，续行会接回上一条，否则弹窗里会出现
+    「…；逐步模式下」这种半句。行内 markdown 标记（``**``、`` ` ``）要去掉，
+    否则 tkinter 会照原样显示星号。
+    """
+    if not body:
+        return ""
+    picked = []
+    last_was_bullet = False
+    for raw in str(body).splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        if line.startswith("- "):
+            picked.append(line[2:].strip())
+            last_was_bullet = True
+        elif line.startswith("**") and line.endswith("**") and len(line) > 4:
+            picked.append(line.strip("*").strip())
+            last_was_bullet = False
+        elif line.startswith("###") or line.startswith("|"):
+            last_was_bullet = False        # 标题 / 表格：后面不再接续行
+        elif last_was_bullet:
+            picked[-1] += line
+        if len(picked) >= limit:
+            break
+    text = "\n".join(p.replace("**", "").replace("`", "") for p in picked)
+    if len(text) > max_chars:
+        text = text[:max_chars].rstrip() + "…"
+    return text
 
 
 def check_for_update(current):
-    """返回 dict：{'status': NEW|LATEST|ERROR}，NEW 时另带 tag / url。"""
+    """返回 dict：{'status': NEW|LATEST|ERROR}，NEW 时另带 tag / url / notes。
+
+    ``notes`` 是给人看的更新要点摘要（可能为空串，例如 Release 没写说明）。
+    """
     rel = fetch_latest_release()
     if not rel:
         return {"status": ERROR}
-    tag, url = rel
+    tag, url, body = rel
     if is_newer(tag, current):
-        return {"status": NEW, "tag": tag, "url": url}
+        return {"status": NEW, "tag": tag, "url": url,
+                "notes": release_highlights(body)}
     return {"status": LATEST}
