@@ -19,7 +19,16 @@ ROOT = HERE.parent
 # it up.
 OUT_DEFAULT = ROOT.parent / "la-preview"
 OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
-PYODIDE_URL = "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/"
+# jsDelivr 的三个域名是同一份内容的独立 CDN。主域名 cdn.jsdelivr.net 在大陆
+# 时好时坏，最糟的故障形态是「挂起不报错」——同步 <script> 悬着，onerror 永远
+# 不来，排在它后面的 la-bridge.js / app.js 全部跟着卡死（用户只看到「加载中」）。
+# 所以由 BRIDGE 动态加载并逐源限时切换；这三个都镜像完整 dist（含 sympy wheel，
+# 已用 pyodide-lock.json 的 file_name 逐一核对过 200）。
+PYODIDE_MIRRORS = [
+    "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
+    "https://fastly.jsdelivr.net/pyodide/v0.26.2/full/",
+    "https://gcore.jsdelivr.net/pyodide/v0.26.2/full/",
+]
 
 
 def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
@@ -66,10 +75,19 @@ def build_index(html, ver=""):
         html,
         count=1,
     )
+    # 预热三个镜像域名的 DNS+TLS：最终用哪个由运行时的探活决定，三个都先握手
+    # 也不浪费——没选中的连接很快被浏览器回收。
+    preconnect = "\n".join(
+        f'  <link rel="preconnect" href="{m.split("/pyodide/")[0]}" crossorigin>'
+        for m in PYODIDE_MIRRORS
+    )
+    html = html.replace("<head>", "<head>\n" + preconnect, 1)
     # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
     # 避免旧 la-bridge.js（带 bug 的桥）被长期缓存导致页面显示 undefined。
     q = f"?v={ver}" if ver else ""
     # 主页只留 i18n.js + examples.js：讲义（notes.js）已搬到独立的 notes.html。
+    # pyodide.js 不再写死成 <script> 标签（挂起会卡死后面所有脚本），
+    # 由 la-bridge.js 动态加载并可在镜像间切换。
     html = html.replace(
         '<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
     html = html.replace(
@@ -79,7 +97,6 @@ def build_index(html, ver=""):
         '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
         '正在加载计算引擎（首次约需十几秒，之后秒回）…</p>\n'
         f'<script src="core_bundle.js{q}"></script>\n'
-        f'<script src="{PYODIDE_URL}pyodide.js"></script>\n'
         f'<script src="la-bridge.js{q}"></script>\n'
         f'<script src="app.js{q}"></script>',
     )
@@ -122,12 +139,87 @@ function laDispatch(req) {
   return `_la_dispatch(${JSON.stringify(JSON.stringify(req))})`;
 }
 
+// 由 build_preview.py 注入（PYODIDE_MIRRORS）
+const PYODIDE_SOURCES = __PYODIDE_SOURCES__;
+
+function laStatus(msg) {
+  const el = document.getElementById("engineStatus");
+  if (el) el.textContent = msg;
+}
+function laT(key, vars) {
+  return (window.LA_I18N && window.LA_I18N.t) ? window.LA_I18N.t(key, vars) : key;
+}
+
+// Load one script; resolve false on error *or* timeout — never hang, never reject.
+// 超时是关键：CDN 挂起时不触发 onerror，只能靠限时放弃并换下一个源。
+// （LA_BOOT_TIMEOUT_MS 只给 vm 测试把超时调短用，生产走默认 10s。）
+const SRC_TIMEOUT_MS =
+  Number((typeof window !== "undefined" && window.LA_BOOT_TIMEOUT_MS) || 10000);
+
+function loadScript(url) {
+  return new Promise((resolve) => {
+    let done = false;
+    const s = document.createElement("script");
+    s.src = url;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      clearTimeout(timer);
+      resolve(ok);
+    };
+    const timer = setTimeout(() => finish(false), SRC_TIMEOUT_MS);
+    s.onload = () => finish(true);
+    s.onerror = () => finish(false);
+    document.head.appendChild(s);
+  });
+}
+
+// 给慢阶段兜底：loadPyodide / loadPackage 内部的 fetch 没有超时，一旦悬死就永远
+// 轮不到换源。限时要宽（wasm ~10MB、sympy ~6MB，弱网也要给足），只防「彻底挂死」。
+function withTimeout(promise, ms, tag) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("timeout after " + ms + "ms: " + tag)), ms)),
+  ]);
+}
+
 (async function boot() {
-  const status = document.getElementById("engineStatus");
   const btn = document.getElementById("compute");
+  let loader = null;   // loadPyodide —— 任一源把 pyodide.js 送到了就有
+  let lastErr = null;
+  let pyodide = null;
+
+  for (const base of PYODIDE_SOURCES) {
+    if (!loader) {
+      laStatus(laT("engine.trying", { host: new URL(base).host }));
+      if (!(await loadScript(base + "pyodide.js")) ||
+          typeof window.loadPyodide !== "function") {
+        lastErr = "script failed: " + base;
+        continue;
+      }
+      loader = window.loadPyodide;
+    }
+    try {
+      pyodide = await withTimeout(loader({ indexURL: base }), 60000, base);
+      laStatus(laT("engine.sympy"));
+      await withTimeout(pyodide.loadPackage("sympy"), 120000, "sympy");
+      break;   // 该源两阶段全部成功
+    } catch (err) {
+      lastErr = err;
+      pyodide = null;
+      // loader 保留：三个域名的 pyodide.js 是同一份，换个 indexURL 重开实例即可，
+      // 不必再下载一次脚本。
+    }
+  }
+
+  if (!pyodide) {
+    window.LA.error = String(lastErr);
+    laStatus(laT("engine.allfail", { err: String(lastErr) }));
+    return;
+  }
+
   try {
-    const pyodide = await loadPyodide({ indexURL: "__PYODIDE_URL__" });
-    await pyodide.loadPackage("sympy");
     const FS = pyodide.FS;
     try { FS.mkdir("/la"); } catch (e) { /* exists */ }
     for (const [name, src] of Object.entries(window.LA_CORE_FILES)) {
@@ -199,14 +291,14 @@ function laDispatch(req) {
       return pyodide.runPython(pyLines.join("\\n"));
     };
     // 状态文案走 i18n（i18n.js 在 <head> 里先于本文件加载）
-    if (status) status.textContent = window.LA_I18N.t("engine.ready");
+    laStatus(laT("engine.ready"));
     if (btn) btn.disabled = false;
   } catch (err) {
     window.LA.error = String(err);
-    if (status) status.textContent = window.LA_I18N.t("engine.fail") + err;
+    laStatus(laT("engine.fail") + err);
   }
 })();
-""".replace("__PYODIDE_URL__", PYODIDE_URL)
+""".replace("__PYODIDE_SOURCES__", json.dumps(PYODIDE_MIRRORS))
 
 
 def main():

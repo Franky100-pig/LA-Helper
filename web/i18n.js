@@ -189,8 +189,11 @@ window.LA_I18N = (function () {
       // ---- 引擎状态（静态预览版） ----
       "engine.loading": "正在加载计算引擎（首次约需十几秒，之后秒回）…",
       "engine.busy": "计算引擎加载中，请稍候…",
+      "engine.trying": "正在连接计算引擎源（{host}）…",
+      "engine.sympy": "引擎核心已连接，正在加载 SymPy 包（首次约 6 MB）…",
       "engine.ready": "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）",
       "engine.fail": "引擎加载失败：",
+      "engine.allfail": "所有镜像源都连不上（{err}）。请检查网络后刷新重试。",
 
       // ---- 编辑提示 / 报错 ----
       "msg.pasteShape": "已按粘贴内容识别为 {rows}×{cols}，共 {n} 个数",
@@ -430,8 +433,11 @@ window.LA_I18N = (function () {
       // ---- engine status (static preview) ----
       "engine.loading": "Loading the compute engine (first time takes ~10s, then it is instant)…",
       "engine.busy": "Compute engine is still loading, please wait…",
+      "engine.trying": "Connecting to a compute engine source ({host})…",
+      "engine.sympy": "Engine core connected, loading SymPy (~6 MB first time)…",
       "engine.ready": "Engine ready · local Python/SymPy (WebAssembly)",
       "engine.fail": "Engine failed to load: ",
+      "engine.allfail": "None of the mirror sources are reachable ({err}). Check your network and refresh.",
 
       // ---- editor messages / errors ----
       "msg.pasteShape": "Recognised {rows}×{cols} from the pasted block — {n} numbers",
