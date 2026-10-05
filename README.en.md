@@ -247,7 +247,7 @@ every other feature remains fully offline.
 
 ## Roadmap
 - [ ] More factorisations (QR / SVD), Gram-Schmidt, least squares
-- [ ] Structured steps (per-step matrix snapshot and current pivot, with step-through / highlighting)
+- [x] Structured steps (per-step matrix snapshot and current pivot, with step-through / highlighting) — player and pivot highlighting are live on the web edition; the desktop playback controls are not built yet
 - [x] Import a matrix from a photo (Gemini vision, desktop + web)
 - [x] A worked example per operation, loadable in one click (desktop + web)
 - [x] Related study note after every result ("Want to know why? Read this")
