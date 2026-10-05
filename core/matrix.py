@@ -123,12 +123,32 @@ def snapshot(data):
     return [[fmt_expr(c) for c in row] for row in data]
 
 
-def step(text, M=None):
+def step(text, M=None, op=None, pivot=None, rows=None):
     """One recorded transformation step.
 
     ``text`` is the row operation; ``matrix`` is a JSON-friendly snapshot of
     the matrix *after* that operation, or ``None`` for a purely explanatory
     step (e.g. "det(A) = det(P)·det(L)·det(U)").
+
+    The remaining fields are the machine-readable half of the same step, so a
+    UI can drive playback and highlighting without parsing ``text`` — which
+    would be both fragile and wrong the moment ``text`` is translated:
+
+    ``op``
+        What kind of step this is: ``"swap"``, ``"scale"``, ``"eliminate"``,
+        ``"expand"`` (a cofactor minor, not a row operation) or ``"note"``
+        (explanatory, no matrix). ``None`` means the producer didn't say.
+    ``pivot``
+        ``{"row": i, "col": j, "value": "<exact string>"}`` (0-based) for the
+        pivot this step established, or ``None``.
+    ``rows``
+        0-based indices of the rows this step changed — the pivot row for a
+        swap or a scaling, the eliminated row for an elimination. Empty when
+        the step touches no specific row.
+
+    Callers that only know the prose can keep calling ``step(text, M)``: the
+    three new keys are then ``None``/``[]`` and every existing consumer
+    (``text``, ``matrix``) is unaffected.
     """
     if M is None:
         mat = None
@@ -136,7 +156,8 @@ def step(text, M=None):
         mat = M.to_list()
     else:
         mat = snapshot(M)
-    return {"text": text, "matrix": mat}
+    return {"text": text, "matrix": mat, "op": op, "pivot": pivot,
+            "rows": list(rows) if rows else []}
 
 
 class Matrix:

@@ -1,5 +1,6 @@
 """Matrix inverses: square (Gauss-Jordan), left, right, and pseudoinverse."""
 from .matrix import Matrix, fmt_expr, step
+from . import i18n
 from . import ops
 from .solve import rref
 import sympy as sp
@@ -26,13 +27,19 @@ def inverse(A, record_steps=True):
         if pivot != c:
             M.data[c], M.data[pivot] = M.data[pivot], M.data[c]
             if record_steps:
-                steps.append(step(f"Swap R{c + 1} ↔ R{pivot + 1}", M))
+                steps.append(step(
+                    i18n.tr("step.swap", a=c + 1, b=pivot + 1), M,
+                    op="swap", rows=[c, pivot]))
         pv = M.data[c][c]
         if not pv.equals(1):
             for k in range(2 * n):
                 M.data[c][k] = sp.simplify(M.data[c][k] / pv)
             if record_steps:
-                steps.append(step(f"R{c + 1} → R{c + 1} / ({fmt_expr(pv)})", M))
+                steps.append(step(
+                    i18n.tr("step.scale", a=c + 1, value=fmt_expr(pv)), M,
+                    op="scale",
+                    pivot={"row": c, "col": c, "value": fmt_expr(pv)},
+                    rows=[c]))
         for i in range(n):
             if i != c and not M.data[i][c].equals(0):
                 factor = M.data[i][c]
@@ -40,7 +47,11 @@ def inverse(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[c][k])
                 if record_steps:
                     steps.append(step(
-                        f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{c + 1}", M))
+                        i18n.tr("step.eliminate", a=i + 1, b=c + 1,
+                                factor=fmt_expr(factor)), M,
+                        op="eliminate",
+                        pivot={"row": c, "col": c, "value": fmt_expr(pv)},
+                        rows=[i]))
     inv = Matrix([[M.data[r][c + n] for c in range(n)] for r in range(n)])
     return inv, steps
 
@@ -62,7 +73,7 @@ def left_inverse(A, record_steps=True, rank=None):
     ATA = ops.mul(AT, A)
     ATA_inv, _ = inverse(ATA, record_steps=False)
     L = ops.mul(ATA_inv, AT)
-    steps = [step("Compute AᵀA, invert it, then left-inverse = (AᵀA)⁻¹ Aᵀ")]
+    steps = [step(i18n.tr("note.left_inverse.plan"), op="note")]
     return L, (steps if record_steps else [])
 
 
@@ -78,7 +89,7 @@ def right_inverse(A, record_steps=True, rank=None):
     AAT = ops.mul(A, AT)
     AAT_inv, _ = inverse(AAT, record_steps=False)
     R = ops.mul(AT, AAT_inv)
-    steps = [step("Compute AAᵀ, invert it, then right-inverse = Aᵀ (AAᵀ)⁻¹")]
+    steps = [step(i18n.tr("note.right_inverse.plan"), op="note")]
     return R, (steps if record_steps else [])
 
 
@@ -89,12 +100,12 @@ def pseudo_inverse(A, record_steps=True):
     try:
         if r == n and m >= n:
             L, _ = left_inverse(A, record_steps=False, rank=r)
-            return L, [step("Full column rank → pinv = left inverse (AᵀA)⁻¹Aᵀ")]
+            return L, [step(i18n.tr("note.pinv.left"), op="note")]
         if r == m and n >= m:
             R, _ = right_inverse(A, record_steps=False, rank=r)
-            return R, [step("Full row rank → pinv = right inverse Aᵀ(AAᵀ)⁻¹")]
+            return R, [step(i18n.tr("note.pinv.right"), op="note")]
     except ValueError:
         pass
     P = A.to_sympy().pinv()
     M = Matrix.from_sympy(P)
-    return M, [step("General Moore-Penrose pseudoinverse (via SVD)")]
+    return M, [step(i18n.tr("note.pinv.general"), op="note")]
