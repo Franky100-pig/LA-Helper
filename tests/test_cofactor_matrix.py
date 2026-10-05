@@ -79,7 +79,7 @@ def test_steps_when_enabled_are_well_formed():
     res = engine.dispatch({"op": "cofactor_matrix", "A": A2, "showSteps": True})
     assert res["ok"] and res["steps"]
     for s in res["steps"]:
-        assert set(s) == {"text", "matrix"}
+        assert set(s) == {"text", "matrix", "op", "pivot", "rows"}
         assert isinstance(s["text"], str) and s["text"]
         # 每个余子式步骤都带着它对应的余子式小矩阵
         if s["matrix"] is not None:

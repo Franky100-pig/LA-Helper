@@ -1,11 +1,26 @@
-"""Steps must carry the matrix that results from each row operation.
+"""Steps must carry the matrix that results from each row operation — and enough
+structure for a UI to drive playback and highlighting without parsing prose.
 
-Every recorded step is ``{"text": <row operation>, "matrix": <snapshot>}`` so
-both editions can show "the matrix right after this step" underneath it.
+Every recorded step is::
+
+    {"text": <row operation>,      # already localized
+     "matrix": <snapshot>,         # state *after* this step, or None
+     "op": <kind>,                 # "swap" / "scale" / "eliminate" / "expand" / "note"
+     "pivot": {"row", "col", "value"} | None,
+     "rows": [<0-based row indices touched>]}
+
+``text`` alone would force a UI to parse English or Chinese prose to find out
+what happened — which breaks the moment the wording changes. ``op``/``pivot``/
+``rows`` are the machine-readable half, and the roadmap item this serves is
+"每步带矩阵快照与当前主元，支持单步播放 / 高亮".
+
 Purely explanatory steps (det(A) = det(P)·det(L)·det(U), "singular", pinv
-special cases, ...) carry ``matrix: None``.
+special cases, ...) carry ``matrix: None`` and ``op: "note"``.
 """
 from core import engine, format_math
+
+STEP_KEYS = {"text", "matrix", "op", "pivot", "rows"}
+ROW_OPS = {"swap", "scale", "eliminate"}
 
 
 def _dispatch(op, A, B=None, **kw):
@@ -22,7 +37,15 @@ def _assert_shape_of_step(s):
     """A step is a dict with a non-empty text and either None or a string grid."""
     assert isinstance(s, dict), f"step should be a dict, got {type(s).__name__}"
     assert isinstance(s["text"], str) and s["text"]
-    assert set(s) == {"text", "matrix"}
+    assert set(s) == STEP_KEYS
+    assert s["op"] in {"swap", "scale", "eliminate", "expand", "note", None}, s["op"]
+    assert isinstance(s["rows"], list) and all(
+        isinstance(i, int) and i >= 0 for i in s["rows"]), s["rows"]
+    if s["pivot"] is not None:
+        p = s["pivot"]
+        assert set(p) == {"row", "col", "value"}, p
+        assert isinstance(p["row"], int) and p["row"] >= 0
+        assert isinstance(p["col"], int) and p["col"] >= 0
     m = s["matrix"]
     if m is not None:
         assert isinstance(m, list) and m
@@ -96,6 +119,53 @@ def test_pseudo_inverse_explanation_step_is_text_only():
 def test_no_steps_when_disabled():
     res = engine.dispatch({"op": "ref", "A": A3, "showSteps": False})
     assert res["steps"] == []
+
+
+# ---- structured metadata (playback + highlighting) ------------------------
+def test_ref_steps_are_all_typed_row_operations_with_a_pivot():
+    """REF is the canonical case: every step is an elimination, pivots march
+    down the diagonal, and each step names the row it changed."""
+    res = _dispatch("ref", A3)
+    ops = {s["op"] for s in res["steps"]}
+    assert ops <= ROW_OPS, f"REF 只应产生行变换，实际有 {ops}"
+    for s in res["steps"]:
+        assert s["pivot"] is not None, f"缺少主元: {s['text']}"
+        assert len(s["rows"]) == 1, f"消元只动一行: {s}"
+        # 消元动的那一行必须在主元之下
+        assert s["rows"][0] > s["pivot"]["row"]
+
+
+def test_pivot_columns_advance_left_to_right():
+    """Playback walks the pivots in order — that ordering is what a UI animates,
+    so it has to be a property of the data, not of the rendering."""
+    res = _dispatch("ref", A3)
+    cols = [s["pivot"]["col"] for s in res["steps"]]
+    assert cols == sorted(cols), f"主元列应递增: {cols}"
+
+
+def test_a_forced_swap_is_reported_as_a_swap_naming_both_rows():
+    """A leading zero forces a swap; the step must say so structurally rather
+    than leaving the UI to parse it out of the prose."""
+    res = _dispatch("ref", [[0, 1, 2], [1, 0, 1], [1, 1, 0]])
+    swaps = [s for s in res["steps"] if s["op"] == "swap"]
+    assert swaps, "首元素为 0 时应记录一次交换"
+    assert sorted(swaps[0]["rows"]) == [0, 1]
+    assert swaps[0]["matrix"] is not None
+
+
+def test_pseudo_inverse_notes_are_typed_as_note_with_no_pivot():
+    res = _dispatch("pseudo_inverse", [[1, 2], [3, 4], [5, 6]])
+    assert res["steps"][0]["op"] == "note"
+    assert res["steps"][0]["pivot"] is None
+    assert res["steps"][0]["rows"] == []
+
+
+def test_metadata_survives_both_languages():
+    """Structure must not depend on the language — a UI cannot special-case zh."""
+    zh = _dispatch("ref", A3, lang="zh")["steps"]
+    en = _dispatch("ref", A3, lang="en")["steps"]
+    assert [(s["op"], s["pivot"], s["rows"]) for s in zh] == \
+           [(s["op"], s["pivot"], s["rows"]) for s in en]
 
 
 # ---- formatter tolerance ---------------------------------------------------
