@@ -32,6 +32,23 @@ sys.path.insert(0, str(ROOT))
 from core import engine, i18n  # noqa: E402
 
 CJK = re.compile(r"[\u3000-\u303f\u4e00-\u9fff\uff00-\uffef]")
+
+# Rule 4's second direction. NOT a general "any Latin" test — the maths is
+# written in Latin symbols and always will be (R2, adj(A), AᵀA, pinv, 1/3).
+# These are the *prose* words that actually shipped in English inside a Chinese
+# derivation before this rule existed. One bare word is enough to fail, because
+# every genuine offender contains at least one of them.
+#
+# Keep this list short and honest: it is a stoplist, not a language detector.
+# "min" would be wrong (1/3 分钟). Adding a word here is cheap; adding one that
+# can appear inside notation is not.
+ENGLISH_PROSE = re.compile(
+    r"\b(?:Swap|Compute|General|Full|Invert|invert|column rank|row rank"
+    r"|pivoting|equals|means|becomes|divide|multiply|add|Subtract"
+    r"|therefore|hence|so\s+that|note\s+that)\b"
+    r"|partial\s+pivoting",
+    re.IGNORECASE,
+)
 PLACEHOLDER = re.compile(r"\{([a-zA-Z_][a-zA-Z0-9_]*)[^}]*\}")
 
 problems = []
@@ -136,7 +153,16 @@ PROBES = [
     {"op": "multiply", "A": A3},                      # 缺 B → 报错
     {"op": "inverse", "A": SINGULAR, "showSteps": True},   # 奇异 → note
     {"op": "add", "A": [["1"]], "B": [["1"]], "showSteps": True},
+    # 这三个是「英文残留」的实际藏身处：它们的说明句（"Compute AᵀA…"、
+    # "Full column rank → …"、"General Moore-Penrose pseudoinverse (via SVD)"）
+    # 当年是硬编码英文，中文界面下直接露馅 —— 而 PROBES 里恰好没有这三个运算，
+    # 所以就算加了规则也覆盖不到。pinv 留两条：满列秩走左逆、降秩走 SVD。
+    {"op": "left_inverse", "A": A3, "showSteps": True},
+    {"op": "right_inverse", "A": A3, "showSteps": True},
+    {"op": "pseudo_inverse", "A": A3, "showSteps": True},        # 满列秩
+    {"op": "pseudo_inverse", "A": SINGULAR, "showSteps": True},  # 降秩 → SVD
     {"expr": "A**2", "matrices": {"A": A3}},           # 表达式报错
+    {"expr": "A/B", "matrices": {"A": A3}},             # 未知矩阵
     {"expr": "inv(A)", "matrices": {"A": A3}, "showSteps": True},
     {"expr": "foo(A)", "matrices": {"A": A3}},
 ]
@@ -157,6 +183,19 @@ def scan_output():
 
     The only rule that notices a ``lang`` that never reached a call site — the
     source-level rules cannot see that.
+
+    Two directions, because the two mistakes look identical from inside the
+    code and completely different from the outside:
+
+    * English output must contain no CJK (the mistake #9/#10 was about).
+    * **Chinese output must contain no English prose.** This one is a stoplist
+      rather than a regex, and honestly so: ``R2 → R2 − (2)·R1`` and
+      ``adj(A) = Cᵀ`` are language-neutral notation that must stay as they are,
+      so "contains Latin letters" is useless as a test. What we can catch is
+      the actual failure this repo shipped — a sentence of English in the
+      middle of a Chinese derivation ("Swap R1 ↔ R2", "Compute AᵀA, invert
+      it, ...", "Full column rank → ..."), left behind by a bilingual pass
+      that only banned Chinese. New prose words get added to the list.
     """
     for probe in PROBES:
         req = dict(probe, lang="en")
@@ -164,6 +203,11 @@ def scan_output():
             if text and CJK.search(text):
                 key = probe.get("op") or f"expr {probe['expr']}"
                 note("英文输出", f"{key} → {text[:70]}")
+        for text in _strings_in(engine.dispatch(dict(probe, lang="zh"))):
+            hit = ENGLISH_PROSE.search(text or "")
+            if hit:
+                key = probe.get("op") or f"expr {probe['expr']}"
+                note("中文输出", f"{key} 混进了英文散文 {hit.group(0)!r} → {text[:60]}")
     # 顺带确认中文路径没被弄坏。但只在英文侧本来就有文案时才要求中文也有 ——
     # 有些运算（如 add）本来就不产生任何文字，两边都空是正常的。
     for probe in PROBES:

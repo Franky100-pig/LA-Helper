@@ -658,12 +658,23 @@ async function stepHtml(s) {
   }
 }
 
-async function renderMatrixMath(mat) {
+async function renderMatrixMath(mat, hl) {
+  // hl（可选）= { pivot: {row, col}, rows: [i, ...] }，给单步播放用：
+  //   · 被本步改动的那几行 → 行淡底色
+  //   · 主元所在的格子     → 描一圈实线框
+  // 两个都用 0-based，与引擎 core/ 里 pivot/rows 的下标一致（引擎不吐 1-based，
+  // 因为矩阵本身是 0-based 的列表，转换只会在一处引入不一致）。
+  const hlRows = new Set((hl && hl.rows) || []);
   let body = "";
-  for (const row of mat) {
+  for (let r = 0; r < mat.length; r++) {
     const cells = [];
-    for (const c of row) cells.push("<td>" + (await mathHtml(c)) + "</td>");
-    body += "<tr>" + cells.join("") + "</tr>";
+    for (let c = 0; c < mat[r].length; c++) {
+      let cls = "";
+      if (hl && hl.pivot && hl.pivot.row === r && hl.pivot.col === c) cls = " class='pivot-cell'";
+      else if (hlRows.has(r)) cls = " class='touched-row'";
+      cells.push("<td" + cls + ">" + (await mathHtml(mat[r][c])) + "</td>");
+    }
+    body += "<tr" + (hlRows.has(r) ? " class='touched'" : "") + ">" + cells.join("") + "</tr>";
   }
   return '<div class="matrix-box"><span class="bracket">[</span>' +
     '<table class="mat">' + body + '</table><span class="bracket">]</span></div>';
@@ -747,6 +758,114 @@ function exportPdf() {
   window.print();
 }
 
+// --- 单步播放 ---------------------------------------------------------------
+// 三种状态：全部展开（默认，与改动前完全一致）/ 折叠逐步 / 播放中。
+// 只有「折叠逐步」和「播放中」会给列表加 .playing，CSS 据此点亮高亮；
+// 打印时 @media print 无论当前是哪种状态都把全部步骤展开，所以导出的 PDF
+// 永远是完整推导，不会因为停在第 3 步就只导出 3 步。
+const STEP_PLAY_MS = 1100;
+let stepTimer = null;
+let stepIndex = 0;
+
+function stepPlayerHtml(n) {
+  if (n < 2) return "";        // 只有一步时没什么可「播放」的
+  return (
+    "<div class='step-player' id='stepPlayer'>" +
+    "<button type='button' class='ghost sm' id='stepFirst' title='" +
+      escapeHtml(tr("step.first")) + "' aria-label='" + escapeHtml(tr("step.first")) + "'>⏮</button>" +
+    "<button type='button' class='ghost sm' id='stepPrev' title='" +
+      escapeHtml(tr("step.prev")) + "' aria-label='" + escapeHtml(tr("step.prev")) + "'>◀</button>" +
+    "<button type='button' class='ghost sm' id='stepPlay' title='" +
+      escapeHtml(tr("step.play")) + "' aria-label='" + escapeHtml(tr("step.play")) + "'>▶</button>" +
+    "<button type='button' class='ghost sm' id='stepNext' title='" +
+      escapeHtml(tr("step.next")) + "' aria-label='" + escapeHtml(tr("step.next")) + "'>▶|</button>" +
+    "<span class='step-count' id='stepCount'></span>" +
+    "<button type='button' class='ghost sm wide' id='stepAll'>" +
+      escapeHtml(tr("step.showAll")) + "</button>" +
+    "</div>"
+  );
+}
+
+function stopStepTimer() {
+  if (stepTimer) { clearInterval(stepTimer); stepTimer = null; }
+}
+
+function setPlayIcon(playing) {
+  const b = el("stepPlay");
+  if (b) b.textContent = playing ? "❚❚" : "▶";
+}
+
+function showStep(k) {
+  const list = el("stepList");
+  if (!list) return;
+  const items = list.querySelectorAll("li.step-item");
+  if (!items.length) return;
+  stepIndex = Math.max(0, Math.min(k, items.length - 1));
+  for (let i = 0; i < items.length; i++) {
+    // 用 hidden 而不是 display:none —— 打印样式要能一网打尽地恢复可见
+    items[i].hidden = i > stepIndex;
+    items[i].classList.toggle("current", i === stepIndex);
+  }
+  const c = el("stepCount");
+  if (c) c.textContent = (stepIndex + 1) + " / " + items.length;
+  const cur = items[stepIndex];
+  if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: "nearest" });
+}
+
+function enterStepMode() {
+  const list = el("stepList");
+  if (list) list.classList.add("playing");
+  const p = el("stepPlayer");
+  if (p) p.classList.add("active");
+}
+
+function exitStepMode() {
+  stopStepTimer();
+  setPlayIcon(false);
+  const list = el("stepList");
+  if (list) {
+    list.classList.remove("playing");
+    for (const li of list.querySelectorAll("li.step-item")) {
+      li.hidden = false;
+      li.classList.remove("current");
+    }
+  }
+  const p = el("stepPlayer");
+  if (p) p.classList.remove("active");
+  const c = el("stepCount");
+  if (c) c.textContent = "";
+}
+
+function togglePlay() {
+  if (stepTimer) { stopStepTimer(); setPlayIcon(false); return; }
+  const list = el("stepList");
+  if (!list) return;
+  const total = list.querySelectorAll("li.step-item").length;
+  enterStepMode();
+  if (stepIndex >= total - 1) showStep(0);   // 播完了再按播放，从头再来
+  setPlayIcon(true);
+  stepTimer = setInterval(() => {
+    const items = list.querySelectorAll("li.step-item");
+    if (stepIndex >= items.length - 1) { stopStepTimer(); setPlayIcon(false); return; }
+    showStep(stepIndex + 1);
+  }, STEP_PLAY_MS);
+}
+
+function mountStepPlayer() {
+  stopStepTimer();
+  stepIndex = 0;
+  if (!el("stepPlayer")) return;
+  const bind = (id, fn) => { const b = el(id); if (b) b.addEventListener("click", fn); };
+  bind("stepPlay", togglePlay);
+  bind("stepNext", () => { stopStepTimer(); setPlayIcon(false); enterStepMode(); showStep(stepIndex + 1); });
+  bind("stepPrev", () => { stopStepTimer(); setPlayIcon(false); enterStepMode(); showStep(stepIndex - 1); });
+  bind("stepFirst", () => { stopStepTimer(); setPlayIcon(false); enterStepMode(); showStep(0); });
+  bind("stepAll", exitStepMode);
+  setPlayIcon(false);
+}
+
+// ---------------------------------------------------------------------------
+
 async function renderResult(res) {
   lastResult = res;
   if (!res.ok) {
@@ -795,19 +914,34 @@ async function renderResult(res) {
     }) + "</p>";
   }
   if (res.steps && res.steps.length) {
-    let steps = "<h4>" + tr("result.steps") + "</h4><ol class='steps'>";
+    // 每个步骤是 {text, matrix, op, pivot, rows}：text 是行变换，matrix 是这一步
+    // **做完之后**的矩阵快照（纯说明性步骤没有矩阵，为 null），后三个键是给
+    // 单步播放用的机器可读信息（见 core/matrix.py 的 step()）。
+    //
+    // 默认仍然**全部展开**（与改动前一致）；点「单步播放」才折叠成一次一步。
+    // 这样只读推导的人不受打扰，而导出 PDF 走 window.print() 打 DOM，
+    // 靠打印样式把折叠的步骤再全部展开（见 index.css 的 @media print）。
+    const items = [];
     for (const s of res.steps) {
-      // 每个步骤是 {text, matrix}：text 是行变换，matrix 是这一步**做完之后**
-      // 的矩阵快照（纯说明性步骤没有矩阵，为 null）。
-      const label = (s && typeof s === "object") ? (s.text != null ? s.text : "") : s;
+      const isObj = s && typeof s === "object";
+      const label = isObj ? (s.text != null ? s.text : "") : s;
       const h = await stepHtml(label);
       // 防御：任何情况下都不要往页面里写 "undefined"
       let item = h != null ? h : escapeHtml(String(label));
-      if (s && typeof s === "object" && s.matrix) {
-        item += await renderMatrixMath(s.matrix);
+      if (isObj && s.matrix) {
+        // 高亮信息在这一步**自己**渲染时就烧进 class —— 属于这一步的主元/改动行
+        // 不随「当前第几步」变化，切换步骤时不需要重渲染（重渲染要回 Python
+        // 排版公式，太贵）。class 什么时候真正显示由 CSS 决定：全部展开时安静，
+        // 进入播放模式才点亮。
+        item += await renderMatrixMath(s.matrix, { pivot: s.pivot, rows: s.rows });
       }
-      steps += `<li>${item}</li>`;
+      items.push({ html: item, step: isObj ? s : null });
     }
+
+    let steps = "<h4>" + tr("result.steps") + "</h4>";
+    steps += stepPlayerHtml(res.steps.length);
+    steps += "<ol class='steps' id='stepList'>";
+    for (const it of items) steps += `<li class="step-item">${it.html}</li>`;
     steps += "</ol>";
     html += steps;
   }
@@ -816,6 +950,7 @@ async function renderResult(res) {
   // 讲义推荐：只在真算出了东西、且这个运算有对应讲义时出现
   if (html) showArticlePick(lastRawOp); else hideArticlePick();
   revealResult();
+  mountStepPlayer();
 }
 
 // --- 请求：两条入口共用，保证结果一致 ---------------------------------------

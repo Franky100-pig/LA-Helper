@@ -51,13 +51,13 @@ def _determinant_row_reduction(A, record_steps=True):
         P, L, U, swaps, lu_steps = lu_decomposition(
             A, pivot=True, record_steps=True)
         steps.extend(lu_steps)
-        steps.append(step(i18n.tr("det.lu_factor")))
+        steps.append(step(i18n.tr("det.lu_factor"), op="note"))
     except ValueError:
-        steps.append(step(i18n.tr("det.zero_pivot")))
+        steps.append(step(i18n.tr("det.zero_pivot"), op="note"))
     if det == 0:
-        steps.append(step(i18n.tr("det.zero")))
+        steps.append(step(i18n.tr("det.zero"), op="note"))
     else:
-        steps.append(step(i18n.tr("det.value", value=fmt_expr(det))))
+        steps.append(step(i18n.tr("det.value", value=fmt_expr(det)), op="note"))
     return det, steps
 
 
@@ -104,7 +104,7 @@ def _cofactor_value(data, steps, depth):
     else:
         head = i18n.tr("det.cofactor.col_head", pad=pad, index=idx + 1)
         terms = [(i, idx) for i in range(n)]
-    steps.append(step(head, data))
+    steps.append(step(head, data, op="expand"))
 
     total = sp.Integer(0)
     for i, j in terms:
@@ -116,13 +116,14 @@ def _cofactor_value(data, steps, depth):
         steps.append(step(
             i18n.tr("det.cofactor.term", pad=pad, row=i + 1, col=j + 1,
                     coef=fmt_expr(sgn * a)),
-            minor))
+            minor, op="expand",
+            pivot={"row": i, "col": j, "value": fmt_expr(a)}))
         total += sgn * a * _cofactor_value(minor, steps, depth + 1)
 
     total = sp.simplify(total)
     if depth > 0:
         steps.append(step(i18n.tr("det.cofactor.level_total",
-                                  pad=pad, total=fmt_expr(total))))
+                                  pad=pad, total=fmt_expr(total)), op="note"))
     return total
 
 
@@ -143,11 +144,12 @@ def _determinant_cofactor(A, record_steps=True):
     steps = []
     if n == 1:
         v = sp.simplify(A.data[0][0])
-        steps.append(step(i18n.tr("det.cofactor.one_by_one", value=fmt_expr(v))))
+        steps.append(step(i18n.tr("det.cofactor.one_by_one", value=fmt_expr(v)),
+                          op="note"))
         return v, steps
 
     det = sp.simplify(_cofactor_value([row[:] for row in A.data], steps, 0))
-    steps.append(step(i18n.tr("det.value", value=fmt_expr(det))))
+    steps.append(step(i18n.tr("det.value", value=fmt_expr(det)), op="note"))
     return det, steps
 
 
@@ -186,8 +188,10 @@ def cofactor_matrix(A, record_steps=False):
                     i18n.tr("det.cofactor_matrix.entry",
                             row=i + 1, col=j + 1, sign=fmt_expr(sgn),
                             minor=fmt_expr(Mn), value=fmt_expr(c)),
-                    minor))
+                    minor, op="expand",
+                    pivot={"row": i, "col": j,
+                           "value": fmt_expr(data[i][j])}))
     det = sp.simplify(A.to_sympy().det())
     if record_steps:
-        steps.append(step(i18n.tr("det.cofactor_matrix.done")))
+        steps.append(step(i18n.tr("det.cofactor_matrix.done"), op="note"))
     return C, adj, det, steps

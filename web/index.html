@@ -222,6 +222,22 @@
   ol.steps li { margin: 7px 0; font-variant-numeric: tabular-nums; }
   /* 每步操作下面跟的矩阵快照 */
   ol.steps li .matrix-box { margin: 6px 0 10px; }
+
+  /* --- 单步播放 ---------------------------------------------------------- */
+  .step-player { display: none; align-items: center; gap: 6px; margin: 10px 0 2px; }
+  .step-player.active { display: flex; }
+  .step-player .sm { min-width: 34px; padding: 4px 8px; font-size: 12px; line-height: 1.2; }
+  .step-player .wide { margin-left: auto; }
+  .step-count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums;
+                padding: 0 4px; }
+  /* 高亮的 class 在渲染时就烧好了（属于那一步自己），什么时候显示由 .playing 决定：
+     全部展开时保持安静，进入播放模式才点亮。 */
+  ol.steps.playing li.current { background: var(--panel); border-radius: 8px; }
+  ol.steps.playing td.touched-row { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  ol.steps.playing td.pivot-cell {
+    outline: 2px solid var(--accent); outline-offset: -2px;
+    background: color-mix(in srgb, var(--accent) 22%, transparent);
+  }
   .error { color: var(--bad); background: rgba(255,107,107,.1); padding: 12px 14px;
            border-radius: 10px; border: 1px solid rgba(255,107,107,.3); }
   .hint { color: var(--muted); font-size: 12px; margin-top: 8px; }
@@ -511,6 +527,15 @@
     }
     /* 步骤条目、矩阵块别被分页切成两半 */
     .steps li, .matrix-box, .lu-row, .eig { break-inside: avoid; page-break-inside: avoid; }
+    /* 单步播放会把后面的步骤设成 hidden；打印走 window.print() 打 DOM，
+       所以这里必须无条件把全部步骤放回来 —— 否则停在第 3 步导出就只有 3 步。
+       播放器的控件本身不该出现在纸上。 */
+    ol.steps li[hidden] { display: list-item !important; }
+    ol.steps li.current { background: none !important; }
+    ol.steps td.touched-row, ol.steps td.pivot-cell {
+      background: none !important; outline: none !important;
+    }
+    .step-player { display: none !important; }
   }
 </style>
 </head>

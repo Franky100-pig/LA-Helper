@@ -15,6 +15,7 @@ I18N = ROOT / "core" / "i18n.py"
 MATRIX = ROOT / "core" / "matrix.py"
 EXAMPLES = ROOT / "core" / "examples.py"
 ENGINE = ROOT / "core" / "engine.py"
+INVERSE = ROOT / "core" / "inverse.py"
 
 passed = 0
 failures = []
@@ -101,6 +102,15 @@ expect_caught(
     EXAMPLES,
     '"multiply": ("matmul", "note.matmul"),',
     '"multiply": ("matmul", "矩阵乘法为什么这么怪"),',
+)
+
+# 6. 中文输出里混进英文散文 —— #9/#10 漏掉的正是这一类
+expect_caught(
+    "中文输出混进英文",
+    "中文输出",
+    INVERSE,
+    'return M, [step(i18n.tr("note.pinv.general"), op="note")]',
+    'return M, [step("General Moore-Penrose pseudoinverse (via SVD)")]',
 )
 
 expect_clean("还原后")

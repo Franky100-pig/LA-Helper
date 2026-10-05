@@ -51,7 +51,7 @@ def test_steps_are_well_formed_and_end_with_the_value():
     steps = res["steps"]
     assert steps
     for s in steps:
-        assert set(s) == {"text", "matrix"}
+        assert set(s) == {"text", "matrix", "op", "pivot", "rows"}
         assert isinstance(s["text"], str) and s["text"]
         if s["matrix"] is not None:
             assert all(isinstance(c, str) for row in s["matrix"] for c in row)

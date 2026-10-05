@@ -1,5 +1,6 @@
 """RREF, augmented-matrix solving, and null space (all with step recording)."""
 from .matrix import Matrix, fmt_expr, step
+from . import i18n
 import sympy as sp
 
 
@@ -22,13 +23,18 @@ def rref(A, record_steps=True):
         if pivot != r:
             M.data[r], M.data[pivot] = M.data[pivot], M.data[r]
             if record_steps:
-                steps.append(step(f"Swap R{r + 1} ↔ R{pivot + 1}", M))
+                steps.append(step(
+                    i18n.tr("step.swap", a=r + 1, b=pivot + 1), M,
+                    op="swap", rows=[r, pivot]))
         pv = M.data[r][c]
+        piv = {"row": r, "col": c, "value": fmt_expr(pv)}
         if not pv.equals(1):
             for k in range(M.cols):
                 M.data[r][k] = sp.simplify(M.data[r][k] / pv)
             if record_steps:
-                steps.append(step(f"R{r + 1} → R{r + 1} / ({fmt_expr(pv)})", M))
+                steps.append(step(
+                    i18n.tr("step.scale", a=r + 1, value=fmt_expr(pv)), M,
+                    op="scale", pivot=piv, rows=[r]))
         for i in range(M.rows):
             if i != r and not M.data[i][c].equals(0):
                 factor = M.data[i][c]
@@ -36,7 +42,9 @@ def rref(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[r][k])
                 if record_steps:
                     steps.append(step(
-                        f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{r + 1}", M))
+                        i18n.tr("step.eliminate", a=i + 1, b=r + 1,
+                                factor=fmt_expr(factor)), M,
+                        op="eliminate", pivot=piv, rows=[i]))
         pivot_cols.append(c)
         r += 1
     return M, steps, pivot_cols
@@ -67,8 +75,11 @@ def ref(A, record_steps=True):
         if pivot != r:
             M.data[r], M.data[pivot] = M.data[pivot], M.data[r]
             if record_steps:
-                steps.append(step(f"Swap R{r + 1} ↔ R{pivot + 1}", M))
+                steps.append(step(
+                    i18n.tr("step.swap", a=r + 1, b=pivot + 1), M,
+                    op="swap", rows=[r, pivot]))
         pv = M.data[r][c]
+        piv = {"row": r, "col": c, "value": fmt_expr(pv)}
         for i in range(r + 1, M.rows):
             if not M.data[i][c].equals(0):
                 factor = sp.simplify(M.data[i][c] / pv)
@@ -76,7 +87,9 @@ def ref(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[r][k])
                 if record_steps:
                     steps.append(step(
-                        f"R{i + 1} → R{i + 1} − ({fmt_expr(factor)})·R{r + 1}", M))
+                        i18n.tr("step.eliminate", a=i + 1, b=r + 1,
+                                factor=fmt_expr(factor)), M,
+                        op="eliminate", pivot=piv, rows=[i]))
         pivot_cols.append(c)
         r += 1
     return M, steps, pivot_cols

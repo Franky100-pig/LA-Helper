@@ -349,8 +349,48 @@ MESSAGES = {
         "en": "Gemini returned an unexpected shape.",
     },
 
-    # --- examples.py: the study-note titles recommended under a result ------
-    # Also duplicated in web/examples.js and notes.js; tools/test_examples.py
+    # --- solve.py / lu.py / inverse.py: the row operations themselves -------
+    # These used to be hardcoded **English**, which is why the Chinese UI
+    # showed "Swap R1 ↔ R2" in the middle of an otherwise Chinese derivation.
+    # The bilingual pass only banned Chinese, so nothing caught them.
+    "step.swap": {
+        "zh": "交换 R{a} ↔ R{b}",
+        "en": "Swap R{a} ↔ R{b}",
+    },
+    "step.swap_pivot": {
+        "zh": "交换 R{a} ↔ R{b}（选主元）",
+        "en": "Swap R{a} ↔ R{b} (partial pivoting)",
+    },
+    "step.scale": {
+        "zh": "R{a} → R{a} ÷ ({value})",
+        "en": "R{a} → R{a} ÷ ({value})",
+    },
+    "step.eliminate": {
+        "zh": "R{a} → R{a} − ({factor})·R{b}",
+        "en": "R{a} → R{a} − ({factor})·R{b}",
+    },
+    "note.pinv.left": {
+        "zh": "左满秩 → 伪逆 = 左逆 (AᵀA)⁻¹Aᵀ",
+        "en": "Full column rank → pinv = left inverse (AᵀA)⁻¹Aᵀ",
+    },
+    "note.pinv.right": {
+        "zh": "右满秩 → 伪逆 = 右逆 Aᵀ(AAᵀ)⁻¹",
+        "en": "Full row rank → pinv = right inverse Aᵀ(AAᵀ)⁻¹",
+    },
+    "note.pinv.general": {
+        "zh": "一般的 Moore-Penrose 伪逆（满秩时左/右逆都算不出来，只能走 SVD）",
+        "en": "General Moore-Penrose pseudoinverse (via SVD)",
+    },
+    "note.left_inverse.plan": {
+        "zh": "先算 AᵀA 并求逆，左逆 = (AᵀA)⁻¹Aᵀ",
+        "en": "Compute AᵀA, invert it, then left-inverse = (AᵀA)⁻¹Aᵀ",
+    },
+    "note.right_inverse.plan": {
+        "zh": "先算 AAᵀ 并求逆，右逆 = Aᵀ(AAᵀ)⁻¹",
+        "en": "Compute AAᵀ, invert it, then right-inverse = Aᵀ(AAᵀ)⁻¹",
+    },
+
+    # --- examples.py: the study-note titles recommended under a result ------    # Also duplicated in web/examples.js and notes.js; tools/test_examples.py
     # asserts all three agree, in both languages, so they cannot drift.
     "note.matmul": {
         "zh": "矩阵乘法为什么这么怪",
