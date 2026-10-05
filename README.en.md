@@ -37,6 +37,10 @@ Just pick the one that fits your workflow:
   sheet containing **only the result and the worked steps** — the palette flips to light
   automatically, the input panel and footer are excluded, and steps and matrices are never
   split across pages. No third-party library, works offline
+- **Step-through playback / pivot highlighting** (web / online preview): in step mode the
+  pivot cell gets an outline and modified rows a tinted highlight; supports autoplay and
+  manual stepping. Exported PDFs always contain the full derivation (see
+  "Step-through playback and pivot highlighting" below)
 - **Import a matrix from a photo** (desktop + web / online preview): take a picture of a
   matrix (or a screenshot), have Google Gemini's vision model read it into numbers, and it
   is filled into the editor grid — just double-check it afterwards (a misread digit can
@@ -118,6 +122,26 @@ return more than one item, so they must be used on their own).
     (`core.photo.parse_matrix_response`), so both editions read a photo identically;
     when the model's reply cannot be parsed, the UI shows the raw text so you can copy
     it by hand.
+
+### Step-through playback and pivot highlighting (web / online preview)
+
+Once a result with a **multi-step derivation** is computed with "Show steps" on, a row
+of playback controls appears above the step list (a one-step result has nothing to
+play, so no controls appear):
+
+- **All steps are still expanded by default** — if you just want to read the whole
+  derivation, you don't have to touch anything
+- **▶ Play**: collapses to one step at a time, advancing about every second, stopping
+  automatically at the last step; press it again to replay from the start
+- **⏮ ◀ ▶|**: back to the first step / previous / next, whenever you want; the counter
+  shows "step n / total"
+- In step-through mode, **the current step's pivot cell gets an outline and the rows it
+  modifies get a tinted highlight** — you can see at a glance which row is being
+  eliminated and where the pivot sits
+- **"Show all steps"** leaves step mode and returns to the full list; the highlighting
+  turns off with it
+- **Exporting PDF ignores the playback state**: no matter which step you stopped on,
+  the exported document always contains the complete derivation
 
 ---
 
