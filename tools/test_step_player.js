@@ -292,6 +292,28 @@ asyncTests().then(() => {
      "10 播放器控件不该出现在纸上");
 }
 
+// ==== 11) 控件条从初始渲染起就可见（真机回归：曾 display:none 到永远）=========
+{
+  const probe = boot({ stepCount: 3 });
+  // 初始 HTML 直接带 active —— 之前要等 enterStepMode() 才加，而进入逐步模式
+  // 的唯一入口就是这排按钮自己，鸡生蛋，谁也点不到。真机截图抓到的 bug。
+  ok(probe.t.stepPlayerHtml(2).includes("step-player active"),
+     "11 stepPlayerHtml 初始就带 active（控件条渲染即可见）");
+
+  // 「显示全部步骤」退出逐步模式后控件条**保持可见** —— 收起来的话想再播
+  // 就只能重算一遍。
+  const a = boot({ stepCount: 3 });
+  a.t.mountStepPlayer();
+  a.els.stepPlayer.classList.add("active");   // 模拟初始渲染就可见
+  a.t.enterStepMode();
+  a.t.showStep(2);
+  a.listeners.stepAll.click();                // 显示全部步骤
+  ok(a.els.stepPlayer.classList.contains("active"),
+     "11 退出逐步模式后控件条仍在（active 不被摘掉）");
+  eq(a.stepItems.map((li) => li.hidden), [false, false, false],
+     "11 退出后所有步骤恢复展开");
+}
+
 console.log(`step-player: ${pass} 项通过，${fails.length} 项失败`);
 if (fails.length) {
   console.log("FAIL");

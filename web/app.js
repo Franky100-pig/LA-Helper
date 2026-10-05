@@ -770,7 +770,10 @@ let stepIndex = 0;
 function stepPlayerHtml(n) {
   if (n < 2) return "";        // 只有一步时没什么可「播放」的
   return (
-    "<div class='step-player' id='stepPlayer'>" +
+    // active 直接烧在初始 HTML 里：控件条从渲染起就可见。
+    // 之前靠 enterStepMode() 才加 active —— 而进入逐步模式的唯一入口恰恰是
+    // 这排按钮自己，于是它 display:none 到永远，谁也点不到（真机截图抓到的）。
+    "<div class='step-player active' id='stepPlayer'>" +
     "<button type='button' class='ghost sm' id='stepFirst' title='" +
       escapeHtml(tr("step.first")) + "' aria-label='" + escapeHtml(tr("step.first")) + "'>⏮</button>" +
     "<button type='button' class='ghost sm' id='stepPrev' title='" +
@@ -830,8 +833,8 @@ function exitStepMode() {
       li.classList.remove("current");
     }
   }
-  const p = el("stepPlayer");
-  if (p) p.classList.remove("active");
+  // 控件条保持可见（active 不摘）：「显示全部步骤」只是退出逐步播放，
+  // 不是把播放器收起来 —— 收起来的话想再播就只能重算一遍。
   const c = el("stepCount");
   if (c) c.textContent = "";
 }
