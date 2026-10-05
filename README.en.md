@@ -16,7 +16,7 @@ Just pick the one that fits your workflow:
 | 🌐 **Web (local)** | You already have Python and want to tweak the code | `python web/app.py` — opens your browser |
 | ☁️ **Online preview** | Demoing on a classmate's laptop or a phone | Open <https://la-helper.app.workbuddy.host> — real Python running in the browser |
 
-![The web app computing det(A) by cofactor expansion, with Show steps on so every step is listed on the right](docs/screenshot.png)
+![The web app computing det(A) by cofactor expansion, with Show steps on so every step is listed on the right](docs/c8bd96e3a83024eb39aaea06607c4541.png)
 
 ## Features
 - **Interface *and* derivations in both languages** — not just the buttons: every
