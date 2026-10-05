@@ -13,7 +13,7 @@
 | 🌐 **网页版** | 已经装着 Python，想改代码 | `python web/app.py`，自动开浏览器 |
 | ☁️ **在线预览版** | 想在同学电脑 / 手机上演示 | 打开 <https://la-helper.app.workbuddy.host>，浏览器里跑真 Python |
 
-![网页版界面：用代数余子式展开算 det(A)，勾了 Show steps，右侧逐步列出推导过程](docs/screenshot.png)
+![网页版界面：用代数余子式展开算 det(A)，勾了 Show steps，右侧逐步列出推导过程](docs/c8bd96e3a83024eb39aaea06607c4541.png)
 
 ## 功能
 - **界面与推导步骤都能中英切换**（不只是按钮 —— 每一步说明、每一条报错、讲义推荐标题都跟着界面语言走）
