@@ -52,6 +52,24 @@ for (const lang of ["zh", "en"]) {
 check(bad.length === 0, bad.length ? bad.join("; ") : "所有篇目都有 id/title/tag/lead/blocks");
 
 // ---------------------------------------------------------------------------
+// 分类（cat）驱动左侧导航：缺了会静默掉进「未分类」，zh/en 不一致则切语言后换类。
+console.log("\n[2b] 分类字段 cat 完整，且 zh/en 同一篇一致");
+const catBad = [];
+const catById = (list) => Object.fromEntries(list.map((n) => [n.id, n.cat]));
+const zhCat = catById(zh);
+const enCat = catById(en);
+for (const n of zh) if (!n.cat) catBad.push(`zh/${n.id} 缺 cat`);
+for (const n of en) if (!n.cat) catBad.push(`en/${n.id} 缺 cat`);
+for (const id of zhIds) {
+  if (zhCat[id] && enCat[id] && zhCat[id] !== enCat[id]) {
+    catBad.push(`${id}: zh cat=${zhCat[id]} 但 en cat=${enCat[id]}`);
+  }
+}
+check(catBad.length === 0, catBad.length ? catBad.join("; ") : "每篇都有 cat，zh/en 同一篇 cat 相同");
+const catList = [...new Set(zh.map((n) => n.cat))];
+check(catList.length > 0, `共 ${catList.length} 个分类：${catList.join(", ")}`);
+
+// ---------------------------------------------------------------------------
 console.log("\n[3] blocksHtml() 渲染 5 种块");
 const html = NOTES.blocksHtml([
   "段落文本",
