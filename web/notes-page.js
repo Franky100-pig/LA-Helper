@@ -26,7 +26,7 @@
 
   // 分类的展示顺序。不在这张表里的分类（以后新增的）会自动排到后面，
   // 所以加新分类不需要改这里，只是排序不受控。
-  const CAT_ORDER = ["det", "space", "matops", "invert", "rank", "eigen", "practice"];
+  const CAT_ORDER = ["glossary", "det", "space", "matops", "invert", "rank", "eigen", "practice"];
 
   /** 按 a.cat 把讲义分组；分类名直接取该类第一篇文章的 tag（单一数据源）。 */
   function categories() {
