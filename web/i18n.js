@@ -124,6 +124,13 @@ window.LA_I18N = (function () {
       "notes.pageTagline": "把最容易卡住的概念讲清楚；点左侧标题切换，链接可直接分享。",
       "notes.back": "← 返回计算器",
       "notes.listTitle": "全部讲义",
+      "notes.catsTitle": "按知识点分类",
+      "notes.backToCats": "← 返回分类",
+      "notes.catHint": "选一个分类，只看这一类下的文章。",
+      "notes.welcome": "欢迎查看小讲义！用最简单的语言讲述最抽象的知识",
+      "notes.welcomeHint": "左侧选一个分类开始；每篇讲义的链接都可以直接分享。",
+      "notes.oneArticle": "1 篇",
+      "notes.nArticles": "篇",
       "notes.notFound": "没有这一篇（链接可能过时了）。",
 
       // ---- 结果区 ----
@@ -368,6 +375,13 @@ window.LA_I18N = (function () {
       "notes.pageTagline": "The concepts people get stuck on, explained. Click a title on the left to switch — links are shareable.",
       "notes.back": "← Back to calculator",
       "notes.listTitle": "All articles",
+      "notes.catsTitle": "Browse by topic",
+      "notes.backToCats": "← All topics",
+      "notes.catHint": "Pick a topic to see only the articles under it.",
+      "notes.welcome": "Welcome! The most abstract ideas, told in the simplest language.",
+      "notes.welcomeHint": "Pick a topic on the left to start — every article has a shareable link.",
+      "notes.oneArticle": "1 article",
+      "notes.nArticles": "articles",
       "notes.notFound": "No such article (the link may be out of date).",
 
       // ---- results ----
