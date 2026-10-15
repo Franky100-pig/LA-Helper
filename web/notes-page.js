@@ -1,12 +1,15 @@
 "use strict";
-/* 讲义独立页的页面逻辑：左侧目录 + 右侧正文，用 location.hash 做路由。
+/* 讲义独立页的页面逻辑：左侧「分类 → 文章」两级导航 + 右侧正文，用 location.hash 做路由。
  *
  * 依赖（都在 <head> 里先加载）：
  *   i18n.js   -> window.LA_I18N
  *   notes.js  -> window.LA_NOTES.{zh,en}.byLang().blocksHtml()
  *
- * 路由约定：notes.html#cofactor 直接打开某一篇；没写 hash 就显示第一篇。
- * 换篇 = 改 hash（pushState 语义），所以浏览器的前进/后退、复制链接分享都正常。
+ * 路由约定：
+ *   notes.html            -> 左侧列分类，右侧显示「欢迎」卡片
+ *   notes.html#c=<catId>  -> 左侧列该分类下的文章，右侧仍显示「欢迎」卡片
+ *   notes.html#<noteId>   -> 直接打开某一篇；左侧自动展开它所属的分类
+ * 换视图 = 改 hash（pushState 语义），所以浏览器的前进/后退、复制链接分享都正常。
  */
 (function () {
   const I18N = window.LA_I18N;
@@ -15,9 +18,32 @@
 
   const listBox = el("noteList");
   const view = el("noteView");
+  const sideTitle = el("sideTitle");
+  const backBtn = el("backToCats");
   if (!listBox || !view) return;
 
   const articles = () => window.LA_NOTES.byLang(I18N.get());
+
+  // 分类的展示顺序。不在这张表里的分类（以后新增的）会自动排到后面，
+  // 所以加新分类不需要改这里，只是排序不受控。
+  const CAT_ORDER = ["det", "space", "matops", "invert", "rank", "eigen", "practice"];
+
+  /** 按 a.cat 把讲义分组；分类名直接取该类第一篇文章的 tag（单一数据源）。 */
+  function categories() {
+    const map = new Map();
+    for (const a of articles()) {
+      if (!a.cat) continue;
+      if (!map.has(a.cat)) map.set(a.cat, { id: a.cat, label: a.tag, items: [] });
+      map.get(a.cat).items.push(a);
+    }
+    const known = CAT_ORDER.filter((id) => map.has(id)).map((id) => map.get(id));
+    const extra = [...map.values()].filter((c) => CAT_ORDER.indexOf(c.id) === -1);
+    return known.concat(extra);
+  }
+
+  function countLabel(n) {
+    return n === 1 ? tr("notes.oneArticle") : n + " " + tr("notes.nArticles");
+  }
 
   // -------------------------------------------------------------------------
   // 主题：与主页 / AI 页同一套（跟随系统，手动选择存 localStorage["la-theme"]）
@@ -55,33 +81,76 @@
   })();
 
   // -------------------------------------------------------------------------
-  // 目录
+  // 左侧目录：两种形态 —— 分类列表 / 某个分类下的文章列表
   // -------------------------------------------------------------------------
-  function renderList(activeId) {
+  function renderSide(state) {
     listBox.textContent = "";
-    for (const a of articles()) {
+
+    if (state.mode === "cats") {
+      if (sideTitle) sideTitle.textContent = tr("notes.catsTitle");
+      if (backBtn) backBtn.hidden = true;
+      for (const c of categories()) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "note-item cat-item";
+        btn.dataset.cat = c.id;
+        btn.textContent = c.label;
+        const n = document.createElement("span");
+        n.className = "tag";
+        n.textContent = countLabel(c.items.length);
+        btn.appendChild(n);
+        btn.addEventListener("click", () => { location.hash = "c=" + c.id; });
+        listBox.appendChild(btn);
+      }
+      return;
+    }
+
+    // 分类内：左上角「返回分类」+ 该分类下的文章
+    if (backBtn) { backBtn.hidden = false; backBtn.textContent = tr("notes.backToCats"); }
+    if (sideTitle) sideTitle.textContent = state.catLabel;
+    for (const a of state.items) {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = "note-item" + (a.id === activeId ? " on" : "");
+      btn.className = "note-item" + (a.id === state.activeId ? " on" : "");
       btn.dataset.note = a.id;
       btn.textContent = a.title;
-      const tag = document.createElement("span");
-      tag.className = "tag";
-      tag.textContent = a.tag;
-      btn.appendChild(tag);
       btn.addEventListener("click", () => { location.hash = a.id; });  // 走 hash，保留前进/后退
       listBox.appendChild(btn);
     }
   }
 
   // -------------------------------------------------------------------------
-  // 正文
+  // 右侧：没选文章时显示欢迎卡片
   // -------------------------------------------------------------------------
-  function renderArticle(id) {
-    const list = articles();
-    const a = list.find((x) => x.id === id) || list[0];   // 未知 id 就回落第一篇
-    if (!a) return;
+  function renderWelcome() {
+    view.textContent = "";
+    const box = document.createElement("div");
+    box.className = "welcome";
 
+    const art = document.createElement("div");
+    art.className = "welcome-art";
+    art.textContent = "✎";
+
+    const title = document.createElement("p");
+    title.className = "welcome-title";
+    title.textContent = tr("notes.welcome");
+
+    const hint = document.createElement("p");
+    hint.className = "welcome-hint";
+    hint.textContent = tr("notes.welcomeHint");
+
+    box.appendChild(art);
+    box.appendChild(title);
+    box.appendChild(hint);
+    view.appendChild(box);
+
+    I18N.syncDocTitle("notes.label");
+  }
+
+  // -------------------------------------------------------------------------
+  // 右侧：正文
+  // -------------------------------------------------------------------------
+  function renderArticle(a) {
     view.textContent = "";
     const h2 = document.createElement("h2");
     h2.textContent = a.title;
@@ -104,17 +173,54 @@
 
     // 标签页标题跟着当前这篇走，收藏/分享时更好认
     document.title = a.title + " · LA Helper";
-    renderList(a.id);
-    if (id !== a.id) location.hash = a.id;                // 归一化非法 hash
   }
 
+  // -------------------------------------------------------------------------
+  // 路由
+  // -------------------------------------------------------------------------
   function route() {
-    const id = decodeURIComponent((location.hash || "").replace(/^#/, ""));
-    if (!id) { renderArticle(articles()[0] && articles()[0].id); return; }
-    renderArticle(id);
+    const raw = decodeURIComponent((location.hash || "").replace(/^#/, ""));
+
+    // #c=<catId>：展开某个分类，右侧留欢迎页
+    if (raw.indexOf("c=") === 0) {
+      const c = categories().find((x) => x.id === raw.slice(2));
+      if (c) {
+        renderSide({ mode: "cat", catLabel: c.label, items: c.items, activeId: null });
+        renderWelcome();
+        return;
+      }
+    }
+
+    // #<noteId>：直接打开某一篇，左侧展开它所属的分类
+    if (raw) {
+      const a = articles().find((x) => x.id === raw);
+      if (a) {
+        const c = categories().find((x) => x.id === a.cat);
+        renderSide({
+          mode: "cat",
+          catLabel: c ? c.label : a.tag,
+          items: c ? c.items : [a],
+          activeId: a.id,
+        });
+        renderArticle(a);
+        return;
+      }
+    }
+
+    // 空 hash（或未知 id）：回到分类列表 + 欢迎页
+    renderSide({ mode: "cats" });
+    renderWelcome();
   }
 
   window.addEventListener("hashchange", route);
+  if (backBtn) {
+    backBtn.addEventListener("click", () => {
+      // 清掉 hash 但保留一条历史记录，浏览器「后退」仍能回到刚才的分类
+      history.pushState(null, "", location.pathname + location.search);
+      route();
+    });
+  }
+  window.addEventListener("popstate", route);
 
   // -------------------------------------------------------------------------
   // 中 / 英一键切换：与其它页共用 localStorage["la-lang"]，切完重画目录与正文
@@ -124,14 +230,12 @@
     const syncButton = () => { if (btn) btn.textContent = I18N.toggleLabel(); };
 
     // 讲义页的 <title> 挂不上 data-i18n（<title> 不在 apply() 的扫描范围内），
-    // 平时由 renderArticle() 按当前文章重设。但 articles() 为空时 renderArticle
-    // 会直接 return，标题就停在 HTML 里写死的那句中文上 —— 切到英文也不变。
-    // 这里先按字典兜一层，route() 随后会用文章标题盖掉它。
+    // 平时由 renderArticle() 按当前文章重设；没有文章时由 renderWelcome() 兜底。
     const syncTitle = () => I18N.syncDocTitle("notes.label");
 
     I18N.apply(document);
     syncTitle();
-    renderList(null);
+    renderSide({ mode: "cats" });
     route();
     syncButton();
 
