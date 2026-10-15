@@ -84,6 +84,21 @@
   .note-item.on { background: var(--panel2); color: var(--accent); font-weight: 500; }
   .note-item .tag { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 2px; }
 
+  /* 分类视图 */
+  .back-btn { display: block; width: 100%; text-align: left; background: none; border: 0;
+    color: var(--accent); font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px;
+    cursor: pointer; margin: 0 0 6px; }
+  .back-btn:hover { background: var(--panel2); }
+  .back-btn[hidden] { display: none; }
+  .note-item.cat-item { font-weight: 500; font-size: 15px; }
+
+  /* 右侧「还没选文章」时的欢迎卡片 */
+  .welcome { display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; min-height: 300px; padding: 40px 16px; }
+  .welcome-art { font-size: 30px; line-height: 1; color: var(--accent); opacity: .5; margin-bottom: 14px; }
+  .welcome-title { font-size: 17px; font-weight: 600; color: var(--text); margin: 0 0 8px; }
+  .welcome-hint { font-size: 13px; color: var(--muted); margin: 0; }
+
   .article { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
   .article h2 { margin: 0 0 6px; font-size: 19px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .badge { font-size: 12px; color: var(--accent2); border: 1px solid var(--border);
@@ -146,7 +161,9 @@
 
 <main>
   <aside class="side">
-    <h3 data-i18n="notes.listTitle">全部讲义</h3>
+    <button id="backToCats" class="back-btn" type="button" hidden
+            data-i18n="notes.backToCats">← 返回分类</button>
+    <h3 id="sideTitle" data-i18n="notes.catsTitle">按知识点分类</h3>
     <nav id="noteList" class="note-list"></nav>
   </aside>
   <article id="noteView" class="article"></article>
