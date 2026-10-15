@@ -13,6 +13,7 @@ window.LA_NOTES = {
       id: "cofactor",
       title: "代数余子式到底在干什么",
       tag: "行列式",
+      cat: "det",
       lead: "一句话：把 n 阶行列式「拆」成 n 个 (n−1) 阶行列式的带符号和；还不够小就接着拆，直到只剩 1 阶。",
       blocks: [
         { h: "先记住展开公式" },
@@ -44,6 +45,7 @@ window.LA_NOTES = {
       id: "row-reduction",
       title: "为什么行列式能用行变换来算",
       tag: "行列式",
+      cat: "det",
       lead: "因为行列式对三种初等行变换的反应非常规则；把它化成三角阵，答案就是对角线相乘。",
       blocks: [
         { h: "三种行变换对 det 的影响" },
@@ -66,6 +68,7 @@ window.LA_NOTES = {
       id: "matmul",
       title: "矩阵乘法为什么这么怪",
       tag: "矩阵运算",
+      cat: "matops",
       lead: "「行乘列再相加」不是随便定的，它对应的含义是：先做一个变换，再做另一个变换。",
       blocks: [
         { h: "两种等价的读法" },
@@ -84,6 +87,7 @@ window.LA_NOTES = {
       id: "singular",
       title: "det = 0 为什么就没有逆",
       tag: "可逆性",
+      cat: "invert",
       lead: "因为行列式是「体积缩放因子」。为 0 意味着空间被压扁了，压扁之后信息丢了，回不去。",
       blocks: [
         { h: "几何图像" },
@@ -103,6 +107,7 @@ window.LA_NOTES = {
       id: "rank",
       title: "秩到底在说什么",
       tag: "秩",
+      cat: "rank",
       lead: "秩 = 这个矩阵里「真正独立的信息」有几条。",
       blocks: [
         { h: "三个等价的说法" },
@@ -120,6 +125,7 @@ window.LA_NOTES = {
       id: "eigen",
       title: "特征值 / 特征向量的几何意义",
       tag: "特征值",
+      cat: "eigen",
       lead: "Av = λv 的意思是：向量 v 在这个变换下<b>方向不变</b>，只是被拉长或压短了 λ 倍。",
       blocks: [
         { h: "为什么重要" },
@@ -139,6 +145,7 @@ window.LA_NOTES = {
       id: "adjugate",
       title: "伴随矩阵与求逆公式",
       tag: "可逆性",
+      cat: "invert",
       lead: "把余子式矩阵转置一下得到伴随矩阵 adj(A)，它直接给出求逆公式 A⁻¹ = adj(A)/det(A)。",
       blocks: [
         { h: "从余子式矩阵到伴随矩阵" },
@@ -161,6 +168,7 @@ window.LA_NOTES = {
       id: "orthogonal",
       title: "正交矩阵与正交变换",
       tag: "矩阵运算",
+      cat: "matops",
       lead: "正交矩阵就是「保长度、保角度」的变换：转置等于逆，QᵀQ = I。",
       blocks: [
         { h: "定义" },
@@ -179,6 +187,7 @@ window.LA_NOTES = {
       id: "vectorspace",
       title: "向量空间到底是什么",
       tag: "空间",
+      cat: "space",
       lead: "向量空间 = 一个「加法 + 数乘」都不会漏出去的集合；子空间 = 它内部同样不漏的那一块。",
       blocks: [
         { h: "从最熟悉的例子说起" },
@@ -210,6 +219,7 @@ window.LA_NOTES = {
       id: "basis",
       title: "基与维数：为什么「基」这么好用",
       tag: "空间",
+      cat: "space",
       lead: "基 = 一组「不多也不少」的向量：少一个撑不满，多一个是多余。维数 = 基里向量的个数。",
       blocks: [
         { h: "一句话定义" },
@@ -241,6 +251,7 @@ window.LA_NOTES = {
       id: "spaces",
       title: "一个矩阵里住着三个空间",
       tag: "空间",
+      cat: "space",
       lead: "任何矩阵 A 都自带三个子空间：列空间 Col(A)、行空间 Row(A)、零空间 Nul(A)。它们分别回答三个不同的问题。",
       blocks: [
         { h: "三个空间，三句话" },
@@ -273,6 +284,7 @@ window.LA_NOTES = {
       id: "nullity",
       title: "零空间与零度：被「压平」的那部分",
       tag: "秩",
+      cat: "rank",
       lead: "零空间 Nul(A) 是所有满足 A·x = 0 的向量；零度 nullity(A) 是它的维数 —— 也就是自由变量的个数。",
       blocks: [
         { h: "先想一个画面" },
@@ -302,6 +314,7 @@ window.LA_NOTES = {
       id: "rank-nullity",
       title: "秩-零度定理：一个等式串起整章",
       tag: "秩",
+      cat: "rank",
       lead: "rank(A) + nullity(A) = n（列数）。看似简单，但它把主元、自由变量、独立性、可解性全绑在了一起。",
       blocks: [
         { h: "定理本身" },
@@ -338,6 +351,7 @@ window.LA_NOTES = {
       id: "practice",
       title: "更多练习题",
       tag: "练习",
+      cat: "practice",
       lead: "用计算器验证答案之后，动手做题才能真正掌握。这里有一套带完整步骤的线代作业。",
       blocks: [
         { h: "LA-hw：线代作业与解答" },
@@ -357,6 +371,7 @@ window.LA_NOTES = {
       id: "cofactor",
       title: "What cofactors are actually doing",
       tag: "Determinant",
+      cat: "det",
       lead: "In one line: it splits an n×n determinant into a signed sum of n smaller (n−1)×(n−1) determinants — and keeps splitting until only 1×1 is left.",
       blocks: [
         { h: "The expansion formula to memorise" },
@@ -388,6 +403,7 @@ window.LA_NOTES = {
       id: "row-reduction",
       title: "Why row operations can compute a determinant",
       tag: "Determinant",
+      cat: "det",
       lead: "Because the determinant reacts to the three elementary row operations in a perfectly predictable way: reduce to triangular form and the answer is just the product of the diagonal.",
       blocks: [
         { h: "What the three row operations do to det" },
@@ -410,6 +426,7 @@ window.LA_NOTES = {
       id: "matmul",
       title: "Why matrix multiplication looks so weird",
       tag: "Matrix ops",
+      cat: "matops",
       lead: "\"Row times column, then add\" is not arbitrary — it means: apply one transformation, then the other.",
       blocks: [
         { h: "Two equivalent readings" },
@@ -428,6 +445,7 @@ window.LA_NOTES = {
       id: "singular",
       title: "Why det = 0 means there is no inverse",
       tag: "Invertibility",
+      cat: "invert",
       lead: "Because the determinant is the \"volume scale factor\". Zero means space got squashed flat — and once squashed, information is lost and you cannot go back.",
       blocks: [
         { h: "The geometric picture" },
@@ -447,6 +465,7 @@ window.LA_NOTES = {
       id: "rank",
       title: "What rank is really saying",
       tag: "Rank",
+      cat: "rank",
       lead: "Rank = how many genuinely independent pieces of information the matrix holds.",
       blocks: [
         { h: "Three equivalent descriptions" },
@@ -464,6 +483,7 @@ window.LA_NOTES = {
       id: "eigen",
       title: "The geometry of eigenvalues and eigenvectors",
       tag: "Eigenvalues",
+      cat: "eigen",
       lead: "Av = λv means: under this transformation the vector v <b>keeps its direction</b> and is only stretched or squashed by a factor λ.",
       blocks: [
         { h: "Why it matters" },
@@ -483,6 +503,7 @@ window.LA_NOTES = {
       id: "adjugate",
       title: "The adjugate and the inverse formula",
       tag: "Invertibility",
+      cat: "invert",
       lead: "Transpose the cofactor matrix and you get the adjugate adj(A), which hands you the inverse formula A⁻¹ = adj(A)/det(A) directly.",
       blocks: [
         { h: "From cofactor matrix to adjugate" },
@@ -505,6 +526,7 @@ window.LA_NOTES = {
       id: "orthogonal",
       title: "Orthogonal matrices and orthogonal transformations",
       tag: "Matrix ops",
+      cat: "matops",
       lead: "An orthogonal matrix is a transformation that <b>preserves lengths and angles</b>: its transpose is its inverse, QᵀQ = I.",
       blocks: [
         { h: "Definition" },
@@ -523,6 +545,7 @@ window.LA_NOTES = {
       id: "vectorspace",
       title: "What a vector space actually is",
       tag: "Spaces",
+      cat: "space",
       lead: "A vector space is a collection you can add and scale without ever falling out of it; a subspace is a piece inside one that behaves the same way.",
       blocks: [
         { h: "Start with the example you already know" },
@@ -554,6 +577,7 @@ window.LA_NOTES = {
       id: "basis",
       title: "Basis and dimension: why bases are so useful",
       tag: "Spaces",
+      cat: "space",
       lead: "A basis is a set that is neither too small nor too big: drop one and it no longer spans, keep one more and it is redundant. Dimension is how many vectors a basis has.",
       blocks: [
         { h: "One-line definition" },
@@ -585,6 +609,7 @@ window.LA_NOTES = {
       id: "spaces",
       title: "Every matrix has three spaces inside it",
       tag: "Spaces",
+      cat: "space",
       lead: "Every matrix A comes with three subspaces: the column space Col(A), the row space Row(A), and the null space Nul(A). Each answers a different question.",
       blocks: [
         { h: "Three spaces, three sentences" },
@@ -617,6 +642,7 @@ window.LA_NOTES = {
       id: "nullity",
       title: "Null space and nullity: the part that gets flattened",
       tag: "Rank",
+      cat: "rank",
       lead: "The null space Nul(A) is every vector with A·x = 0; the nullity is its dimension — which equals the number of free variables.",
       blocks: [
         { h: "Picture it first" },
@@ -646,6 +672,7 @@ window.LA_NOTES = {
       id: "rank-nullity",
       title: "The rank–nullity theorem: one equation that ties the chapter together",
       tag: "Rank",
+      cat: "rank",
       lead: "rank(A) + nullity(A) = n (the number of columns). It looks small, but it links pivots, free variables, independence and solvability.",
       blocks: [
         { h: "The theorem" },
@@ -682,6 +709,7 @@ window.LA_NOTES = {
       id: "practice",
       title: "More practice",
       tag: "Practice",
+      cat: "practice",
       lead: "Verifying answers with a calculator is useful, but you only really get it once you solve problems by hand.",
       blocks: [
         { h: "LA-hw: homework and worked solutions" },
