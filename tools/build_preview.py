@@ -32,16 +32,20 @@ PYODIDE_MIRRORS = [
 
 
 def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
-                     notes_page_js="", examples_js=""):
+                     notes_page_js="", examples_js="", pages_html=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build).
 
     i18n.js / notes.js / notes-page.js / examples.js must be part of the hash:
     they carry every user-facing string and the example matrices, so a
     wording-only or data-only change has to bust the cache too.
+
+    pages_html 同理：三个页面的 CSS 是内联在 HTML 里的，只改样式时 JS 哈希不会变，
+    ?v 就骗过了缓存，用户看到的还是旧样式 —— 所以把页面源码也计入哈希。
     """
     blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
-            + ai_help_js + i18n_js + notes_js + notes_page_js + examples_js)
+            + ai_help_js + i18n_js + notes_js + notes_page_js + examples_js
+            + pages_html)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -316,8 +320,10 @@ def main():
     notes_js = _read("notes.js")
     notes_page_js = _read("notes-page.js")
     examples_js = _read("examples.js")
+    # 三个页面的内联样式也算进版本号：只改 CSS 时也要换 ?v，否则缓存会挡住更新
+    pages_html = "".join(_read(n) for n in ("index.html", "notes.html", "ai-help.html"))
     ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js,
-                           examples_js)
+                           examples_js, pages_html)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
