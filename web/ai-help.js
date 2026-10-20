@@ -42,19 +42,23 @@ const tr = I18N.t;
 })();
 
 // ---------------------------------------------------------------------------
-// AI Help：用 GLM-4-Flash（免费）直连解答线代问题。
-// 纯静态页无后端：浏览器直接 fetch open.bigmodel.cn（已验证 CORS 允许任意来源），
-// Key 只存本机 localStorage，不经过任何中转。问题限制 ≤500 字。
+// AI Help：免费模型直连解答线代问题。
+// 纯静态页无后端：浏览器直接 fetch 模型 API，Key 只存本机 localStorage，
+// 不经过任何中转。问题限制 ≤500 字。
+//
+// 为什么有两个 Provider：2026-10 起 open.bigmodel.cn 的 CORS 预检（OPTIONS）
+// 不再返回 Access-Control-* 头（网关/WAF 行为变更，POST 与 Key 都正常），
+// 浏览器直连全部死在预检上 → 报 TypeError: Failed to fetch。所以默认走
+// SiliconFlow（预检实测正常、有免费模型），GLM 留作自动回退：智谱修好后
+// 无需再改代码。
 // ---------------------------------------------------------------------------
 (function initAiHelp() {
-  const KEY_STORE = "la-glm-key";
-  const ENDPOINT = "https://open.bigmodel.cn/api/paas/v4/chat/completions";
-  const MODEL = "glm-4-flash";
+  const KEY_STORE = "la-glm-key";   // 沿用旧名：老用户已存的 GLM Key 不作废
   const MAX = 500;
 
-  // 公共共享 Key（GLM-4-Flash 免费额度）。
+  // 公共共享 Key（免费模型额度）。
   //
-  // 为什么敢公开：这是纯静态页，浏览器直连 open.bigmodel.cn，Key 必然要出现在
+  // 为什么敢公开：这是纯静态页，浏览器直连模型 API，Key 必然要出现在
   // 前端代码里 —— 区别只在于「官方发一个」还是「每个人自己去注册一个」。
   // 之前要求用户先注册、拿 Key、再粘贴，转化率几乎为零。
   //
@@ -64,8 +68,31 @@ const tr = I18N.t;
   // · 介意的话在「更换 Key」里填自己的，自己的会存在本机并优先生效。
   //
   // 换成空字符串即可一键停用，用户会回到「必须自己填 Key」的状态。
-  // 停用/启用都不需要改其他地方：所有相关分支都测过两种模式。
-  const SHARED_KEY = "ad05fe8940a849849b24a01e70b031bc.D0WSOEaNzjKc6phP";
+  // 停用/启用都不需要改其他地方：所有相关分支都有测试钉死。
+  // 主力：SiliconFlow（sk- 开头，免费档模型 Qwen3-8B）
+  const SHARED_KEY = "sk-amjggipbckwxkjxumhrfsulwefoecamwzsanxlkkmswsqesx";
+  // 回退：智谱 open.bigmodel.cn（GLM-4-Flash；2026-10 预检被平台改坏，
+  // 修好前只对「自己填了 GLM Key」的用户真正可用）
+  const SHARED_KEY_GLM = "ad05fe8940a849849b24a01e70b031bc.D0WSOEaNzjKc6phP";
+
+  const PROVIDERS = [
+    {
+      id: "siliconflow",
+      endpoint: "https://api.siliconflow.cn/v1/chat/completions",
+      model: "Qwen/Qwen3-8B",
+      sharedKey: SHARED_KEY,
+      // Qwen3 系是混合推理模型：显式关掉思考模式，否则非流式请求可能把
+      // 回答写进 reasoning_content、content 反而为空
+      extra: { enable_thinking: false },
+    },
+    {
+      id: "bigmodel",
+      endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
+      model: "glm-4-flash",
+      sharedKey: SHARED_KEY_GLM,
+      extra: null,
+    },
+  ];
 
   const keyBox = el("aiHelpKeyBox");
   const askBox = el("aiHelpAskBox");
@@ -80,10 +107,11 @@ const tr = I18N.t;
   const statusEl = el("aiHelpStatus");
   const sharedNote = el("aiHelpSharedNote");
 
-  // 有公共 Key 时提示一下「你可以直接用，也可以换成自己的」
+  // 任一平台还挂着公共 Key，就提示「你可以直接用，也可以换成自己的」
+  const anyShared = !!(SHARED_KEY || SHARED_KEY_GLM);
   if (sharedNote) {
-    sharedNote.hidden = !SHARED_KEY;
-    if (SHARED_KEY) sharedNote.textContent = tr("ai.sharedNote");
+    sharedNote.hidden = !anyShared;
+    if (anyShared) sharedNote.textContent = tr("ai.sharedNote");
   }
 
   // Key 存储：优先 localStorage；被浏览器禁用时回落到 sessionStorage；
@@ -101,13 +129,31 @@ const tr = I18N.t;
       catch (__){ return null; }
     }
   }
-  function getKey() { return memKey || readStore() || SHARED_KEY; }
   function setKey(k) {
     memKey = k || "";
     return writeStore(k);
   }
   /** 用户是否填了自己的 Key（决定保存/更换按钮的语义）。 */
   function hasOwnKey() { return !!(memKey || readStore()); }
+
+  // 自有 Key 按前缀路由：SiliconFlow 是 sk-…，GLM 是 id.secret 形态
+  function pickProvider(key) {
+    return key.startsWith("sk-") ? PROVIDERS[0] : PROVIDERS[1];
+  }
+  // 本次「提问」要依次尝试的 (provider, key) 列表：
+  // 有自己的 Key → 只用自己那份（Key 与平台绑定，不跨平台瞎试）；
+  // 没有则按顺序试每个还有公共 Key 的平台，一个挂了自动换下一个。
+  function attempts() {
+    const own = memKey || readStore();
+    if (own) return [{ provider: pickProvider(own), key: own, own: true }];
+    return PROVIDERS.filter((p) => p.sharedKey)
+                    .map((p) => ({ provider: p, key: p.sharedKey, own: false }));
+  }
+  // 「现在有没有可用的 Key」——取第一条尝试的 Key；决定发送按钮是否可点
+  function getKey() {
+    const list = attempts();
+    return list.length ? list[0].key : "";
+  }
 
   function showKeyView(msg) {
     keyBox.hidden = false;
@@ -173,7 +219,7 @@ const tr = I18N.t;
     const k = keyIn.value.trim();
     // 留空表示「用公共 Key」：不是错误，别把人拦在这一步
     if (!k) {
-      if (SHARED_KEY) { setKey(""); showAskView(); }
+      if (anyShared) { setKey(""); showAskView(); }
       else { keyMsg.textContent = tr("ai.noKey"); }
       return;
     }
@@ -186,25 +232,25 @@ const tr = I18N.t;
 
   qEl.addEventListener("input", updateCount);
 
-  sendBtn.addEventListener("click", async () => {
-    const q = qEl.value.trim();
-    const key = getKey();
-    if (!q || !key) return;
-    // 先记下用的是「自己的 Key」还是「公共 Key」：下面的错误处理要靠它
-    // 决定是提示 Key 无效，还是提示共享 Key 挂了。
-    const hasOwnKeyBefore = hasOwnKey();
-    sendBtn.disabled = true;
-    answerEl.textContent = "";
-    statusEl.textContent = tr("ai.thinking");
+  // 对单个 (provider, key) 发起一次问答。
+  // 返回值约定：
+  //   { kind: "answer", text }                        成功
+  //   { kind: "status", key, msg }                    直接展示状态文案，停止
+  //   { kind: "keyview", key, msg }                   推回填 Key 页，停止
+  //   { kind: "next", fatal, msg, err }               本平台不行，换下一个
+  //     fatal: "401" | "429" | "net" —— 全部尝试失败时决定收尾文案
+  async function askOne(attempt, q) {
+    const p = attempt.provider;
+    let resp;
     try {
-      const resp = await fetch(ENDPOINT, {
+      resp = await fetch(p.endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Authorization": "Bearer " + key,
+          "Authorization": "Bearer " + attempt.key,
         },
-        body: JSON.stringify({
-          model: MODEL,
+        body: JSON.stringify(Object.assign({
+          model: p.model,
           messages: [
             { role: "system", content: tr("ai.systemPrompt") },
             { role: "user", content: q },
@@ -214,33 +260,70 @@ const tr = I18N.t;
           // 而带 LaTeX 公式的答案 token 数远超字数（中英都不止），
           // 卡太紧会让回答在半句话处被截断。
           max_tokens: 2000,
-        }),
+        }, p.extra || {})),
       });
-      const data = await resp.json().catch(() => ({}));
-      if (!resp.ok) {
-        const msg = data && data.error && data.error.message;
-        if (resp.status === 401) {
-          setKey("");
-          // 用的是公共 Key 却 401 → 多半是共享 Key 失效/被回收了。
-          // 直接把人推回「填自己的 Key」，别让一个死掉的共享 Key
-          // 变成整页功能不可用。
-          showKeyView(tr(hasOwnKeyBefore ? "ai.badKey" : "ai.sharedKeyDead",
-                         { msg: msg || "401" }));
-          return;
-        }
-        if (resp.status === 429) {
-          // 共享额度被打满时，自己的 Key 往往是好的 —— 直接提示换 Key 试试
-          statusEl.textContent = tr(hasOwnKeyBefore ? "ai.rateLimited" : "ai.sharedRateLimited");
-          return;
-        }
-        statusEl.textContent = tr("ai.error", { msg: msg || ("HTTP " + resp.status) });
-        return;
-      }
-      const ans = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-      statusEl.textContent = "";
-      renderAnswer(ans || tr("ai.empty"));
     } catch (err) {
-      statusEl.textContent = tr("ai.netError", { msg: err.message });
+      // fetch 抛 TypeError 通常是「预检失败 / 网络不通」，不是 Key 的问题
+      return { kind: "next", fatal: "net", msg: err.message, err };
+    }
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) {
+      const msg = data && data.error && data.error.message;
+      if (resp.status === 401) {
+        // 自己的 Key 401 → 多半填错了，推回填 Key 页；
+        // 公共 Key 401 → 换下一个平台的公共 Key 试试
+        return attempt.own
+          ? { kind: "keyview", key: "ai.badKey", msg: msg || "401" }
+          : { kind: "next", fatal: "401", msg: msg || "401", err: null };
+      }
+      if (resp.status === 429) {
+        return attempt.own
+          ? { kind: "status", key: "ai.rateLimited", msg: "" }
+          : { kind: "next", fatal: "429", msg: "429", err: null };
+      }
+      return { kind: "status", key: "ai.error", msg: msg || ("HTTP " + resp.status) };
+    }
+    const m = data.choices && data.choices[0] && data.choices[0].message;
+    // thinking 模型兜底：content 空时看一眼 reasoning_content
+    const text = m && (m.content || m.reasoning_content) || "";
+    return { kind: "answer", text };
+  }
+
+  sendBtn.addEventListener("click", async () => {
+    const q = qEl.value.trim();
+    if (!q || !getKey()) return;
+    sendBtn.disabled = true;
+    answerEl.textContent = "";
+    statusEl.textContent = tr("ai.thinking");
+    try {
+      let lastFatal = "net", lastMsg = "network";
+      for (const a of attempts()) {
+        const r = await askOne(a, q);
+        if (r.kind === "answer") {
+          statusEl.textContent = "";
+          renderAnswer(r.text || tr("ai.empty"));
+          return;
+        }
+        if (r.kind === "status") {
+          statusEl.textContent = tr(r.key, { msg: r.msg });
+          return;
+        }
+        if (r.kind === "keyview") {
+          setKey("");   // 401 的坏 Key 留在本机没意义，清掉再让人重填
+          showKeyView(tr(r.key, { msg: r.msg }));
+          return;
+        }
+        lastFatal = r.fatal;
+        lastMsg = r.msg;
+      }
+      // 所有尝试都失败：按最后一种失败类型给收尾文案
+      if (lastFatal === "401") {
+        showKeyView(tr("ai.sharedKeyDead", { msg: lastMsg }));
+      } else if (lastFatal === "429") {
+        statusEl.textContent = tr("ai.sharedRateLimited");
+      } else {
+        statusEl.textContent = tr("ai.netError", { msg: lastMsg });
+      }
     } finally {
       sendBtn.disabled = false;
       updateCount();
