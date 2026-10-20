@@ -121,7 +121,7 @@
 </style>
   <!-- 数学公式渲染：KaTeX。优先 jsDelivr，加载失败时回落到国内 npmmirror 镜像；
        若两个 CDN 都不可用，ai-help.js 会优雅降级为“原始文本 + $…$”显示，不会报错白屏。
-       两个源都带 integrity(SRI)：本页把 GLM Key 存在 localStorage，若 CDN 被投毒
+       两个源都带 integrity(SRI)：本页把 API Key 存在 localStorage，若 CDN 被投毒
        注入脚本就能读走它，SRI 可确保只有字节完全匹配的 KaTeX 才被执行。
        （jsDelivr 与 npmmirror 的 dist 产物已验证字节一致，故回落源共用同一哈希。） -->
   <link rel="stylesheet" id="katexCss"
@@ -139,7 +139,7 @@
 <header>
   <div class="head-left">
     <h1 data-i18n="ai.title">AI Help · 线代小助手</h1>
-    <p data-i18n="ai.tagline">用 GLM-4-Flash（免费）直连解答线代问题 · Key 只存本机</p>
+    <p data-i18n="ai.tagline">免费模型直连答疑（Qwen3-8B / GLM-4-Flash）· Key 只存本机</p>
   </div>
   <div class="head-right">
     <a class="ghost" href="index.html" data-i18n="ai.back"
@@ -168,12 +168,14 @@
   <div class="ai-card">
     <!-- 首次使用：填自己的 GLM Key（仅存本机 localStorage） -->
     <div id="aiHelpKeyBox" class="ai-key-box">
-      <p class="hint" data-i18n-html="ai.keyIntro">首次使用请填入你的 <b>GLM API Key</b>（免费，在
+      <p class="hint" data-i18n-html="ai.keyIntro">首次使用请填入你的 <b>API Key</b>（免费：在
+        <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener">cloud.siliconflow.cn</a>
+        注册即可拿到 <b>sk-</b> 开头的 Key，免费模型可直接用；原有的
         <a href="https://open.bigmodel.cn" target="_blank" rel="noopener">open.bigmodel.cn</a>
-        申请，选 <b>GLM-4-Flash</b> 即可无限免费用）。Key 只存在你本机浏览器，不上传任何服务器。</p>
+        的 GLM Key 也兼容）。Key 只存在你本机浏览器，不上传任何服务器。</p>
       <div class="ai-key-row">
         <input type="password" id="aiHelpKeyIn" class="grow"
-               placeholder="粘贴 GLM API Key（sk-...）"
+               placeholder="粘贴 API Key（sk-... 或 GLM Key）"
                data-i18n-attrs="placeholder:ai.keyPh" autocomplete="off">
         <button id="aiHelpSaveKey" class="primary" type="button" data-i18n="ai.saveKey">保存</button>
       </div>
