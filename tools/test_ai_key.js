@@ -36,7 +36,7 @@ function makeEl(id) {
  * 起一个跑着 ai-help.js 的沙箱。
  * sharedKey 用来测两种模式（启用 / 未启用），因为 SHARED_KEY 是源码里的常量。
  */
-function boot({ sharedKey = "sk-public-test", stored = null, fetchImpl = null } = {}) {
+function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret", stored = null, fetchImpl = null } = {}) {
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
@@ -74,22 +74,28 @@ function boot({ sharedKey = "sk-public-test", stored = null, fetchImpl = null } 
     setTimeout: (fn) => { return 0; },     // 不真的 focus，避免挂起
     clearTimeout() {},
     navigator: { language: "zh-CN" },
-    fetch: fetchImpl || (async (url, opts) => {
-      calls.push({ url, opts });
+    fetch: async (url, opts) => {
+      calls.push({ url, opts });   // 无论用哪个桩，都把调用记录下来供断言
+      if (fetchImpl) return fetchImpl(url, opts);
       return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "ok" } }] }) };
-    }),
+    },
   };
   sandbox.globalThis = sandbox;
   vm.createContext(sandbox);
 
   vm.runInContext(fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"), sandbox, { filename: "i18n.js" });
   let src = fs.readFileSync(path.join(WEB, "ai-help.js"), "utf8");
-  // SHARED_KEY 是源码常量，测两种模式就替换这一个值。
+  // SHARED_KEY（SiliconFlow 主力）与 SHARED_KEY_GLM（智谱回退）都是源码常量，
+  // 测两种模式就把这两个值一起替换。
   // 用正则而不是字面量匹配：真实 key 一旦填进去，字面量 `""` 就不存在了。
-  const before = src;
-  src = src.replace(/const SHARED_KEY = "[^"]*";/,
-                    `const SHARED_KEY = ${JSON.stringify(sharedKey)};`);
-  if (src === before) throw new Error("没找到 SHARED_KEY 常量，源码结构变了？");
+  const RE_SF = /const SHARED_KEY = "[^"]*";/;
+  const RE_GLM = /const SHARED_KEY_GLM = "[^"]*";/;
+  // 注意：不能用「替换前后字符串是否变化」来验证 —— 当源码里的常量本来就
+  // 是空串、测试又想把它置空时，replace 是合法的 no-op。这里只验证常量存在。
+  if (!RE_SF.test(src)) throw new Error("没找到 SHARED_KEY 常量，源码结构变了？");
+  src = src.replace(RE_SF, `const SHARED_KEY = ${JSON.stringify(sharedKey)};`);
+  if (!RE_GLM.test(src)) throw new Error("没找到 SHARED_KEY_GLM 常量，源码结构变了？");
+  src = src.replace(RE_GLM, `const SHARED_KEY_GLM = ${JSON.stringify(sharedKeyGlm)};`);
   // getKey/setKey/... 都关在 initAiHelp 的 IIFE 里，外部看不见。
   // 所以把导出语句**插进 IIFE 内部**（它还在同一层作用域里）。
   const IIFE_END = "  // 启动：已存 Key 就直接进提问页，否则显示填 Key";
@@ -116,8 +122,8 @@ function boot({ sharedKey = "sk-public-test", stored = null, fetchImpl = null } 
   eq(s.t.hasOwnKey(), false, "2 hasOwnKey 为假（用于区分错误文案）");
 }
 {
-  // SHARED_KEY 留空 = 未启用：必须完全回到「必须自己填」的旧行为
-  const s = boot({ sharedKey: "", stored: null });
+  // 两个公共 Key 都留空 = 未启用：必须完全回到「必须自己填」的旧行为
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", stored: null });
   eq(s.t.getKey(), "", "3 未启用公共 Key 时没有可用 Key");
   eq(s.els.aiHelpKeyBox.hidden, false, "3 停在填 Key 页");
   eq(s.els.aiHelpAskBox.hidden, true, "3 不显示提问框");
@@ -158,7 +164,7 @@ function boot({ sharedKey = "sk-public-test", stored = null, fetchImpl = null } 
   eq(s.els.aiHelpAskBox.hidden, false, "7 留空且有公共 Key → 视为「用公共的」，不拦人");
 }
 {
-  const s = boot({ sharedKey: "" });
+  const s = boot({ sharedKey: "", sharedKeyGlm: "" });
   s.els.aiHelpKeyIn.value = "";
   s.els.aiHelpSaveKey.fire("click");
   ok(s.els.aiHelpKeyMsg.textContent.length > 0, "7 没有公共 Key 时留空要给出提示");
@@ -218,9 +224,83 @@ function responder(status) {
 }
 // 发送按钮在没有 Key 时保持禁用
 {
-  const s = boot({ sharedKey: "" });
+  const s = boot({ sharedKey: "", sharedKeyGlm: "" });
   s.t.updateCount();
   eq(s.els.aiHelpSend.disabled, true, "13 问题为空时也禁用");
+}
+
+// ==== 双平台回退：主力挂了要自动切到下一个 ================================
+// 背景见 ai-help.js 顶部注释：2026-10 智谱的 CORS 预检被平台改坏，
+// SiliconFlow 成为主力，GLM 变回退。这里钉死「回退真的会发生」。
+
+// 只按 URL 区分行为的小工具：SF 一律炸，GLM 正常返回
+function sfDownGlmUp(sfBehavior) {
+  return async (url) => {
+    if (/siliconflow/.test(url)) return sfBehavior(url);
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "glm ok" } }] }) };
+  };
+}
+// 主力平台网络失败（Failed to fetch 模拟）→ 静默切到 GLM
+{
+  const s = await sendAndSee(sfDownGlmUp(() => { throw new TypeError("Failed to fetch"); }));
+  eq(s.calls.length, 2, "R1 网络失败后尝试了第二个平台");
+  ok(/bigmodel/.test(s.calls[1].url), `R1 第二次请求打到 GLM，实际：${s.calls[1].url}`);
+  eq(s.els.aiHelpAnswer.textContent, "glm ok", "R1 回退成功拿到回答");
+  eq(s.els.aiHelpStatus.textContent, "", "R1 不给用户报错");
+}
+// 主力平台共享 Key 401 → 静默切到 GLM
+{
+  const s = await sendAndSee(sfDownGlmUp(() => ({
+    ok: false, status: 401, json: async () => ({ error: { message: "boom" } }),
+  })));
+  eq(s.calls.length, 2, "R2 共享 Key 401 后尝试了第二个平台");
+  eq(s.els.aiHelpAnswer.textContent, "glm ok", "R2 回退成功拿到回答");
+}
+// 主力平台共享 Key 429 → 静默切到 GLM
+{
+  const s = await sendAndSee(sfDownGlmUp(() => ({
+    ok: false, status: 429, json: async () => ({ error: { message: "boom" } }),
+  })));
+  eq(s.calls.length, 2, "R3 共享 Key 429 后尝试了第二个平台");
+  eq(s.els.aiHelpAnswer.textContent, "glm ok", "R3 回退成功拿到回答");
+}
+// 所有平台都网络失败 → netError 收尾（提到任一域名即可）
+{
+  const s = await sendAndSee(async () => { throw new TypeError("Failed to fetch"); });
+  eq(s.calls.length, 2, "R4 两个平台各试了一次");
+  ok(/网络错误|Network error/.test(s.els.aiHelpStatus.textContent),
+     `R4 全挂时给网络错误文案，实际：${s.els.aiHelpStatus.textContent}`);
+}
+
+// ==== 自有 Key 按前缀路由：sk- → SiliconFlow，否则 → GLM ===================
+{
+  const s = boot({ sharedKey: "sk-public", sharedKeyGlm: "glmid.glmsecret", stored: null,
+                   fetchImpl: sfDownGlmUp(() => { throw new TypeError("no"); }) });
+  s.els.aiHelpKeyIn.value = "sk-mine-sf";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 1, "R5 自己的 sk- Key 只打 SiliconFlow，不跨平台瞎试");
+  ok(/siliconflow/.test(s.calls[0].url), `R5 目标是 SiliconFlow，实际：${s.calls[0].url}`);
+  ok(/Bearer sk-mine-sf/.test(s.calls[0].opts.headers.Authorization), "R5 带的是自己的 Key");
+}
+{
+  const s = boot({ sharedKey: "sk-public", sharedKeyGlm: "glmid.glmsecret", stored: null,
+                   fetchImpl: sfDownGlmUp(() => { throw new TypeError("no"); }) });
+  s.els.aiHelpKeyIn.value = "myglmkey.secret";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 1, "R6 自己的 GLM Key 只打 bigmodel");
+  ok(/bigmodel/.test(s.calls[0].url), `R6 目标是 bigmodel，实际：${s.calls[0].url}`);
+}
+
+// ==== Qwen3 的思考模式必须显式关掉 ========================================
+// Qwen3 系是混合推理模型：不关 enable_thinking 的话，非流式请求可能把
+// 回答写进 reasoning_content、content 为空 → 页面显示「模型没有返回内容」。
+{
+  const s = await sendAndSee(null);
+  const body = JSON.parse(s.calls[0].opts.body);
+  eq(body.enable_thinking, false, "R7 SiliconFlow 请求体里 enable_thinking=false");
+  ok(body.model === "Qwen/Qwen3-8B", `R7 主力模型是 Qwen3-8B，实际：${body.model}`);
 }
 
 // ==== 长度上限：JS 的 MAX 与 HTML 的 maxlength 必须一致 ====================
