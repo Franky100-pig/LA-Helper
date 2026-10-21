@@ -248,7 +248,8 @@ sends no data**.
    > comes with a few trade-offs:
    > - the quota is shared — if others use it up you may hit a 429, and the page will tell you
    >   to retry in a few minutes or switch to your own key;
-   > - the key can stop working or be reclaimed at any time;
+   > - the key can stop working or be reclaimed at any time; it may also be useless if the website
+   >   does not support it suddenly;
    > - anyone can lift it out of the page source and use it, so it may be abused.
    >
    > In practice: once you paste your own free key (get one at open.bigmodel.cn) under
