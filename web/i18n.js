@@ -23,7 +23,6 @@ window.LA_I18N = (function () {
       "app.title": "LA Helper · 线性代数小算",
       "app.tagline": "本地运行 · 精确分数 · 可看计算步骤 · 学线代更顺手",
       "app.aiHelp": "AI Help",
-      "app.aiHelpTip": "用 AI 解答线代问题（需自备 GLM 免费 Key）",
       "app.langTip": "切换中文 / English",
       // 「更多工具」下拉：讲义 / AI 答疑 / 练习题库，各自独立页面
       "tools.label": "更多工具",
@@ -274,7 +273,6 @@ window.LA_I18N = (function () {
       "app.title": "LA Helper · Linear Algebra Calculator",
       "app.tagline": "Runs locally · Exact fractions · Step-by-step · Made for learning",
       "app.aiHelp": "AI Help",
-      "app.aiHelpTip": "Ask an AI about linear algebra (needs your own free GLM key)",
       "app.langTip": "Switch 中文 / English",
       // "More tools" dropdown: notes / AI help / practice, each on its own page
       "tools.label": "More tools",
