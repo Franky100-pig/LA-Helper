@@ -38,6 +38,7 @@ _FUNCS = {
     "cofactor":  (1, 1, "det_cofactor", False),
     "rank":      (1, 1, "rank", False),
     "ref":       (1, 1, "ref", False),
+    "rref":      (1, 1, "rref", False),
     "transpose": (1, 1, "transpose", False),
     "T":         (1, 1, "transpose", False),
     "pinv":      (1, 1, "pseudo_inverse", False),
@@ -333,6 +334,9 @@ def _eval(node, lib):
             return det_rank.rank(M)
         if node.name.lower() == "ref":
             return det_rank.ref_wrap(M, record_steps=False)[0]
+        if node.name.lower() == "rref":
+            from . import solve
+            return solve.rref(M, record_steps=False)[0]
         return ops.transpose(M)                       # transpose / T
 
     # Binary

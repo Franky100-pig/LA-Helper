@@ -108,7 +108,7 @@ def test_ref_steps_render_cleanly():
     out = _Harness.render([[2, 1, 1], [4, 1, 3], [-2, 2, 1]], op="ref", show_steps=True)
     text = "\n".join(out)
     assert "计算步骤" in text
-    assert "R2 → R2 − (2)·R1" in text     # fractions + unicode minus, no **/sqrt
+    assert "R2 ← R2 − 2·R1" in text     # fractions + unicode minus, no **/sqrt
     assert "**" not in text
     # 每个步骤后面跟着"这一步做完之后的矩阵"（缩进的矩阵行）
     assert any(ln.startswith("   [") for ln in out)

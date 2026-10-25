@@ -1,5 +1,6 @@
 """Matrix inverses: square (Gauss-Jordan), left, right, and pseudoinverse."""
 from .matrix import Matrix, fmt_expr, step
+from .solve import format_eliminate_step, format_scale_step
 from . import i18n
 from . import ops
 from .solve import rref
@@ -36,7 +37,7 @@ def inverse(A, record_steps=True):
                 M.data[c][k] = sp.simplify(M.data[c][k] / pv)
             if record_steps:
                 steps.append(step(
-                    i18n.tr("step.scale", a=c + 1, value=fmt_expr(pv)), M,
+                    format_scale_step(c + 1, pv), M,
                     op="scale",
                     pivot={"row": c, "col": c, "value": fmt_expr(pv)},
                     rows=[c]))
@@ -47,8 +48,7 @@ def inverse(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[c][k])
                 if record_steps:
                     steps.append(step(
-                        i18n.tr("step.eliminate", a=i + 1, b=c + 1,
-                                factor=fmt_expr(factor)), M,
+                        format_eliminate_step(i + 1, c + 1, factor), M,
                         op="eliminate",
                         pivot={"row": c, "col": c, "value": fmt_expr(pv)},
                         rows=[i]))

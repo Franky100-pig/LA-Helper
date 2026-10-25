@@ -177,3 +177,23 @@ def test_step_formatters_accept_dict_and_plain_string():
     assert "R1" in html and "undefined" not in html
     # 分数排版仍然生效
     assert "frac" in format_math.step_html({"text": "R1 → R1 / (2/3)"})
+
+
+def test_rref_steps_record_row_operations_line_by_line():
+    res = _dispatch("rref", A3)
+    assert res["steps"], "RREF should record step-by-step row operations"
+    for s in res["steps"]:
+        _assert_shape_of_step(s)
+        assert s["matrix"] is not None
+        assert s["op"] in ROW_OPS
+    # Last step matches the final RREF matrix
+    assert res["steps"][-1]["matrix"] == res["data"]
+    assert res["data"] == [["1", "0", "0"], ["0", "1", "0"], ["0", "0", "1"]]
+
+
+def test_row_operation_formatting_educational_signs():
+    M = [[1, 2], [-2, -3]]
+    res = _dispatch("rref", M)
+    texts = [s["text"] for s in res["steps"]]
+    assert any("R2 ← R2 + 2·R1" in t for t in texts)
+    assert any("R1 ← R1 − 2·R2" in t for t in texts)

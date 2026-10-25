@@ -141,6 +141,9 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
         elif op == "ref":
             M, steps = det_rank.ref_wrap(A, record_steps=show_steps)
             return {"ok": True, "type": "matrix", "data": _mat(M), "steps": steps}
+        elif op == "rref":
+            M, steps, pivot_cols = solve.rref(A, record_steps=show_steps)
+            return {"ok": True, "type": "matrix", "data": _mat(M), "steps": steps, "pivot_columns": pivot_cols}
         elif op == "det":
             d, steps = det_rank.determinant(A, record_steps=show_steps)
             return {"ok": True, "type": "scalar", "value": str(d), "steps": steps}

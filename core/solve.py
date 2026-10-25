@@ -3,6 +3,48 @@ from .matrix import Matrix, fmt_expr, step
 from . import i18n
 import sympy as sp
 
+def format_eliminate_step(a, b, factor):
+    """Format an elementary row elimination step cleanly with sign and unit handling."""
+    if hasattr(factor, "equals"):
+        if factor.equals(1):
+            return i18n.tr("step.eliminate_sub_one", a=a, b=b)
+        if factor.equals(-1):
+            return i18n.tr("step.eliminate_add_one", a=a, b=b)
+    elif factor == 1:
+        return i18n.tr("step.eliminate_sub_one", a=a, b=b)
+    elif factor == -1:
+        return i18n.tr("step.eliminate_add_one", a=a, b=b)
+    is_neg = False
+    try:
+        if factor.is_number and factor < 0:
+            is_neg = True
+            factor = -factor
+        elif getattr(factor, "as_coeff_Mul", None):
+            c, _ = factor.as_coeff_Mul()
+            if c < 0:
+                is_neg = True
+                factor = -factor
+    except Exception:
+        pass
+    s = fmt_expr(factor)
+    if "/" in s and not s.startswith("("):
+        s = f"({s})"
+    if is_neg:
+        return i18n.tr("step.eliminate_add", a=a, b=b, factor=s)
+    return i18n.tr("step.eliminate", a=a, b=b, factor=s)
+
+
+def format_scale_step(a, pv):
+    """Format an elementary row scaling step."""
+    if (hasattr(pv, "equals") and pv.equals(-1)) or pv == -1:
+        return i18n.tr("step.scale_neg", a=a)
+    s = fmt_expr(pv)
+    if "/" in s and not s.startswith("("):
+        s = f"({s})"
+    return i18n.tr("step.scale", a=a, value=s)
+
+
+
 
 def rref(A, record_steps=True):
     """Reduced row echelon form. Returns (RREF, steps, pivot_columns)."""
@@ -33,7 +75,7 @@ def rref(A, record_steps=True):
                 M.data[r][k] = sp.simplify(M.data[r][k] / pv)
             if record_steps:
                 steps.append(step(
-                    i18n.tr("step.scale", a=r + 1, value=fmt_expr(pv)), M,
+                    format_scale_step(r + 1, pv), M,
                     op="scale", pivot=piv, rows=[r]))
         for i in range(M.rows):
             if i != r and not M.data[i][c].equals(0):
@@ -42,8 +84,7 @@ def rref(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[r][k])
                 if record_steps:
                     steps.append(step(
-                        i18n.tr("step.eliminate", a=i + 1, b=r + 1,
-                                factor=fmt_expr(factor)), M,
+                        format_eliminate_step(i + 1, r + 1, factor), M,
                         op="eliminate", pivot=piv, rows=[i]))
         pivot_cols.append(c)
         r += 1
@@ -87,8 +128,7 @@ def ref(A, record_steps=True):
                     M.data[i][k] = sp.simplify(M.data[i][k] - factor * M.data[r][k])
                 if record_steps:
                     steps.append(step(
-                        i18n.tr("step.eliminate", a=i + 1, b=r + 1,
-                                factor=fmt_expr(factor)), M,
+                        format_eliminate_step(i + 1, r + 1, factor), M,
                         op="eliminate", pivot=piv, rows=[i]))
         pivot_cols.append(c)
         r += 1

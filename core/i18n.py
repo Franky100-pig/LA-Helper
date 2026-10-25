@@ -362,12 +362,28 @@ MESSAGES = {
         "en": "Swap R{a} ↔ R{b} (partial pivoting)",
     },
     "step.scale": {
-        "zh": "R{a} → R{a} ÷ ({value})",
-        "en": "R{a} → R{a} ÷ ({value})",
+        "zh": "R{a} ← R{a} ÷ {value}",
+        "en": "R{a} ← R{a} ÷ {value}",
+    },
+    "step.scale_neg": {
+        "zh": "R{a} ← −R{a}",
+        "en": "R{a} ← −R{a}",
     },
     "step.eliminate": {
-        "zh": "R{a} → R{a} − ({factor})·R{b}",
-        "en": "R{a} → R{a} − ({factor})·R{b}",
+        "zh": "R{a} ← R{a} − {factor}·R{b}",
+        "en": "R{a} ← R{a} − {factor}·R{b}",
+    },
+    "step.eliminate_add": {
+        "zh": "R{a} ← R{a} + {factor}·R{b}",
+        "en": "R{a} ← R{a} + {factor}·R{b}",
+    },
+    "step.eliminate_sub_one": {
+        "zh": "R{a} ← R{a} − R{b}",
+        "en": "R{a} ← R{a} − R{b}",
+    },
+    "step.eliminate_add_one": {
+        "zh": "R{a} ← R{a} + R{b}",
+        "en": "R{a} ← R{a} + R{b}",
     },
     "note.pinv.left": {
         "zh": "左满秩 → 伪逆 = 左逆 (AᵀA)⁻¹Aᵀ",

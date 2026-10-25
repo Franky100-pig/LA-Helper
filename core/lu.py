@@ -1,5 +1,6 @@
 """LU decomposition with optional partial pivoting (PA = LU)."""
 from .matrix import Matrix, fmt_expr, step
+from .solve import format_eliminate_step
 from . import i18n
 import sympy as sp
 
@@ -60,8 +61,7 @@ def lu_decomposition(A, pivot=True, record_steps=True):
             U[i][k] = sp.Integer(0)
             if record_steps and not factor.equals(0):
                 steps.append(step(
-                    i18n.tr("step.eliminate", a=i + 1, b=k + 1,
-                            factor=fmt_expr(factor)), U,
+                    format_eliminate_step(i + 1, k + 1, factor), U,
                     op="eliminate",
                     pivot={"row": k, "col": k, "value": fmt_expr(U[k][k])},
                     rows=[i]))
