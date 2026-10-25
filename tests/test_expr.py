@@ -203,6 +203,9 @@ def test_transpose_short_alias_T():
 def test_ref_matches_dropdown():
     assert ok("ref(A)") == compute("ref", A)
     assert ok("rref(A)") == compute("rref", A)
+    assert ok("diagonalize(A)")["type"] == "diagonalize"
+    assert ok("diag(A)")["type"] == "diagonalize"
+    assert ok("charpoly(A)")["type"] == "charpoly"
 
 
 def test_pinv_matches_dropdown():

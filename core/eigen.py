@@ -172,3 +172,61 @@ def eigen(A, numeric=None, precision=PRECISION, record_steps=False):
     if record_steps:
         return pairs, steps
     return pairs
+
+
+def diagonalize(A, record_steps=True):
+    """Decompose square matrix A into P · D · P⁻¹ if diagonalizable."""
+    if not A.is_square():
+        raise ValueError(f"diagonalize needs a square matrix, got {A.shape}")
+    n = A.rows
+    pairs, steps = eigen(A, record_steps=record_steps)
+
+    sum_gm = sum(p["geometric"] for p in pairs)
+    diagonalizable = (sum_gm == n)
+
+    if not diagonalizable:
+        note_str = i18n.tr("eigen.diag.fail", sum_gm=sum_gm, n=n)
+        if record_steps:
+            steps.append(step(note_str, op="note"))
+        return {
+            "diagonalizable": False,
+            "P": None,
+            "D": None,
+            "P_inv": None,
+            "pairs": pairs,
+            "steps": steps,
+            "note": note_str,
+        }
+
+    all_vectors = []
+    diag_vals = []
+    for p in pairs:
+        for v in p["vectors"]:
+            all_vectors.append(v)
+            diag_vals.append(p["exact"] if p.get("exact") else p["value"])
+
+    P_data = [[all_vectors[c].data[r][0] for c in range(n)] for r in range(n)]
+    P = Matrix(P_data)
+
+    D_data = [[sp.Integer(0)] * n for _ in range(n)]
+    for i in range(n):
+        D_data[i][i] = sp.sympify(diag_vals[i])
+    D = Matrix(D_data)
+
+    from . import inverse as inv_mod
+    P_inv, _ = inv_mod.inverse(P, record_steps=False)
+
+    if record_steps:
+        steps.append(step(i18n.tr("eigen.diag.success", sum_gm=sum_gm, n=n), op="note"))
+        steps.append(step(i18n.tr("eigen.diag.pd"), P.to_list(), op="note"))
+        steps.append(step(i18n.tr("eigen.diag.verify"), D.to_list(), op="note"))
+
+    return {
+        "diagonalizable": True,
+        "P": P,
+        "D": D,
+        "P_inv": P_inv,
+        "pairs": pairs,
+        "steps": steps,
+        "note": i18n.tr("eigen.diag.title"),
+    }

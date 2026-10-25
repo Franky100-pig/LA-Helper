@@ -45,6 +45,9 @@ _FUNCS = {
     "lu":        (1, 1, "lu", True),
     "solve":     (2, 2, "solve", True),
     "eigen":     (1, 1, "eigen", True),
+    "diagonalize": (1, 1, "diagonalize", True),
+    "diag":      (1, 1, "diagonalize", True),
+    "charpoly":  (1, 1, "charpoly", True),
 }
 
 _WS_RE = re.compile(r"\s+")

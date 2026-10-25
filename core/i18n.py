@@ -381,6 +381,30 @@ MESSAGES = {
         "zh": "特征值 λ = {val} 几何重数亏损：GM = {geom} < AM = {mult}（不可对角化）",
         "en": "Eigenvalue λ = {val} is defective: GM = {geom} < AM = {mult} (not diagonalizable)",
     },
+    "eigen.diag.success": {
+        "zh": "所有特征值几何重数之和等于矩阵阶数（{sum_gm} = {n}），矩阵可对角化",
+        "en": "Sum of geometric multiplicities equals matrix dimension ({sum_gm} = {n}); matrix is diagonalizable",
+    },
+    "eigen.diag.pd": {
+        "zh": "构造特征向量矩阵 P 与对角矩阵 D",
+        "en": "Construct eigenvector matrix P and diagonal matrix D",
+    },
+    "eigen.diag.verify": {
+        "zh": "计算 P⁻¹ 并验证对角化关系：A = P·D·P⁻¹",
+        "en": "Compute P⁻¹ and verify diagonalization: A = P·D·P⁻¹",
+    },
+    "eigen.diag.fail": {
+        "zh": "几何重数之和为 {sum_gm} < {n}，特征值存在几何重数亏损，矩阵不可对角化",
+        "en": "Sum of geometric multiplicities is {sum_gm} < {n}; matrix is defective and not diagonalizable",
+    },
+    "eigen.diag.title": {
+        "zh": "对角化 A = P·D·P⁻¹",
+        "en": "Diagonalization A = P·D·P⁻¹",
+    },
+    "eigen.diag.not_diagonalizable": {
+        "zh": "不可对角化（特征向量不足以张成整个空间）",
+        "en": "Not diagonalizable (eigenvectors do not span the space)",
+    },
     "step.swap": {
         "zh": "交换 R{a} ↔ R{b}",
         "en": "Swap R{a} ↔ R{b}",

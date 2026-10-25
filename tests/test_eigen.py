@@ -83,3 +83,28 @@ def test_eigen_with_step_by_step_walkthrough():
     assert any("p(λ)" in t for t in step_texts)
     assert any("AM = 2" in t or "AM=2" in t for t in step_texts)
     assert any("GM = 1" in t for t in step_texts)
+
+
+def test_diagonalize_invertible_matrix():
+    A = Matrix([[2, 1], [0, 3]])
+    res = eigen.diagonalize(A, record_steps=True)
+    assert res["diagonalizable"] is True
+    assert res["P"] is not None and res["D"] is not None and res["P_inv"] is not None
+    # Verify P * D * P_inv == A
+    from core import ops
+    PDP = ops.mul(ops.mul(res["P"], res["D"]), res["P_inv"])
+    assert PDP.to_list() == A.to_list()
+    # Check steps describe modal matrix construction and verification
+    step_texts = [s["text"] for s in res["steps"]]
+    assert any("P" in t and "D" in t for t in step_texts)
+
+
+def test_diagonalize_defective_matrix():
+    A = Matrix([[1, 1], [0, 1]])
+    res = eigen.diagonalize(A, record_steps=True)
+    assert res["diagonalizable"] is False
+    assert res["P"] is None
+    assert res["D"] is None
+    assert "不可对角化" in res["note"]
+    step_texts = [s["text"] for s in res["steps"]]
+    assert any("不可对角化" in t for t in step_texts)

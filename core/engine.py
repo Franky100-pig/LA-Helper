@@ -170,6 +170,30 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                                "defective": p["defective"],
                                "vectors": [_mat(v) for v in p["vectors"]]}
                               for p in pairs], "steps": steps}
+        elif op == "diagonalize":
+            res = eig_mod.diagonalize(A, record_steps=show_steps)
+            diag_ok = res["diagonalizable"]
+            return {
+                "ok": True,
+                "type": "diagonalize",
+                "diagonalizable": diag_ok,
+                "P": _mat(res["P"]) if diag_ok else None,
+                "D": _mat(res["D"]) if diag_ok else None,
+                "P_inv": _mat(res["P_inv"]) if diag_ok else None,
+                "pairs": [{"value": p["value"], "exact": p["exact"],
+                           "approx": p["approx"],
+                           "multiplicity": p["multiplicity"],
+                           "geometric": p["geometric"],
+                           "defective": p["defective"],
+                           "vectors": [_mat(v) for v in p["vectors"]]}
+                          for p in res["pairs"]],
+                "steps": res["steps"],
+                "note": res["note"],
+            }
+        elif op == "charpoly":
+            info = eig_mod.characteristic_polynomial(A, record_steps=show_steps)
+            return {"ok": True, "type": "charpoly", "poly": info["poly_str"],
+                    "factored": info["factored_str"], "steps": info["steps"]}
         else:
             return {"ok": False, "error": i18n.tr("err.engine.unknown_op", op=op)}
     except Exception as e:
