@@ -907,6 +907,16 @@ async function renderResult(res) {
     html += `<div class="error">${tr("inverse.none", { note: escapeHtml(res.note) })}</div>`;
   } else if (res.type === "eigen") {
     html += await renderEigen(res);
+  } else if (res.type === "diagonalize") {
+    if (!res.diagonalizable) {
+      html += `<h3>${tr("result.diagonalize")}</h3><div class="warning">⚠️ ${escapeHtml(res.note || tr("result.notDiagonalizable"))}</div>`;
+    } else {
+      html += `<h3>${tr("result.diagonalize")}</h3>`;
+      html += "<div class='lu-row'>" +
+        "<div><h4>" + tr("result.diagP") + "</h4>" + renderMatrix(res.P) + "</div>" +
+        "<div><h4>" + tr("result.diagD") + "</h4>" + renderMatrix(res.D) + "</div>" +
+        "<div><h4>" + tr("result.diagPInv") + "</h4>" + renderMatrix(res.P_inv) + "</div></div>";
+    }
   } else if (res.type === "cofactor") {
     html += "<h3>" + tr("cofactor.title") + "</h3>" + renderMatrix(res.C);
     html += "<h3>" + tr("cofactor.adj") + "</h3>" + renderMatrix(res.adj);
@@ -1006,7 +1016,9 @@ function inferOpFromExpr(text) {
   if (/\bp?inv\s*\(/i.test(text)) return /\bp\s*inv\s*\(/i.test(text) ? "pseudo_inverse" : "inverse";
   if (/\bdet\s*\(/i.test(text)) return "det";
   if (/\brank\s*\(/i.test(text)) return "rank";
+  if (/\brref\s*\(/i.test(text)) return "rref";
   if (/\bref\s*\(/i.test(text)) return "ref";
+  if (/\b(diagonalize|diag)\s*\(/i.test(text)) return "diagonalize";
   if (/\btranspose\s*\(|\bT\s*\(/i.test(text)) return "transpose";
   if (/\blu\s*\(/i.test(text)) return "lu";
   if (/\bsolve\s*\(/i.test(text)) return "solve";

@@ -23,7 +23,7 @@ OPS_NEED_B = core_ex.OPS_NEED_B
 EXPECTED_OPS = {
     "multiply", "add", "sub", "transpose", "scalar", "inverse",
     "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve",
-    "ref", "det", "cofactor_matrix", "rank", "eigen",
+    "ref", "rref", "det", "cofactor_matrix", "rank", "eigen", "diagonalize",
 }
 
 # 这些例子是故意「算不出」的，属于预期行为，不算失败。

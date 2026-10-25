@@ -161,7 +161,8 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             r = det_rank.rank(A)
             return {"ok": True, "type": "scalar", "value": str(r), "steps": []}
         elif op == "eigen":
-            pairs, steps = eig_mod.eigen(A, record_steps=show_steps)
+            res_eigen = eig_mod.eigen(A, record_steps=show_steps)
+            pairs, steps = res_eigen if show_steps else (res_eigen, [])
             return {"ok": True, "type": "eigen",
                     "pairs": [{"value": p["value"], "exact": p["exact"],
                                "approx": p["approx"],

@@ -76,10 +76,12 @@ OPS = [
     ("lu", "LU 分解"),
     ("solve", "增广矩阵求解 Ax=b"),
     ("ref", "REF 行阶梯形"),
+    ("rref", "RREF 最简行阶梯形"),
     ("det", "行列式 det(A)"),
     ("cofactor_matrix", "余子式矩阵 C & 伴随矩阵 adj(A)"),
     ("rank", "秩 rank(A)"),
     ("eigen", "特征值 / 特征向量"),
+    ("diagonalize", "对角化 A=PDP⁻¹"),
 ]
 OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
 # 行列式有两种算法：下拉框里仍是同一项「行列式 det(A)」，旁边的小下拉切换算法。
@@ -850,6 +852,18 @@ class LAApp:
                 self._write(f"零空间基（自由变量：{free}）", "sub")
                 for v in res["null_basis"]:
                     self._write(format_matrix(v, dec), "mat")
+        elif t == "diagonalize":
+            if not res.get("diagonalizable"):
+                self._write("不可对角化", "title")
+                self._write(res.get("note", "特征值亏损，特征向量不足以张成空间"), "warn")
+            else:
+                self._write("对角化   A = P·D·P⁻¹", "title")
+                self._write("P（特征向量可逆阵）", "sub")
+                self._write(format_matrix(res["P"], dec), "mat")
+                self._write("D（特征值对角阵）", "sub")
+                self._write(format_matrix(res["D"], dec), "mat")
+                self._write("P⁻¹（逆矩阵）", "sub")
+                self._write(format_matrix(res["P_inv"], dec), "mat")
         elif t == "inverse_status":
             self._write("不存在：" + str(res.get("note", "")), "warn")
         elif t == "eigen":

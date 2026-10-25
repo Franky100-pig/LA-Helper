@@ -53,8 +53,8 @@ function makeEl(id) {
 }
 
 const OPS = ["multiply", "add", "sub", "transpose", "scalar", "inverse",
-  "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve", "ref",
-  "det", "cofactor_matrix", "rank", "eigen"];
+  "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve", "ref", "rref",
+  "det", "cofactor_matrix", "rank", "eigen", "diagonalize"];
 
 const IDS = ["op", "leftSel", "rightSel", "rightWrap", "detMethodWrap", "detMethod",
   "showSteps", "showDecimals", "libChips", "grid", "rowsIn", "colsIn",
@@ -338,6 +338,9 @@ async function main() {
   eq(f("det(A)"), "det", "3e det( → det");
   eq(f("rank(A)"), "rank", "3e rank( → rank");
   eq(f("ref(A)"), "ref", "3e ref( → ref");
+  eq(f("rref(A)"), "rref", "3e rref( → rref");
+  eq(f("diagonalize(A)"), "diagonalize", "3e diagonalize( → diagonalize");
+  eq(f("diag(A)"), "diagonalize", "3e diag( → diagonalize");
   eq(f("transpose(A)"), "transpose", "3e transpose( → transpose");
   eq(f("T(A)"), "transpose", "3e T( → transpose");
   eq(f("lu(A)"), "lu", "3e lu( → lu");

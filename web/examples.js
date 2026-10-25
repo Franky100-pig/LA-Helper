@@ -72,6 +72,10 @@
     ref: {
       A: [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]],
     },
+    // RREF：最简行阶梯形
+    rref: {
+      A: [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]],
+    },
     // 行列式：矩阵里有 0，余子式展开能挑到最省事的那一行/列。
     det: {
       A: [["2", "0", "1"], ["1", "3", "2"], ["4", "1", "0"]],
@@ -86,6 +90,10 @@
     },
     // 特征值：λ=3 与 λ=1，特征向量是 (1,1) 与 (1,−1)，对称好看。
     eigen: {
+      A: [["2", "1"], ["1", "2"]],
+    },
+    // 对角化：A = P·D·P⁻¹
+    diagonalize: {
       A: [["2", "1"], ["1", "2"]],
     },
   };
@@ -127,6 +135,8 @@
     lu: { id: "row-reduction", title: { zh: "为什么行列式能用行变换来算", en: "Why row operations can compute a determinant" } },
     solve: { id: "row-reduction", title: { zh: "为什么行列式能用行变换来算", en: "Why row operations can compute a determinant" } },
     ref: { id: "row-reduction", title: { zh: "为什么行列式能用行变换来算", en: "Why row operations can compute a determinant" } },
+    rref: { id: "row-reduction", title: { zh: "为什么行列式能用行变换来算", en: "Why row operations can compute a determinant" } },
+    diagonalize: { id: "eigen", title: { zh: "特征值 / 特征向量的几何意义", en: "The geometry of eigenvalues and eigenvectors" } },
     // det 不在这里：它按用户选的算法分别挂 row-reduction / cofactor，见文件末尾 detArticles。
     cofactor_matrix: { id: "adjugate", title: { zh: "伴随矩阵与求逆公式", en: "The adjugate and the inverse formula" } },
     rank: { id: "rank", title: { zh: "秩到底在说什么", en: "What rank is really saying" } },

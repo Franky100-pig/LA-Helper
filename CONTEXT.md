@@ -32,9 +32,13 @@
 - **解的分类**：唯一解 / 无解（出现 0 = 非零）/ 无穷多解（rank < 未知数个数）。
 - **零空间 (null space)**：满足 A·x = 0 的所有解构成的向量空间；其一组基用于写出通解。
 
-## 特征值
+## 特征值与对角化
 - **特征值 / 特征向量 (eigenvalue / eigenvector)**：满足 A·v = λ·v 的 λ 与非零向量 v。
-- **代数重数 (algebraic multiplicity)**：特征值作为特征多项式根的重数。
+- **特征多项式 (characteristic polynomial)**：p(λ) = det(A − λI)，其根即为矩阵的特征值。
+- **代数重数 (algebraic multiplicity, AM)**：特征多项式中根 (λ − λᵢ) 的重数。
+- **几何重数 (geometric multiplicity, GM)**：特征子空间 Null(A − λᵢI) 的维数（线性无关特征向量个数）。
+- **亏损特征值 (defective eigenvalue)**：几何重数小于代数重数 (GM < AM) 的特征值。
+- **相似对角化 (diagonalization)**：存在可逆矩阵 P 使得 A = P·D·P⁻¹，当且仅当所有特征值的几何重数之和等于矩阵阶数。
 
 ## 界面与输入
 - **矩阵库 (matrix library)**：命名的矩阵集合。默认 A、B、C、D 四个空槽，可新增 / 改名 / 删除。

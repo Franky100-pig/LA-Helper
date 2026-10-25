@@ -51,8 +51,8 @@ function makeEl(id) {
 }
 
 const OPS = ["multiply", "add", "sub", "transpose", "scalar", "inverse",
-  "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve", "ref",
-  "det", "cofactor_matrix", "rank", "eigen"];
+  "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve", "ref", "rref",
+  "det", "cofactor_matrix", "rank", "eigen", "diagonalize"];
 
 const IDS = ["op", "leftSel", "rightSel", "rightWrap", "detMethodWrap", "detMethod",
   "showSteps", "showDecimals", "libChips", "grid", "rowsIn", "colsIn",

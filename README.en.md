@@ -29,8 +29,10 @@ Just pick the one that fits your workflow:
 - **Moore-Penrose pseudo-inverse** (general)
 - **LU decomposition** (with partial pivoting, PA = LU, with steps)
 - **Augmented-matrix solve** ([A|b] → RREF; unique / no solution / infinitely many, plus a null-space basis)
-- **Determinant, rank, REF (row echelon form)** (RREF is used internally by solve / inverse)
-- **Eigenvalues / eigenvectors** (exact for small matrices; ≥5×5 switches to a numerical solver automatically, avoiding `CRootOf` and long stalls)
+- **REF and Step-by-Step Gauss-Jordan RREF Visualizer**: Line-by-line elementary row operations (e.g. $R_2 \leftarrow R_2 - 2R_1$), intermediate matrix snapshots, pivot and row highlighting, with interactive playback
+- **Eigenvalues / Eigenvectors & Step-by-Step Characteristic Polynomial Factoring**: Derives $A - \lambda I$, expanded $p(\lambda) = \det(A - \lambda I) = 0$, factored form, algebraic multiplicity (AM), eigenspace equation solving, and geometric multiplicity (GM) basis vectors
+- **Matrix Diagonalization $A = P D P^{-1}$**: Automated diagonalizability testing ($\sum GM = n$ vs $AM$), modal matrix $P$ and diagonal matrix $D$ construction, $P^{-1}$ verification, and detailed defect explanation when non-diagonalizable
+- **Determinant, rank, and adjugate matrix** (row-reduction and cofactor expansion)
 - Every operation can toggle **"show steps"** and **decimal display**
 - **Export the steps to PDF** (web / online preview): after computing, click "Export PDF" and
   pick "Save as PDF" as the destination in the print dialog. What you get is a light-themed A4

@@ -179,7 +179,8 @@ def diagonalize(A, record_steps=True):
     if not A.is_square():
         raise ValueError(f"diagonalize needs a square matrix, got {A.shape}")
     n = A.rows
-    pairs, steps = eigen(A, record_steps=record_steps)
+    res_eigen = eigen(A, record_steps=record_steps)
+    pairs, steps = res_eigen if record_steps else (res_eigen, [])
 
     sum_gm = sum(p["geometric"] for p in pairs)
     diagonalizable = (sum_gm == n)

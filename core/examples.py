@@ -84,6 +84,9 @@ EXAMPLES = {
     "ref": {
         "A": [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]],
     },
+    "rref": {
+        "A": [["1", "2", "3"], ["4", "5", "6"], ["7", "8", "9"]],
+    },
     # Contains zeros so cofactor expansion can pick the cheapest row/column.
     "det": {
         "A": [["2", "0", "1"], ["1", "3", "2"], ["4", "1", "0"]],
@@ -99,6 +102,9 @@ EXAMPLES = {
     },
     # lambda = 3 and 1 with eigenvectors (1,1) and (1,-1).
     "eigen": {
+        "A": [["2", "1"], ["1", "2"]],
+    },
+    "diagonalize": {
         "A": [["2", "1"], ["1", "2"]],
     },
 }
@@ -141,6 +147,8 @@ ARTICLES = {
     "lu": ("row-reduction", "note.row_reduction"),
     "solve": ("row-reduction", "note.row_reduction"),
     "ref": ("row-reduction", "note.row_reduction"),
+    "rref": ("row-reduction", "note.row_reduction"),
+    "diagonalize": ("eigen", "note.eigen"),
     "cofactor_matrix": ("adjugate", "note.adjugate"),
     "rank": ("rank", "note.rank"),
     "eigen": ("eigen", "note.eigen"),
