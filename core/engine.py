@@ -161,7 +161,7 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             r = det_rank.rank(A)
             return {"ok": True, "type": "scalar", "value": str(r), "steps": []}
         elif op == "eigen":
-            pairs = eig_mod.eigen(A)
+            pairs, steps = eig_mod.eigen(A, record_steps=show_steps)
             return {"ok": True, "type": "eigen",
                     "pairs": [{"value": p["value"], "exact": p["exact"],
                                "approx": p["approx"],
@@ -169,7 +169,7 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                                "geometric": p["geometric"],
                                "defective": p["defective"],
                                "vectors": [_mat(v) for v in p["vectors"]]}
-                              for p in pairs], "steps": []}
+                              for p in pairs], "steps": steps}
         else:
             return {"ok": False, "error": i18n.tr("err.engine.unknown_op", op=op)}
     except Exception as e:

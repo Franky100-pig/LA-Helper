@@ -45,3 +45,41 @@ def test_eigen_readable_exact_stays_exact():
     pairs = eigen.eigen(A)
     assert all("sqrt" in p["value"] for p in pairs)
     assert all(p["approx"] for p in pairs)
+
+
+def test_characteristic_polynomial_and_factoring_steps():
+    A = Matrix([[2, 1, 0], [0, 2, 0], [0, 0, 3]])
+    char_res = eigen.characteristic_polynomial(A, record_steps=True)
+    assert "λ" in char_res["poly_str"]
+    assert "λ" in char_res["factored_str"]
+    assert len(char_res["steps"]) == 3
+    # First step carries characteristic matrix snapshot A - λI
+    s0 = char_res["steps"][0]
+    assert s0["matrix"] is not None
+    assert any("λ" in cell for row in s0["matrix"] for cell in row)
+    # Second and third are polynomial and factored equations
+    assert "p(λ)" in char_res["steps"][1]["text"]
+    assert "p(λ)" in char_res["steps"][2]["text"]
+
+
+def test_eigen_with_step_by_step_walkthrough():
+    A = Matrix([[2, 1, 0], [0, 2, 0], [0, 0, 3]])
+    pairs, steps = eigen.eigen(A, record_steps=True)
+    assert len(pairs) == 2
+    # lambda = 2 has AM=2, GM=1 -> defective
+    p2 = next(p for p in pairs if p["value"] == "2")
+    assert p2["multiplicity"] == 2
+    assert p2["geometric"] == 1
+    assert p2["defective"] is True
+
+    # lambda = 3 has AM=1, GM=1 -> non-defective
+    p3 = next(p for p in pairs if p["value"] == "3")
+    assert p3["multiplicity"] == 1
+    assert p3["geometric"] == 1
+    assert p3["defective"] is False
+
+    # Steps include char matrix, poly, factored poly, eigenvalues, eigenspaces, defective note
+    step_texts = [s["text"] for s in steps]
+    assert any("p(λ)" in t for t in step_texts)
+    assert any("AM = 2" in t or "AM=2" in t for t in step_texts)
+    assert any("GM = 1" in t for t in step_texts)

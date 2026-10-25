@@ -353,6 +353,34 @@ MESSAGES = {
     # These used to be hardcoded **English**, which is why the Chinese UI
     # showed "Swap R1 ↔ R2" in the middle of an otherwise Chinese derivation.
     # The bilingual pass only banned Chinese, so nothing caught them.
+    "eigen.step.char_matrix": {
+        "zh": "构造特征矩阵 A − λI",
+        "en": "Construct characteristic matrix A − λI",
+    },
+    "eigen.step.char_poly": {
+        "zh": "计算特征多项式：p(λ) = det(A − λI) = {poly} = 0",
+        "en": "Characteristic polynomial: p(λ) = det(A − λI) = {poly} = 0",
+    },
+    "eigen.step.char_poly_factored": {
+        "zh": "特征多项式因式分解：p(λ) = {factored} = 0",
+        "en": "Factored characteristic polynomial: p(λ) = {factored} = 0",
+    },
+    "eigen.step.eigenvalues": {
+        "zh": "特征值根及代数重数 (AM)：{roots}",
+        "en": "Eigenvalue roots and algebraic multiplicities (AM): {roots}",
+    },
+    "eigen.step.eigenspace": {
+        "zh": "对特征值 λ = {val}，解方程 (A − λI)v = 0（代数重数 AM = {mult}）",
+        "en": "For eigenvalue λ = {val}, solve (A − λI)v = 0 (algebraic multiplicity AM = {mult})",
+    },
+    "eigen.step.eigenspace_basis": {
+        "zh": "特征向量基（几何重数 GM = {geom}）：{vectors}",
+        "en": "Eigenvector basis (geometric multiplicity GM = {geom}): {vectors}",
+    },
+    "eigen.step.defective": {
+        "zh": "特征值 λ = {val} 几何重数亏损：GM = {geom} < AM = {mult}（不可对角化）",
+        "en": "Eigenvalue λ = {val} is defective: GM = {geom} < AM = {mult} (not diagonalizable)",
+    },
     "step.swap": {
         "zh": "交换 R{a} ↔ R{b}",
         "en": "Swap R{a} ↔ R{b}",

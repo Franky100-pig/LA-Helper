@@ -148,6 +148,7 @@ PROBES = [
     {"op": "inverse", "A": A3, "showSteps": True},
     {"op": "ref", "A": A3, "showSteps": True},
     {"op": "rref", "A": A3, "showSteps": True},
+    {"op": "eigen", "A": A3, "showSteps": True},
     {"op": "lu", "A": A3, "showSteps": True},
     {"op": "solve", "A": [["2", "1"], ["1", "1"]], "B": [["3"], ["2"]],
      "showSteps": True},
