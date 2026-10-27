@@ -82,8 +82,9 @@ OPS = [
     ("rank", "秩 rank(A)"),
     ("eigen", "特征值 / 特征向量"),
     ("diagonalize", "对角化 A=PDP⁻¹"),
+    ("transform", "线性变换 T(x)"),
 ]
-OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
+OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar", "transform"}
 # 行列式有两种算法：下拉框里仍是同一项「行列式 det(A)」，旁边的小下拉切换算法。
 DET_METHODS = ["行变换法（推荐）", "代数余子式展开"]
 DET_METHOD_OPS = {"行变换法（推荐）": "det", "代数余子式展开": "det_cofactor"}

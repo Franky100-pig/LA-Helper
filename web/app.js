@@ -9,7 +9,7 @@ const EXAMPLES = window.LA_EXAMPLES;
 
 // 状态：state.lib = 矩阵库（名字 -> {rows, cols, cells}），state.editing = 正在编辑的那个。
 // 表达式是「操作下拉框」的快捷键，两条路都走同一个后端分发入口，结果保证一致。
-const OPS_NEED_B = new Set(["multiply", "add", "sub", "solve", "scalar"]);
+const OPS_NEED_B = new Set(["multiply", "add", "sub", "solve", "scalar", "transform"]);
 // 行列式的两种算法（同一份核心，只是换 op 名；见 core/det_rank.py）
 const DET_METHOD_OP = { row_reduction: "det", cofactor: "det_cofactor" };
 const MIN_DIM = 1;
@@ -1019,6 +1019,7 @@ function inferOpFromExpr(text) {
   if (/\brref\s*\(/i.test(text)) return "rref";
   if (/\bref\s*\(/i.test(text)) return "ref";
   if (/\b(diagonalize|diag)\s*\(/i.test(text)) return "diagonalize";
+  if (/\btransform\s*\(|\bapply\s*\(/i.test(text)) return "transform";
   if (/\btranspose\s*\(|\bT\s*\(/i.test(text)) return "transpose";
   if (/\blu\s*\(/i.test(text)) return "lu";
   if (/\bsolve\s*\(/i.test(text)) return "solve";
