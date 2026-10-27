@@ -27,7 +27,7 @@ window.LA_I18N = (function () {
       // 「更多工具」下拉：讲义 / AI 答疑 / 练习题库，各自独立页面
       "tools.label": "更多工具",
       "tools.notes": "线代小讲义",
-      "tools.notesTip": "9 篇难点精讲，独立页面",
+      "tools.notesTip": "难点精讲与练习，独立页面",
       "tools.ai": "AI 答疑",
       "tools.aiTip": "用 AI 解答线代问题",
       "tools.practice": "练习题（LA-hw）",
@@ -284,7 +284,7 @@ window.LA_I18N = (function () {
       // "More tools" dropdown: notes / AI help / practice, each on its own page
       "tools.label": "More tools",
       "tools.notes": "Study notes",
-      "tools.notesTip": "9 short articles on the tricky concepts",
+      "tools.notesTip": "Short articles on the tricky concepts",
       "tools.ai": "AI help",
       "tools.aiTip": "Ask an AI about linear algebra",
       "tools.practice": "Practice (LA-hw)",
