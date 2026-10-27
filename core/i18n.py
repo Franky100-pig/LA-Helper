@@ -132,6 +132,28 @@ MESSAGES = {
         "en": "det(A) = 0: A is singular, so A⁻¹ does not exist",
     },
 
+    # --- transform.py: applying T(x) = A·x -----------------------------------
+    "err.transform.needs_vector": {
+        "zh": "x 必须是一个向量：收到 {rows}×{cols} 的矩阵（请填 n×1，或 1×n）",
+        "en": "x must be a vector: got a {rows}×{cols} matrix (enter n×1, or 1×n)",
+    },
+    "err.transform.dim": {
+        "zh": "维数不匹配：A 是 {ar}×{ac}，x 有 {xr} 个分量（需要 {ac} 个）",
+        "en": "Dimension mismatch: A is {ar}×{ac} but x has {xr} components (expected {ac})",
+    },
+    "transform.intro": {
+        "zh": "T(x) = A·x：把 A 的每一行与 x 做点积，逐个得到输出的分量",
+        "en": "T(x) = A·x: take the dot product of each row of A with x to get each output component",
+    },
+    "transform.component": {
+        "zh": "y{i} = 第 {i} 行 · x = {expr} = {value}",
+        "en": "y{i} = row {i} · x = {expr} = {value}",
+    },
+    "transform.done": {
+        "zh": "所以 T(x) 就是上面这个向量",
+        "en": "So T(x) is the vector shown above",
+    },
+
     # --- det_rank.py: determinants and ranks ---------------------------------
     "det.lu_factor": {
         "zh": "由 P·A = L·U 得 det(A) = det(P)·det(L)·det(U)",
@@ -463,6 +485,10 @@ MESSAGES = {
     "note.matmul": {
         "zh": "矩阵乘法为什么这么怪",
         "en": "Why matrix multiplication looks so weird",
+    },
+    "note.transform": {
+        "zh": "线性变换 T(x)：从函数到矩阵",
+        "en": "Linear transformations T(x): from function to matrix",
     },
     "note.det_zero": {
         "zh": "det = 0 为什么就没有逆",

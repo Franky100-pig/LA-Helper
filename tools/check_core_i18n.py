@@ -151,6 +151,13 @@ PROBES = [
     {"op": "eigen", "A": A3, "showSteps": True},
     {"op": "diagonalize", "A": A3, "showSteps": True},
     {"op": "charpoly", "A": A3, "showSteps": True},
+    {"op": "transform", "A": [["2", "1"], ["1", "-1"]], "B": [["3"], ["1"]],
+     "showSteps": True},
+    {"op": "transform", "A": [["2", "1"], ["1", "-1"]],
+     "B": [["1", "2"], ["3", "4"]], "showSteps": False},   # 非向量 → 报错
+    {"expr": "transform(A, B)",
+     "matrices": {"A": [["2", "1"], ["1", "-1"]], "B": [["3"], ["1"]]},
+     "showSteps": True},
     {"op": "lu", "A": A3, "showSteps": True},
     {"op": "solve", "A": [["2", "1"], ["1", "1"]], "B": [["3"], ["2"]],
      "showSteps": True},

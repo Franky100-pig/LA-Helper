@@ -17,6 +17,7 @@ from . import ops
 from . import inverse as inv_mod
 from . import det_rank
 from . import i18n
+from . import transform as transform_mod
 
 
 class ExprError(ValueError):
@@ -48,6 +49,7 @@ _FUNCS = {
     "diagonalize": (1, 1, "diagonalize", True),
     "diag":      (1, 1, "diagonalize", True),
     "charpoly":  (1, 1, "charpoly", True),
+    "transform": (2, 2, "transform", False),
 }
 
 _WS_RE = re.compile(r"\s+")
@@ -324,6 +326,17 @@ def _eval(node, lib):
                 i18n.tr("err.expr.poly_result", name=node.name)
             )
         M = _as_matrix(_eval(node.args[0], lib), node.name)
+        if node.name.lower() == "transform":
+            X = _as_matrix(_eval(node.args[1], lib), node.name)
+            if X.rows == 1 and X.cols > 1:
+                X = X.transpose()
+            if X.cols != 1:
+                raise ExprError(i18n.tr("err.transform.needs_vector",
+                                        rows=X.rows, cols=X.cols))
+            if M.cols != X.rows:
+                raise ExprError(i18n.tr("err.transform.dim",
+                                        ar=M.rows, ac=M.cols, xr=X.rows))
+            return transform_mod.apply(M, X, record_steps=False)[0]
         if node.name.lower() in ("inv",) or node.name == "inv":
             return inv_mod.inverse(M, record_steps=False)[0]
         if node.name.lower() == "pinv":

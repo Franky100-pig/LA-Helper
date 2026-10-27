@@ -1,7 +1,7 @@
 """Dispatch an operation to the core modules; produce a JSON-friendly result."""
 from .matrix import Matrix
 from . import i18n
-from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod
+from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod, transform as transform_mod
 
 # Hard upper bound on input size: exact arithmetic on a 100x100 would happily
 # burn the (single-threaded) server for minutes.
@@ -64,7 +64,7 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
         if err:
             return {"ok": False, "error": err}
 
-        need_B = op in ("add", "sub", "multiply", "solve", "scalar")
+        need_B = op in ("add", "sub", "multiply", "solve", "scalar", "transform")
         if need_B and B_data is None:
             return {"ok": False, "error": i18n.tr("err.engine.needs_b")}
 
@@ -138,6 +138,23 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
                     "null_basis": [_mat(v) for v in sol["null_basis"]],
                     "free_vars": sol["free_vars"],
                     "steps": sol["steps"]}
+        elif op == "transform":
+            B, err = B_matrix()
+            if err:
+                return {"ok": False, "error": err}
+            # Accept x as a column vector, or as a row vector (auto-transpose).
+            X = B.transpose() if (B.rows == 1 and B.cols > 1) else B
+            if X.cols != 1:
+                return {"ok": False,
+                        "error": i18n.tr("err.transform.needs_vector",
+                                       rows=B.rows, cols=B.cols)}
+            if A.cols != X.rows:
+                return {"ok": False,
+                        "error": i18n.tr("err.transform.dim",
+                                       ar=A.rows, ac=A.cols, xr=X.rows)}
+            Y, steps = transform_mod.apply(A, X, record_steps=show_steps)
+            return {"ok": True, "type": "matrix", "data": _mat(Y),
+                    "steps": steps}
         elif op == "ref":
             M, steps = det_rank.ref_wrap(A, record_steps=show_steps)
             return {"ok": True, "type": "matrix", "data": _mat(M), "steps": steps}
