@@ -107,6 +107,12 @@ EXAMPLES = {
     "diagonalize": {
         "A": [["2", "1"], ["1", "2"]],
     },
+    # T(x) = A·x, using the article's worked example: T(3,1) = (7,2).
+    "transform": {
+        "A": [["2", "1"], ["1", "-1"]],
+        "B": [["3"], ["1"]],
+        "left": "A", "right": "B",
+    },
 }
 
 # One-click "here is a thing worth seeing" scenarios. Each sets the operation
@@ -152,6 +158,7 @@ ARTICLES = {
     "cofactor_matrix": ("adjugate", "note.adjugate"),
     "rank": ("rank", "note.rank"),
     "eigen": ("eigen", "note.eigen"),
+    "transform": ("transform", "note.transform"),
 }
 
 # det is keyed by method: the two algorithms deserve two different notes.
@@ -162,7 +169,7 @@ DET_ARTICLES = {
 # fmt: on
 
 # Operations that take a second matrix. Mirrors OPS_NEED_B in both UIs.
-OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar"}
+OPS_NEED_B = {"multiply", "add", "sub", "solve", "scalar", "transform"}
 
 
 def example_for(op):

@@ -396,7 +396,7 @@ window.LA_NOTES = {
         "现在算 T(3, 1)，直接乘：",
         { formula: "A·(3,1)ᵀ = (2·3 + 1·1, 1·3 − 1·1) = (7, 2)" },
         "再判断它是不是单射：解 A·x = 0。det A = 2·(−1) − 1·1 = −3 ≠ 0，所以只有零解，ker T = {0}，<b>T 是单射</b>（2D 到 2D 时也就是可逆）。",
-        { tip: "在本页试一下：把 A 填进「秩 rank(A)」，秩就是 im T 的维数；再用「增广矩阵求解 Ax=b」解 A·x = 0，解空间就是 ker T。两者维数相加一定等于列数。" },
+        { tip: "在本页试一下：操作选「线性变换 T(x) = A·x」，A 填 [[2,1],[1,−1]]、B 填 (3,1)，直接看到 T(3,1)=(7,2)；再用「秩 rank(A)」看 im 的维数、用「增广矩阵求解 Ax=b」解 A·x = 0 找 ker T。" },
       ],
     },
     {
@@ -870,7 +870,7 @@ window.LA_NOTES = {
         "Now compute T(3, 1) by multiplying:",
         { formula: "A·(3,1)ᵀ = (2·3 + 1·1, 1·3 − 1·1) = (7, 2)" },
         "Is it injective? Solve A·x = 0. det A = 2·(−1) − 1·1 = −3 ≠ 0, so the only solution is zero, ker T = {0}, and <b>T is injective</b> (hence invertible in 2D→2D).",
-        { tip: "Try it here: put A into Rank rank(A) — the rank is dim(im T); then solve A·x = 0 with Solve Ax=b — the solution space is ker T. Their dimensions always add up to the number of columns." },
+        { tip: "Try it here: choose Linear transformation T(x) = A·x, put A = [[2,1],[1,−1]] and B = (3,1) to see T(3,1) = (7,2); then use Rank rank(A) for dim(im T) and Solve Ax=b on A·x = 0 for ker T." },
       ],
     },
     {

@@ -24,6 +24,7 @@ EXPECTED_OPS = {
     "multiply", "add", "sub", "transpose", "scalar", "inverse",
     "left_inverse", "right_inverse", "pseudo_inverse", "lu", "solve",
     "ref", "rref", "det", "cofactor_matrix", "rank", "eigen", "diagonalize",
+    "transform",
 }
 
 # 这些例子是故意「算不出」的，属于预期行为，不算失败。

@@ -14,7 +14,7 @@
 (function () {
   "use strict";
 
-  // 17 个运算，逐个给一个「有教学意义」的例子，而不是随便填几个数。
+  // 19 个运算，逐个给一个「有教学意义」的例子，而不是随便填几个数。
   const ops = {
     // 非方阵相乘：顺便说明为什么 A×B 和 B×A 不是一个东西。
     multiply: {
@@ -96,6 +96,12 @@
     diagonalize: {
       A: [["2", "1"], ["1", "2"]],
     },
+    // 线性变换 T(x) = A·x：答案 (7, 2)，和讲义里的例子一致。
+    transform: {
+      A: [["2", "1"], ["1", "-1"]],
+      B: [["3"], ["1"]],
+      left: "A", right: "B",
+    },
   };
 
   // 三个「第一次来，点一下就有东西看」的场景。每个都把 op 和矩阵一起设好。
@@ -141,6 +147,7 @@
     cofactor_matrix: { id: "adjugate", title: { zh: "伴随矩阵与求逆公式", en: "The adjugate and the inverse formula" } },
     rank: { id: "rank", title: { zh: "秩到底在说什么", en: "What rank is really saying" } },
     eigen: { id: "eigen", title: { zh: "特征值 / 特征向量的几何意义", en: "The geometry of eigenvalues and eigenvectors" } },
+    transform: { id: "transform", title: { zh: "线性变换 T(x)：从函数到矩阵", en: "Linear transformations T(x): from function to matrix" } },
   };
 
   // 行列式有两种算法，推荐的讲义不一样：行变换法对应 row-reduction，余子式展开对应 cofactor。

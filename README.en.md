@@ -32,6 +32,7 @@ Just pick the one that fits your workflow:
 - **REF and Step-by-Step Gauss-Jordan RREF Visualizer**: Line-by-line elementary row operations (e.g. $R_2 \leftarrow R_2 - 2R_1$), intermediate matrix snapshots, pivot and row highlighting, with interactive playback
 - **Eigenvalues / Eigenvectors & Step-by-Step Characteristic Polynomial Factoring**: Derives $A - \lambda I$, expanded $p(\lambda) = \det(A - \lambda I) = 0$, factored form, algebraic multiplicity (AM), eigenspace equation solving, and geometric multiplicity (GM) basis vectors
 - **Matrix Diagonalization $A = P D P^{-1}$**: Automated diagonalizability testing ($\sum GM = n$ vs $AM$), modal matrix $P$ and diagonal matrix $D$ construction, $P^{-1}$ verification, and detailed defect explanation when non-diagonalizable
+- **Linear Transformation $T(x) = A x$**: Row-by-row dot-product breakdown of each output component, with a companion note on the standard matrix, kernel and image
 - **Determinant, rank, and adjugate matrix** (row-reduction and cofactor expansion)
 - Every operation can toggle **"show steps"** and **decimal display**
 - **Export the steps to PDF** (web / online preview): after computing, click "Export PDF" and
