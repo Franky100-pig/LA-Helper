@@ -25,10 +25,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      # Pyodide 运行时 ~20MB 缓存住，避免每次部署都重新下载（fetch 脚本自带缓存目录）
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/la-pyodide
+          key: la-pyodide-0.26.2
       - name: Build static preview
         env:
           LA_PREVIEW_OUT: public
         run: python3 tools/build_preview.py
+      # 自托管 Pyodide 最小运行时 -> public/pyodide/（同源加载，引擎不再依赖
+      # jsDelivr 在大陆的可达性）。失败会让引擎退化为 CDN 兜底，不阻断部署。
+      - name: Fetch Pyodide runtime (self-host)
+        run: python3 tools/fetch_pyodide.py public
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
