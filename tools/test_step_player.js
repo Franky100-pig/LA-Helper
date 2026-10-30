@@ -119,6 +119,9 @@ function boot({ storage = {}, lang = "zh", stepCount = 5 } = {}) {
 
   const sandbox = {
     window: win,
+    // 裸 `location` 是浏览器全局（app.js 的 applyFromHash 直接用 location.hash），
+    // vm 里 window.location 不等于全局 location，得在沙箱顶层放一份。
+    location: win.location,
     document: {
       documentElement: docEl,
       getElementById: (id) => els[id] || null,
