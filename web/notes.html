@@ -143,6 +143,26 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* 讲义底部「试一试」+「提 Issue」一行 */
+  .try-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+    margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border); }
+  .btn-try { background: var(--accent); color: var(--on-accent); border: 1px solid var(--accent);
+    padding: 8px 16px; font-size: 14px; font-weight: 600; border-radius: 9px; cursor: pointer;
+    transition: filter .14s ease, transform .14s ease; }
+  .btn-try:hover { filter: brightness(1.07); transform: translateY(-1px); }
+  .btn-issue { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 500;
+    border: 1px solid var(--border); padding: 7px 12px; border-radius: 9px; transition: border-color .14s ease, color .14s ease; }
+  .btn-issue:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* 社区答疑页脚 */
+  .site-footer { max-width: 1080px; margin: 8px auto 28px; padding: 16px 24px 0;
+    border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px 18px;
+    align-items: center; color: var(--muted); font-size: 13px; }
+  .footer-label { color: var(--muted); }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .footer-links a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .footer-links a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -181,6 +201,17 @@
   </aside>
   <article id="noteView" class="article"></article>
 </main>
+
+<!-- 社区答疑入口：本地自学，问题甩 GitHub Issue，蹭社区属性（零后端零账号） -->
+<footer class="site-footer">
+  <span class="footer-label" data-i18n="footer.note">遇到算不对、看不懂、或发现错误？</span>
+  <span class="footer-links">
+    <a href="https://github.com/Franky100-pig/LA-Helper/issues/new" target="_blank" rel="noopener noreferrer"
+       data-i18n="footer.issue">遇到问题或想纠错？在 LA-Helper 提 Issue →</a>
+    <a href="https://github.com/Franky100-pig/LA-hw/issues/new" target="_blank" rel="noopener noreferrer"
+       data-i18n="footer.issueLaHw">作业相关？去 LA-hw 提 Issue →</a>
+  </span>
+</footer>
 
 <script src="notes-page.js"></script>
 </body>

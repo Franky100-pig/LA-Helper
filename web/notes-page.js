@@ -171,6 +171,41 @@
     view.appendChild(lead);
     view.appendChild(body);
 
+    // 底部：「试一试」跳计算器并预填本篇示例 + 本篇专属的「提 Issue」答疑入口。
+    // 这两样是「讲义 ↔ 计算」闭环和「前端自学 + GitHub 社区答疑」落点。
+    if (a.try) {
+      const row = document.createElement("div");
+      row.className = "try-row";
+
+      const tryBtn = document.createElement("button");
+      tryBtn.type = "button";
+      tryBtn.className = "btn-try";
+      tryBtn.textContent = tr("notes.tryIt");
+      tryBtn.addEventListener("click", () => {
+        const t = a.try;
+        let hash = "op=" + encodeURIComponent(t.op);
+        if (t.A) hash += "&A=" + encodeURIComponent(JSON.stringify(t.A));
+        if (t.B) hash += "&B=" + encodeURIComponent(JSON.stringify(t.B));
+        if (t.det) hash += "&det=" + encodeURIComponent(t.det);
+        hash += "&lang=" + (I18N.get() || "zh");   // 打开计算器时界面语言与本篇一致
+        window.location.href = "index.html#" + hash;
+      });
+      row.appendChild(tryBtn);
+
+      const issue = document.createElement("a");
+      issue.className = "btn-issue";
+      issue.target = "_blank";
+      issue.rel = "noopener noreferrer";
+      // 标题 / 正文走 i18n，不在 .js 里写死中文（保持双语切换 & 过硬编码守卫）
+      issue.href = "https://github.com/Franky100-pig/LA-Helper/issues/new?title=" +
+        encodeURIComponent("[" + a.id + "] " + tr("notes.issueTitle")) +
+        "&body=" + encodeURIComponent(tr("notes.issueBody"));
+      issue.textContent = tr("notes.askIssue");
+      row.appendChild(issue);
+
+      view.appendChild(row);
+    }
+
     // 标签页标题跟着当前这篇走，收藏/分享时更好认
     document.title = a.title + " · LA Helper";
   }

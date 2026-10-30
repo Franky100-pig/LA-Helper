@@ -560,6 +560,20 @@
       scroll-behavior: auto !important;
     }
   }
+
+  /* 常用计算面板 */
+  .quick-pad { flex-direction: column; align-items: stretch; gap: 8px; }
+  .quick-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .quick-head .hint { margin: 0; font-size: 12px; }
+
+  /* 社区答疑页脚 */
+  .site-footer { max-width: 1280px; margin: 8px auto 28px; padding: 16px 20px 0;
+    border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 8px 18px;
+    align-items: center; color: var(--muted); font-size: 13px; }
+  .footer-label { color: var(--muted); }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+  .footer-links a { color: var(--accent); text-decoration: none; font-weight: 500; }
+  .footer-links a:hover { text-decoration: underline; }
 </style>
 </head>
 <body>
@@ -641,6 +655,15 @@
     <span class="lib-label" data-i18n="guide.title">第一次用？先载入一个示例</span>
     <div class="chips" id="starterChips"></div>
     <p class="hint starters-hint" data-i18n="guide.hint">选好运算后点「载入示例」，矩阵会自动填好并直接算给你看。</p>
+  </section>
+
+  <!-- 常用计算：学生最常用的一排运算，一键载入示例并算出结果 -->
+  <section class="controls quick-pad" id="quickBar">
+    <div class="quick-head">
+      <span class="lib-label" data-i18n="home.quickTitle">常用计算</span>
+      <span class="hint" data-i18n="home.quickSub">一键载入示例并算出结果</span>
+    </div>
+    <div class="chips" id="quickPad"></div>
   </section>
 
   <!-- 表达式快捷键 -->
@@ -781,6 +804,17 @@
 
 <!-- 页脚：使用人数（免费第三方计数器，拿不到数字时整行保持隐藏；逻辑在 app.js） -->
 <p id="usageRow" class="usage-line" hidden></p>
+
+<!-- 社区答疑入口：本地自学，问题甩 GitHub Issue，蹭社区属性（零后端零账号） -->
+<footer class="site-footer">
+  <span class="footer-label" data-i18n="footer.note">遇到算不对、看不懂、或发现错误？</span>
+  <span class="footer-links">
+    <a href="https://github.com/Franky100-pig/LA-Helper/issues/new" target="_blank" rel="noopener noreferrer"
+       data-i18n="footer.issue">遇到问题或想纠错？在 LA-Helper 提 Issue →</a>
+    <a href="https://github.com/Franky100-pig/LA-hw/issues/new" target="_blank" rel="noopener noreferrer"
+       data-i18n="footer.issueLaHw">作业相关？去 LA-hw 提 Issue →</a>
+  </span>
+</footer>
 
 <input type="file" id="imageInput" accept="image/png,image/jpeg,image/webp,image/heic" hidden>
 <script src="app.js"></script>

@@ -958,6 +958,38 @@ window.LA_NOTES = {
 };
 
 /* ---------------------------------------------------------------------------
+ * 「试一试」映射：每篇讲义底部生成一个按钮，跳到计算器并载入对应运算的示例。
+ * 用 id → {op, A?, B?, det?} 统一注入，避免中英两套各写一遍（32 处）。
+ * 只给 op 时，按钮回落到该运算的内置示例；给 A/B 则载入这篇讲义自己的矩阵
+ * （比如 singular 用 det=0 的矩阵，点开就能看到「没有逆」）。
+ * ------------------------------------------------------------------------- */
+(function injectTry() {
+  const TRY = {
+    cofactor:      { op: "cofactor_matrix" },
+    "row-reduction": { op: "rref" },
+    matmul:       { op: "multiply" },
+    singular:     { op: "det", A: [["1", "2"], ["2", "4"]] },
+    rank:         { op: "rank" },
+    eigen:        { op: "eigen" },
+    adjugate:     { op: "cofactor_matrix" },
+    orthogonal:   { op: "inverse" },
+    vectorspace:  { op: "rref" },
+    basis:        { op: "rref" },
+    spaces:       { op: "rref" },
+    nullity:      { op: "rank" },
+    "rank-nullity": { op: "rank" },
+    transform:    { op: "transform" },
+    glossary:     { op: "det" },
+    practice:     { op: "solve" },
+  };
+  for (const lang of ["zh", "en"]) {
+    for (const a of window.LA_NOTES[lang]) {
+      if (TRY[a.id]) a.try = TRY[a.id];
+    }
+  }
+})();
+
+/* ---------------------------------------------------------------------------
  * 共用小工具：讲义独立页（notes.html）用，主页不再渲染讲义。
  * 放在这里而不是各页各写一份，避免两处渲染逻辑漂移。
  * ------------------------------------------------------------------------- */

@@ -1239,6 +1239,48 @@ function applyExample(ex, opts) {
   compute();
 }
 
+/**
+ * 深链：从 URL 的 #op=&A=&B=&det=&lang= 直接灌入计算器并自动算。
+ * 这是「讲义 → 试一试」和「分享一道题」的落地机制，纯前端、零后端。
+ * 矩阵用 encodeURIComponent(JSON.stringify(cells)) 编码，能原样保留分数 / 负号 /
+ * 小数；深链里没给 A/B 就回落到该运算的内置示例，保证链接永远能算。
+ */
+function applyFromHash() {
+  const raw = (location.hash || "").replace(/^#/, "");
+  if (!raw) return;
+  let params;
+  try { params = new URLSearchParams(raw); } catch (_) { return; }
+
+  const op = params.get("op");
+  if (!op) return;
+  // 只认下拉框里真实存在的运算，避免随便一个 #op=xxx 把界面搞乱
+  const valid = Array.prototype.some.call(opSelect.options, (o) => o.value === op);
+  if (!valid) return;
+
+  // 语言（可选）：分享链接也能带上界面语言，朋友打开不会中英错乱
+  const lang = params.get("lang");
+  if (lang === "zh" || lang === "en") {
+    try { localStorage.setItem("la-lang", lang); } catch (_) {}
+    if (window.I18N && I18N.set) I18N.set(lang);
+  }
+
+  let A = null, B = null;
+  try {
+    const aRaw = params.get("A");
+    const bRaw = params.get("B");
+    if (aRaw) A = JSON.parse(decodeURIComponent(aRaw));
+    if (bRaw) B = JSON.parse(decodeURIComponent(bRaw));
+  } catch (_) { A = null; B = null; }
+
+  const ex = EXAMPLES.ops[op] || { A: [["1", "0"], ["0", "1"]] };
+  const isGrid = (m) => Array.isArray(m) && m.length > 0 && Array.isArray(m[0]) && m[0].length > 0;
+  const finalA = isGrid(A) ? A : ex.A;
+  const finalB = isGrid(B) ? B : (ex.B || null);
+  const built = { A: finalA, B: finalB, left: "A" };
+  if (finalB) built.right = "B";
+  applyExample(built, { op, detMethod: params.get("det") || undefined });
+}
+
 // --- 场景芯片 ---------------------------------------------------------------
 
 function starterLabel(id) {
@@ -1259,6 +1301,33 @@ function renderStarterChips() {
     chip.textContent = starterLabel(st.pick || st.id);
     chip.addEventListener("click", () => applyExample(st, { op: st.op, detMethod: st.detMethod }));
     box.appendChild(chip);
+  }
+}
+
+// --- 常用计算面板 -----------------------------------------------------------
+// 学生最常点的几个运算，做成一键卡片：载入该运算的内置示例并直接算出来。
+// 复用 loadExampleFor 这条现成路径，不另写输入逻辑。
+
+const QUICK_OPS = ["det", "inverse", "rref", "solve", "eigen", "multiply", "transform", "rank"];
+// 按钮文案走完整 i18n key（op.<name> 都已在字典里），不拼 "op." + op，
+// 否则静态检查会把 "op." 当成缺失键。
+const QUICK_KEY = {
+  det: "op.det", inverse: "op.inverse", rref: "op.rref", solve: "op.solve",
+  eigen: "op.eigen", multiply: "op.multiply", transform: "op.transform", rank: "op.rank",
+};
+
+function renderQuickPad() {
+  const box = el("quickPad");
+  if (!box) return;
+  box.innerHTML = "";
+  for (const op of QUICK_OPS) {
+    if (!EXAMPLES.ops[op]) continue;   // 没示例的运算不露脸，避免点了白点
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "chip";
+    b.textContent = tr(QUICK_KEY[op]);
+    b.addEventListener("click", () => loadExampleFor(op));
+    box.appendChild(b);
   }
 }
 
@@ -1346,9 +1415,11 @@ DEFAULT_NAMES.forEach(n => { state.lib[n] = newMatrix(3, 3); });
 state.editing = "A";
 restoreProgress();
 refreshAll();
+applyFromHash();        // 深链优先于默认/恢复的状态：分享链接或「试一试」进来直接算
 renderStarterChips();
-// 语言切换后场景芯片的标题要跟着变（文案在 i18n 里，芯片是动态生成的）
-I18N.onChange(() => { renderStarterChips(); });
+renderQuickPad();
+// 语言切换后动态生成的文案（场景芯片 / 常用计算面板）要跟着变
+I18N.onChange(() => { renderStarterChips(); renderQuickPad(); });
 
 // ---------------------------------------------------------------------------
 // 宽屏分栏的可拖动分隔条：调整输入列 / 结果列的宽度比例。

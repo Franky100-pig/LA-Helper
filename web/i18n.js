@@ -139,6 +139,17 @@ window.LA_I18N = (function () {
       "notes.oneArticle": "1 篇",
       "notes.nArticles": "篇",
       "notes.notFound": "没有这一篇（链接可能过时了）。",
+      "notes.tryIt": "试一试 →",
+      "notes.askIssue": "这篇有疑问？提 Issue",
+      "notes.issueTitle": "疑问 / 纠错",
+      "notes.issueBody": "关于这篇讲义：\n\n",
+
+      // ---- 常用计算 / 社区答疑 ----
+      "home.quickTitle": "常用计算",
+      "home.quickSub": "一键载入示例并算出结果",
+      "footer.note": "遇到算不对、看不懂、或发现错误？",
+      "footer.issue": "遇到问题或想纠错？在 LA-Helper 提 Issue →",
+      "footer.issueLaHw": "作业相关？去 LA-hw 提 Issue →",
 
       // ---- 结果区 ----
       "splitter.tip": "拖动调整左右两栏宽度",
@@ -397,6 +408,17 @@ window.LA_I18N = (function () {
       "notes.oneArticle": "1 article",
       "notes.nArticles": "articles",
       "notes.notFound": "No such article (the link may be out of date).",
+      "notes.tryIt": "Try it →",
+      "notes.askIssue": "Stuck? Open an Issue",
+      "notes.issueTitle": "Question / correction",
+      "notes.issueBody": "About this article:\n\n",
+
+      // ---- common calculations / community Q&A ----
+      "home.quickTitle": "Common calculations",
+      "home.quickSub": "One tap: load an example and compute",
+      "footer.note": "Something wrong, confusing, or a mistake you spotted?",
+      "footer.issue": "Found a bug or have a question? Open an Issue on LA-Helper →",
+      "footer.issueLaHw": "Homework? Open an Issue on LA-hw →",
 
       // ---- results ----
       "splitter.tip": "Drag to resize the two columns",
