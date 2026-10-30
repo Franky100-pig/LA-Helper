@@ -574,6 +574,12 @@
   .footer-links { display: flex; flex-wrap: wrap; gap: 8px 18px; }
   .footer-links a { color: var(--accent); text-decoration: none; font-weight: 500; }
   .footer-links a:hover { text-decoration: underline; }
+
+  /* 引擎加载失败后的「重新加载引擎」按钮（la-bridge.js 注入到 #engineStatus 里） */
+  .btn-retry-engine { margin-left: 10px; padding: 6px 14px; border-radius: 8px;
+    border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
+    font-size: 13px; font-weight: 600; cursor: pointer; }
+  .btn-retry-engine:hover { opacity: .9; }
 </style>
 </head>
 <body>

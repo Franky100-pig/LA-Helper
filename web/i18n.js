@@ -218,7 +218,9 @@ window.LA_I18N = (function () {
       "engine.sympy": "引擎核心已连接，正在加载 SymPy 包（首次约 6 MB）…",
       "engine.ready": "计算引擎已就绪 · 本地 Python/SymPy（WebAssembly）",
       "engine.fail": "引擎加载失败：",
-      "engine.allfail": "所有镜像源都连不上（{err}）。请检查网络后刷新重试。",
+      "engine.allfail": "所有引擎源都连不上（{err}）。请检查网络后点下方按钮重试。",
+      "engine.retry": "重新加载引擎",
+      "engine.local": "本站",
 
       // ---- 编辑提示 / 报错 ----
       "msg.pasteShape": "已按粘贴内容识别为 {rows}×{cols}，共 {n} 个数",
@@ -487,7 +489,9 @@ window.LA_I18N = (function () {
       "engine.sympy": "Engine core connected, loading SymPy (~6 MB first time)…",
       "engine.ready": "Engine ready · local Python/SymPy (WebAssembly)",
       "engine.fail": "Engine failed to load: ",
-      "engine.allfail": "None of the mirror sources are reachable ({err}). Check your network and refresh.",
+      "engine.allfail": "None of the engine sources are reachable ({err}). Check your network and retry with the button below.",
+      "engine.retry": "Retry loading engine",
+      "engine.local": "this site",
 
       // ---- editor messages / errors ----
       "msg.pasteShape": "Recognised {rows}×{cols} from the pasted block — {n} numbers",

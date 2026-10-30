@@ -5,6 +5,7 @@ Pyodide, so the deployed static page behaves identically to the local server.
 
 Run:  python tools/build_preview.py
 Out:  ../la-preview/  (index.html, app.js, la-bridge.js, core_bundle.js)
+      同源引擎目录 ../la-preview/pyodide/ 由 tools/fetch_pyodide.py 预先填充。
 """
 import json
 import os
@@ -19,12 +20,17 @@ ROOT = HERE.parent
 # it up.
 OUT_DEFAULT = ROOT.parent / "la-preview"
 OUT = pathlib.Path(os.environ.get("LA_PREVIEW_OUT", OUT_DEFAULT))
-# jsDelivr 的三个域名是同一份内容的独立 CDN。主域名 cdn.jsdelivr.net 在大陆
-# 时好时坏，最糟的故障形态是「挂起不报错」——同步 <script> 悬着，onerror 永远
-# 不来，排在它后面的 la-bridge.js / app.js 全部跟着卡死（用户只看到「加载中」）。
-# 所以由 BRIDGE 动态加载并逐源限时切换；这三个都镜像完整 dist（含 sympy wheel，
-# 已用 pyodide-lock.json 的 file_name 逐一核对过 200）。
+# 引擎来源，按优先级：
+#   1. "./pyodide/" 同源最小运行时（tools/fetch_pyodide.py 预先放进部署目录，
+#      ~20MB：wasm + stdlib + sympy/mpmath wheel）。同源 = 与页面自身一样可靠，
+#      这是对「大陆访问 jsDelivr 经常全挂、引擎加载不出来」的根治。
+#   2. jsDelivr 三个域名兜底 —— 同一份内容的独立 CDN，主域名 cdn.jsdelivr.net
+#      在大陆时好时坏，最糟的故障形态是「挂起不报错」——同步 <script> 悬着，
+#      onerror 永远不来，排在它后面的脚本全部跟着卡死（用户只看到「加载中」）。
+#      所以由 BRIDGE 动态加载并逐源限时切换；这三个都镜像完整 dist（含 sympy
+#      wheel，已用 pyodide-lock.json 的 file_name 逐一核对过 200）。
 PYODIDE_MIRRORS = [
+    "./pyodide/",
     "https://cdn.jsdelivr.net/pyodide/v0.26.2/full/",
     "https://fastly.jsdelivr.net/pyodide/v0.26.2/full/",
     "https://gcore.jsdelivr.net/pyodide/v0.26.2/full/",
@@ -79,11 +85,11 @@ def build_index(html, ver=""):
         html,
         count=1,
     )
-    # 预热三个镜像域名的 DNS+TLS：最终用哪个由运行时的探活决定，三个都先握手
-    # 也不浪费——没选中的连接很快被浏览器回收。
+    # 预热远程镜像域名的 DNS+TLS：最终用哪个由运行时的探活决定，几个都先握手
+    # 也不浪费——没选中的连接很快被浏览器回收。同源 "./pyodide/" 不需要。
     preconnect = "\n".join(
         f'  <link rel="preconnect" href="{m.split("/pyodide/")[0]}" crossorigin>'
-        for m in PYODIDE_MIRRORS
+        for m in PYODIDE_MIRRORS if m.startswith("http")
     )
     html = html.replace("<head>", "<head>\n" + preconnect, 1)
     # 给本地脚本加 ?v=... 版本号，强制浏览器在重新部署后拉取最新 JS，
@@ -143,7 +149,8 @@ function laDispatch(req) {
   return `_la_dispatch(${JSON.stringify(JSON.stringify(req))})`;
 }
 
-// 由 build_preview.py 注入（PYODIDE_MIRRORS）
+// 由 build_preview.py 注入（PYODIDE_MIRRORS）。首位 "./pyodide/" 是同源最小
+// 运行时（tools/fetch_pyodide.py 放进部署目录的 ~20MB）；jsDelivr 三源只兜底。
 const PYODIDE_SOURCES = __PYODIDE_SOURCES__;
 
 function laStatus(msg) {
@@ -152,6 +159,46 @@ function laStatus(msg) {
 }
 function laT(key, vars) {
   return (window.LA_I18N && window.LA_I18N.t) ? window.LA_I18N.t(key, vars) : key;
+}
+
+// 相对源（"./pyodide/"）解析成绝对 URL；状态文案里非 http 源显示「本站」。
+function resolveSrc(base) {
+  try {
+    return new URL(base, document.baseURI || window.location.href).href;
+  } catch (e) {
+    return base;
+  }
+}
+function srcLabel(base) {
+  return /^https?:/i.test(base) ? new URL(base).host : laT("engine.local");
+}
+
+// 上次成功的远程源下次优先试（只认清单内的，防被篡改的 localStorage 引去野站）。
+// 同源永远排第一：它和页面自身一样可靠，不该被一次 CDN 成功的记忆挤到后面。
+function savedSource() {
+  try {
+    return window.localStorage ? localStorage.getItem("la-pyodide-src") : null;
+  } catch (e) {
+    return null;
+  }
+}
+function rememberSource(base) {
+  try {
+    if (window.localStorage && /^https?:/i.test(base)) {
+      localStorage.setItem("la-pyodide-src", base);
+    }
+  } catch (e) { /* 无痕模式等，忽略 */ }
+}
+function orderedSources() {
+  const local = PYODIDE_SOURCES.filter((s) => !/^https?:/i.test(s));
+  const remote = PYODIDE_SOURCES.filter((s) => /^https?:/i.test(s));
+  const saved = savedSource();
+  const i = remote.indexOf(saved);
+  if (i > 0) {
+    remote.splice(i, 1);
+    remote.unshift(saved);
+  }
+  return local.concat(remote);
 }
 
 // Load one script; resolve false on error *or* timeout — never hang, never reject.
@@ -188,120 +235,153 @@ function withTimeout(promise, ms, tag) {
   ]);
 }
 
-(async function boot() {
-  const btn = document.getElementById("compute");
-  let loader = null;   // loadPyodide —— 任一源把 pyodide.js 送到了就有
-  let lastErr = null;
-  let pyodide = null;
+// 全部源失败后给个重试按钮 —— 让用户刷新整页是最糟的重试方式（又得重下一切）。
+function showRetry() {
+  const el = document.getElementById("engineStatus");
+  if (!el || document.getElementById("engineRetry")) return;
+  const b = document.createElement("button");
+  b.id = "engineRetry";
+  b.type = "button";
+  b.className = "btn-retry-engine";
+  b.textContent = laT("engine.retry");
+  b.onclick = () => {
+    el.textContent = laT("engine.loading");
+    window.LA.error = null;
+    window.LA._bootPromise = boot();
+  };
+  el.appendChild(b);
+}
 
-  for (const base of PYODIDE_SOURCES) {
-    if (!loader) {
-      laStatus(laT("engine.trying", { host: new URL(base).host }));
-      if (!(await loadScript(base + "pyodide.js")) ||
-          typeof window.loadPyodide !== "function") {
-        lastErr = "script failed: " + base;
-        continue;
+let bootPromise = null;
+function boot() {
+  if (bootPromise) return bootPromise;
+  bootPromise = (async () => {
+    const btn = document.getElementById("compute");
+    let loader = null;   // loadPyodide —— 任一源把 pyodide.js 送到了就有
+    let lastErr = null;
+    let pyodide = null;
+    let winBase = null;
+
+    for (const base of orderedSources()) {
+      const src = resolveSrc(base);
+      if (!loader) {
+        laStatus(laT("engine.trying", { host: srcLabel(base) }));
+        if (!(await loadScript(src + "pyodide.js")) ||
+            typeof window.loadPyodide !== "function") {
+          lastErr = "script failed: " + base;
+          continue;
+        }
+        loader = window.loadPyodide;
       }
-      loader = window.loadPyodide;
+      try {
+        pyodide = await withTimeout(loader({ indexURL: src }), 120000, base);
+        laStatus(laT("engine.sympy"));
+        await withTimeout(pyodide.loadPackage("sympy"), 120000, "sympy");
+        winBase = base;
+        break;   // 该源两阶段全部成功
+      } catch (err) {
+        lastErr = err;
+        pyodide = null;
+        // loader 保留：各源的 pyodide.js 是同一份，换个 indexURL 重开实例即可，
+        // 不必再下载一次脚本。
+      }
     }
+
+    if (!pyodide) {
+      window.LA.error = String(lastErr);
+      laStatus(laT("engine.allfail", { err: String(lastErr) }));
+      showRetry();
+      return;
+    }
+    rememberSource(winBase);
+
     try {
-      pyodide = await withTimeout(loader({ indexURL: base }), 60000, base);
-      laStatus(laT("engine.sympy"));
-      await withTimeout(pyodide.loadPackage("sympy"), 120000, "sympy");
-      break;   // 该源两阶段全部成功
+      const FS = pyodide.FS;
+      try { FS.mkdir("/la"); } catch (e) { /* exists */ }
+      for (const [name, src] of Object.entries(window.LA_CORE_FILES)) {
+        FS.writeFile("/la/" + name, src);
+      }
+      pyodide.runPython(
+        'import sys, json\\n' +
+        'if "/la" not in sys.path:\\n' +
+        '    sys.path.insert(0, "/la")\\n' +
+        'import engine\\n' +
+        'import format_math\\n' +
+        'def _la_dispatch(req_json):\\n' +
+        '    return json.dumps(engine.dispatch(json.loads(req_json)), ensure_ascii=False)\\n'
+      );
+      window.LA.dispatch = (req) => JSON.parse(pyodide.runPython(laDispatch(req)));
+      window.LA.pyodide = pyodide;
+      window.LA.ready = true;
+      // 图片导入：浏览器把 Gemini 返回的原始文本交给共享 Python 解析器
+      // （与桌面端 core.photo.parse_matrix_response 同一份实现，保证两端一致）。
+      window.LA.parsePhoto = (rawText, lang) => {
+        // 空回复不在这里短路：Python 侧 photo.parse_matrix_response 已经有
+        // 一模一样的判断（而且现在会按语言给出对应文案）。原先 JS 里又抄了一份
+        // 硬编码中文，两份迟早会漂 —— 删掉这份，让 Python 当唯一出处。
+        const pyLines = [
+          "import json",
+          "import photo",
+          "import i18n",
+          // 图片导入不经过 engine.dispatch，语言得在这里单独设一次
+          "i18n.set_lang(" + JSON.stringify(lang || "zh") + ")",
+          "try:",
+          "    _m = photo.parse_matrix_response(" + JSON.stringify(JSON.stringify(rawText)) + ")",
+          '    _out = {"ok": True, "matrix": _m}',
+          "except photo.PhotoError as _e:",
+          '    _out = {"ok": False, "error": str(_e), "raw": _e.raw}',
+          // 结尾必须是表达式（runPython 只返回最后一个表达式的值，赋值会得到 undefined）
+          "json.dumps(_out, ensure_ascii=False)",
+        ];
+        const py = pyLines.join("\\n");
+        return JSON.parse(pyodide.runPython(py));
+      };
+      // 提示词也单一来源：网页端不再自带一份，直接向 Python 要，避免两端措辞漂移。
+      window.LA.photoPrompt = () => pyodide.runPython("import photo; photo.build_prompt()");
+      // 公式美化也单一来源：网页端把精确值字符串交给 Python 排版（竖式分数 / √ /
+      // 小数），与桌面端 core.format_math 同一份实现，保证两端一致。
+      window.LA.mathHtml = (s) => {
+        // Pyodide runPython 只返回最后一个“表达式”的值（return_mode="last_expr"），
+        // 最后一行若是赋值语句会得到 undefined——所以结尾必须是表达式 `_h`。
+        const pyLines = [
+          "import format_math",
+          "try:",
+          "    _h = format_math.to_html(" + JSON.stringify(s ?? "") + ")",
+          "except Exception as _e:",
+          '    _h = format_math._escape(str(_e))',
+          "_h",
+        ];
+        return pyodide.runPython(pyLines.join("\\n"));
+      };
+      window.LA.stepHtml = (s) => {
+        // 同样必须以表达式结尾（runPython 只返回最后一个表达式的值），并兜底异常，
+        // 保证任何情况下都返回字符串、绝不返回 undefined。
+        const pyLines = [
+          "import format_math",
+          "try:",
+          "    _h = format_math.step_html(" + JSON.stringify(s ?? "") + ")",
+          "except Exception as _e:",
+          '    _h = format_math._escape(str(_e))',
+          "_h",
+        ];
+        return pyodide.runPython(pyLines.join("\\n"));
+      };
+      // 状态文案走 i18n（i18n.js 在 <head> 里先于本文件加载）
+      laStatus(laT("engine.ready"));
+      if (btn) btn.disabled = false;
     } catch (err) {
-      lastErr = err;
-      pyodide = null;
-      // loader 保留：三个域名的 pyodide.js 是同一份，换个 indexURL 重开实例即可，
-      // 不必再下载一次脚本。
+      window.LA.error = String(err);
+      laStatus(laT("engine.fail") + err);
+      showRetry();
     }
-  }
-
-  if (!pyodide) {
-    window.LA.error = String(lastErr);
-    laStatus(laT("engine.allfail", { err: String(lastErr) }));
-    return;
-  }
-
-  try {
-    const FS = pyodide.FS;
-    try { FS.mkdir("/la"); } catch (e) { /* exists */ }
-    for (const [name, src] of Object.entries(window.LA_CORE_FILES)) {
-      FS.writeFile("/la/" + name, src);
-    }
-    pyodide.runPython(
-      'import sys, json\\n' +
-      'if "/la" not in sys.path:\\n' +
-      '    sys.path.insert(0, "/la")\\n' +
-      'import engine\\n' +
-      'import format_math\\n' +
-      'def _la_dispatch(req_json):\\n' +
-      '    return json.dumps(engine.dispatch(json.loads(req_json)), ensure_ascii=False)\\n'
-    );
-    window.LA.dispatch = (req) => JSON.parse(pyodide.runPython(laDispatch(req)));
-    window.LA.pyodide = pyodide;
-    window.LA.ready = true;
-    // 图片导入：浏览器把 Gemini 返回的原始文本交给共享 Python 解析器
-    // （与桌面端 core.photo.parse_matrix_response 同一份实现，保证两端一致）。
-    window.LA.parsePhoto = (rawText, lang) => {
-      // 空回复不在这里短路：Python 侧 photo.parse_matrix_response 已经有
-      // 一模一样的判断（而且现在会按语言给出对应文案）。原先 JS 里又抄了一份
-      // 硬编码中文，两份迟早会漂 —— 删掉这份，让 Python 当唯一出处。
-      const pyLines = [
-        "import json",
-        "import photo",
-        "import i18n",
-        // 图片导入不经过 engine.dispatch，语言得在这里单独设一次
-        "i18n.set_lang(" + JSON.stringify(lang || "zh") + ")",
-        "try:",
-        "    _m = photo.parse_matrix_response(" + JSON.stringify(JSON.stringify(rawText)) + ")",
-        '    _out = {"ok": True, "matrix": _m}',
-        "except photo.PhotoError as _e:",
-        '    _out = {"ok": False, "error": str(_e), "raw": _e.raw}',
-        // 结尾必须是表达式（runPython 只返回最后一个表达式的值，赋值会得到 undefined）
-        "json.dumps(_out, ensure_ascii=False)",
-      ];
-      const py = pyLines.join("\\n");
-      return JSON.parse(pyodide.runPython(py));
-    };
-    // 提示词也单一来源：网页端不再自带一份，直接向 Python 要，避免两端措辞漂移。
-    window.LA.photoPrompt = () => pyodide.runPython("import photo; photo.build_prompt()");
-    // 公式美化也单一来源：网页端把精确值字符串交给 Python 排版（竖式分数 / √ /
-    // 小数），与桌面端 core.format_math 同一份实现，保证两端一致。
-    window.LA.mathHtml = (s) => {
-      // Pyodide runPython 只返回最后一个“表达式”的值（return_mode="last_expr"），
-      // 最后一行若是赋值语句会得到 undefined——所以结尾必须是表达式 `_h`。
-      const pyLines = [
-        "import format_math",
-        "try:",
-        "    _h = format_math.to_html(" + JSON.stringify(s ?? "") + ")",
-        "except Exception as _e:",
-        '    _h = format_math._escape(str(_e))',
-        "_h",
-      ];
-      return pyodide.runPython(pyLines.join("\\n"));
-    };
-    window.LA.stepHtml = (s) => {
-      // 同样必须以表达式结尾（runPython 只返回最后一个表达式的值），并兜底异常，
-      // 保证任何情况下都返回字符串、绝不返回 undefined。
-      const pyLines = [
-        "import format_math",
-        "try:",
-        "    _h = format_math.step_html(" + JSON.stringify(s ?? "") + ")",
-        "except Exception as _e:",
-        '    _h = format_math._escape(str(_e))',
-        "_h",
-      ];
-      return pyodide.runPython(pyLines.join("\\n"));
-    };
-    // 状态文案走 i18n（i18n.js 在 <head> 里先于本文件加载）
-    laStatus(laT("engine.ready"));
-    if (btn) btn.disabled = false;
-  } catch (err) {
-    window.LA.error = String(err);
-    laStatus(laT("engine.fail") + err);
-  }
-})();
+  })();
+  // 结束后清掉去重句柄：下一次调用（重试按钮）真重跑，而不是拿旧 promise。
+  bootPromise.then(() => { bootPromise = null; }, () => { bootPromise = null; });
+  return bootPromise;
+}
+window.LA.retry = boot;
+// 脚本的完成值 = boot 的 promise（vm 测试靠它 await 整个换源流程）。
+window.LA._bootPromise = boot();
 """.replace("__PYODIDE_SOURCES__", json.dumps(PYODIDE_MIRRORS))
 
 
@@ -369,6 +449,9 @@ def main():
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
     print("built ->", OUT)
     print("core modules:", ", ".join(core))
+    if not (OUT / "pyodide" / "pyodide.js").exists():
+        print("warning: pyodide/ 未找到 —— 同源引擎不可用，只会走 CDN 兜底源。"
+              "先跑 `python tools/fetch_pyodide.py` 再构建/部署。")
 
 
 if __name__ == "__main__":
