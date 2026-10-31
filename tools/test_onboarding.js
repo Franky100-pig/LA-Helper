@@ -109,6 +109,10 @@ function boot({ storage = {}, lang = "zh" } = {}) {
 
   const sandbox = {
     window: win,
+    // app.js 底部的 init 会调用 applyFromHash()，它读的是**裸 location**（浏览器里的
+    // 全局变量），不是 window.location。vm 沙箱里没有这层全局，不补就会
+    // ReferenceError: location is not defined（v0.10.0 深链功能引入时漏补过两个测试）。
+    location: win.location,
     document: {
       documentElement: docEl,
       getElementById: (id) => els[id] || null,
