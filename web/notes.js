@@ -165,8 +165,8 @@ window.LA_NOTES = {
         { h: "完整算例：A = [[4, 1], [2, 3]]" },
         "① 先把 λI 减掉，再取行列式（只有主对角线会动，其它元素照抄）：",
         { formula: "A − λI = [[4−λ, 1], [2, 3−λ]]　→　det = (4−λ)(3−λ) − 2·1 = λ² − 7λ + 10 = (λ − 2)(λ − 5)" },
-        "② 令它等于 0，得到 <b>λ₁ = 5，λ₂ = 2</b>。顺手用两条恒等式自查：",
-        { formula: "λ₁ + λ₂ = 7 = tr(A) = 4 + 3　·　λ₁λ₂ = 10 = det(A) = 12 − 2" },
+        "② 令它等于 0，得到 <b>λ₁ = 5，λ₂ = 2</b>。顺手用行列式自查一遍：",
+        { formula: "λ₁λ₂ = 5 × 2 = 10 = det(A) = 12 − 2" },
         "③ 求 λ = 5 的特征向量：5I 减掉之后矩阵变成 [[−1, 1], [2, −2]]，两行成比例、行化简只剩一行 —— 方程 −x + y = 0 给出 y = x，所以 v = t·(1, 1)。",
         "再求 λ = 2 的特征向量：<b>必须重新代入、重新化简</b>，2I 减掉之后是 [[2, 1], [2, 1]]，剩下 2x + y = 0，即 y = −2x，所以 v = t·(1, −2)。",
         { ul: [
@@ -177,7 +177,7 @@ window.LA_NOTES = {
         { formula: "A·(1, 1) = (4+1, 2+3) = (5, 5) = 5·(1, 1)　✓　·　A·(1, −2) = (4−2, 2−6) = (2, −4) = 2·(1, −2)　✓" },
         { h: "快捷性质：省算力，也用来自查" },
         { ul: [
-          "<b>λ 之和 = tr(A)</b>（主对角线和），<b>λ 之积 = det(A)</b>，重根要按次数重复计数。",
+          "<b>λ 之积 = det(A)</b>（重根要按次数重复计数）—— 算完花两秒核对，能挡掉大半代数错误。",
           "<b>三角阵 / 对角阵</b>的特征值就是主对角线上的那些数，连多项式都不用算。",
           "<b>Aᵏ</b> 的特征值是 λᵏ，特征向量不变 → 算 A¹⁰⁰·v 只要乘一个 λ¹⁰⁰。",
           "<b>A + cI</b> 的特征值是 λ + c，特征向量不变；<b>A⁻¹</b> 的特征值是 1/λ（要求 λ ≠ 0）。",
@@ -691,8 +691,8 @@ window.LA_NOTES = {
         { h: "Worked example: A = [[4, 1], [2, 3]]" },
         "① Subtract λI first (only the diagonal moves), then take the determinant:",
         { formula: "A − λI = [[4−λ, 1], [2, 3−λ]]　→　det = (4−λ)(3−λ) − 2·1 = λ² − 7λ + 10 = (λ − 2)(λ − 5)" },
-        "② Set it to zero: <b>λ₁ = 5, λ₂ = 2</b>. Immediately cross-check with the two identities:",
-        { formula: "λ₁ + λ₂ = 7 = tr(A) = 4 + 3　·　λ₁λ₂ = 10 = det(A) = 12 − 2" },
+        "② Set it to zero: <b>λ₁ = 5, λ₂ = 2</b>. Cross-check with the determinant:",
+        { formula: "λ₁λ₂ = 5 × 2 = 10 = det(A) = 12 − 2" },
         "③ Eigenvector for λ = 5: subtracting 5I leaves [[−1, 1], [2, −2]]. The rows are proportional, row reduction keeps one of them, and −x + y = 0 gives y = x — so v = t·(1, 1).",
         "Now λ = 2: <b>substitute and reduce again from scratch.</b> Subtracting 2I leaves [[2, 1], [2, 1]]; the single surviving equation is 2x + y = 0, so y = −2x and v = t·(1, −2).",
         { ul: [
@@ -703,7 +703,7 @@ window.LA_NOTES = {
         { formula: "A·(1, 1) = (4+1, 2+3) = (5, 5) = 5·(1, 1)　✓　·　A·(1, −2) = (4−2, 2−6) = (2, −4) = 2·(1, −2)　✓" },
         { h: "Shortcuts worth memorising (they double as self-checks)" },
         { ul: [
-          "<b>Sum of λ = tr(A)</b> (trace), <b>product of λ = det(A)</b>, counting repeated roots with multiplicity.",
+          "<b>Product of λ = det(A)</b> (repeated roots counted with multiplicity) — a two-second check that catches most algebraic slips.",
           "For a <b>triangular or diagonal</b> matrix the eigenvalues are simply the diagonal entries — no polynomial needed.",
           "<b>Aᵏ</b> has eigenvalues λᵏ with unchanged eigenvectors, so A¹⁰⁰·v is one multiplication by λ¹⁰⁰.",
           "<b>A + cI</b> has eigenvalues λ + c, same eigenvectors; <b>A⁻¹</b> has eigenvalues 1/λ (when λ ≠ 0).",
