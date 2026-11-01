@@ -1123,6 +1123,205 @@ window.LA_NOTES = {
 })();
 
 /* ---------------------------------------------------------------------------
+ * 自测题：每篇 2 道概念小题，答案默认折叠（<details>），先想再展开。
+ * glossary（术语表）和 practice（练习说明）不适合出题，不加。
+ * 结构：QUIZ[lang][id] = [{q, a}, ...]
+ * ------------------------------------------------------------------------- */
+(function injectQuiz() {
+  const QUIZ = {
+    zh: {
+      cofactor: [
+        { q: "adj(A) 和余子式矩阵 C 是什么关系？",
+          a: "adj(A) = Cᵀ。先算每个元素的代数余子式 C(i,j) = (−1)^(i+j)·M(i,j)，再把整个矩阵转置——只算 C 不转置是常见错误。" },
+        { q: "公式 A⁻¹ = adj(A)/det(A) 为什么要求 det(A) ≠ 0？",
+          a: "它来自恒等式 A·adj(A) = det(A)·I，两边要同除以 det(A) 才能解出 A⁻¹；det = 0 时 A 本来就不可逆，公式没有意义。" },
+      ],
+      "row-reduction": [
+        { q: "交换两行，行列式怎么变？",
+          a: "变号。每交换一次乘一个 −1，所以 det = (−1)^s ×（化成三角阵后的主元乘积），s 是交换次数。" },
+        { q: "为什么行化简能用来算行列式？",
+          a: "三种初等行变换对 det 的影响都是已知的：换行变号、某行乘 c 则 det 乘 c、倍加不变。化成三角阵后 det 就是主对角线乘积，反推回去即可。" },
+      ],
+      matmul: [
+        { q: "(AB) 的第 i 行第 j 列是什么？",
+          a: "A 的第 i 行点乘 B 的第 j 列。" },
+        { q: "AB = BA 一般成立吗？",
+          a: "一般不成立。矩阵乘法不可交换——这也是「左乘」和「右乘」要区分的原因；n×n 时 AB 和 BA 都存在但通常不相等。" },
+      ],
+      singular: [
+        { q: "det(A) = 0 在几何上说明什么？",
+          a: "变换把空间压扁了（面积/体积变成 0）：一定有非零向量被压成 0，于是 Ax = 0 有非零解，A 不可逆。" },
+        { q: "[[1, 2], [2, 4]] 为什么奇异？",
+          a: "两行成比例（第二行 = 2×第一行），行列式 = 0。行（列）成比例是最常见的奇异来源。" },
+      ],
+      rank: [
+        { q: "rank(A) 数的到底是什么？",
+          a: "主元个数，也就是极大线性无关行（列）的个数 = 行空间维数 = 列空间维数。" },
+        { q: "3×5 矩阵的 rank 最大是多少？",
+          a: "3。主元每列最多一个，所以 rank ≤ min(行数, 列数)。" },
+      ],
+      eigen: [
+        { q: "Av = λv 里的 v 可以取零向量吗？",
+          a: "不行。零向量对任何 λ 都满足等式，若允许则任何数都是特征值，谱就失去意义——定义要求 v ≠ 0。" },
+        { q: "某个 λ 是复数说明什么？",
+          a: "实平面上没有不动的方向：该变换在旋转。复特征值成对共轭出现（a ± bi），对应「旋转 + 缩放」。" },
+      ],
+      "eigen-howto": [
+        { q: "为什么令 det(A − λI) = 0 就能找到 λ？",
+          a: "(A − λI)v = 0 要有非零解 ⇔ A − λI 不可逆 ⇔ 它的行列式为 0。行列式是 λ 的多项式，解它就得到所有 λ。" },
+        { q: "解出特征向量后，为什么必须代回验证 Av = λv？",
+          a: "展开多项式和行化简都容易出错（符号、常数项、λ 和向量配错对），而 Av = λv 是定义本身，一步乘法就能查出错误。" },
+      ],
+      adjugate: [
+        { q: "2×2 求伴随的口诀是什么？",
+          a: "主对角互换、副对角变号，再除以 det(A)。" },
+        { q: "伴随法和高斯消元求逆，实际用哪个？",
+          a: "高斯消元。伴随法要算 n² 个 n−1 阶行列式（约 O(n·n!)），只用来理解原理和写公式，不适合真算。" },
+      ],
+      orthogonal: [
+        { q: "QᵀQ = I 说明 Q 的列有什么性质？",
+          a: "各列是单位向量且两两正交——它们构成一组标准正交基。" },
+        { q: "正交矩阵的行列式一定是多少？",
+          a: "±1。由 det(Qᵀ)det(Q) = det(I) = 1 得 det(Q)² = 1。det = 1 是纯旋转，det = −1 带一次翻转。" },
+      ],
+      vectorspace: [
+        { q: "判定子空间要看哪三条？",
+          a: "含零向量、对加法封闭、对数乘封闭。三条都满足才是子空间，缺一不可。" },
+        { q: "过原点的直线是子空间，不过原点的为什么不是？",
+          a: "不过原点就不含 0，第一条直接失败。（它对加法也不封闭：直线上两点相加会落到直线的截距之外。）" },
+      ],
+      basis: [
+        { q: "一组基要同时满足哪两个条件？",
+          a: "线性无关，并且张成整个空间。少了任何一个都当不了坐标系。" },
+        { q: "同一个空间的不同基，有什么共同点？",
+          a: "向量个数相同——这个数就是空间的维数。" },
+      ],
+      spaces: [
+        { q: "Col(A) 和 Nul(A) 的基分别怎么取？",
+          a: "Col(A) 用**原矩阵**的主元列；Nul(A) 解 Ax = 0，在化简后的矩阵上找自由变量、写出特殊解。" },
+        { q: "行变换会改变 Col(A) 吗？",
+          a: "会。行变换保持行空间和列之间的依赖关系，但不保持列空间本身——所以 Col 的基必须回原矩阵取。" },
+      ],
+      nullity: [
+        { q: "nullity(A) 数的是什么？",
+          a: "Ax = 0 解里自由变量的个数 = 列数 n − rank(A)。" },
+        { q: "5×3 矩阵的 nullity 最大是多少？",
+          a: "3。自由变量最多和列数一样多（rank 最小为 0 时）。" },
+      ],
+      "rank-nullity": [
+        { q: "秩零度定理的内容是什么？",
+          a: "rank(A) + nullity(A) = n（列数）。「主元用掉的维数 + 自由变量剩下的维数 = 总维数」。" },
+        { q: "4×6 矩阵 rank = 4，nullity 是多少？",
+          a: "6 − 4 = 2。Nul(A) 生活在 R⁶ 里，所以是 6 不是 4。" },
+      ],
+      transform: [
+        { q: "怎么直接写出线性变换 T 的标准矩阵？",
+          a: "把 T 作用在标准基上：A = [T(e₁) … T(eₙ)]，像向量按列排好。" },
+        { q: "T(x, y) = (2x + y, x − y) 的标准矩阵是什么？",
+          a: "[[2, 1], [1, −1]]。第一列是 T(e₁) = (2, 1)，第二列是 T(e₂) = (1, −1)。" },
+      ],
+    },
+    en: {
+      cofactor: [
+        { q: "How is adj(A) related to the cofactor matrix C?",
+          a: "adj(A) = Cᵀ. Compute each cofactor C(i,j) = (−1)^(i+j)·M(i,j), then transpose the whole matrix — forgetting the transpose is the classic mistake." },
+        { q: "Why does A⁻¹ = adj(A)/det(A) require det(A) ≠ 0?",
+          a: "It comes from A·adj(A) = det(A)·I; you must divide both sides by det(A). If det = 0 the matrix is not invertible and the formula says nothing." },
+      ],
+      "row-reduction": [
+        { q: "What happens to the determinant when two rows are swapped?",
+          a: "It changes sign. Each swap multiplies by −1, so det = (−1)^s × (product of pivots after reduction), with s the number of swaps." },
+        { q: "Why can row reduction compute a determinant?",
+          a: "All three row operations have known effects: a swap flips the sign, scaling a row by c scales det by c, and adding a multiple of one row to another changes nothing. Reduce to triangular form, where det is the diagonal product, then undo the bookkeeping." },
+      ],
+      matmul: [
+        { q: "What is the (i, j) entry of AB?",
+          a: "Row i of A dotted with column j of B." },
+        { q: "Does AB = BA hold in general?",
+          a: "No — matrix multiplication is not commutative. That is exactly why left and right multiplication are distinguished." },
+      ],
+      singular: [
+        { q: "What does det(A) = 0 mean geometrically?",
+          a: "The transformation squashes the space (area/volume becomes 0): some non-zero vector is sent to 0, so Ax = 0 has a non-zero solution and A is not invertible." },
+        { q: "Why is [[1, 2], [2, 4]] singular?",
+          a: "The rows are proportional (row 2 = 2 × row 1), so the determinant is 0. Proportional rows/columns are the most common source of singularity." },
+      ],
+      rank: [
+        { q: "What does rank(A) actually count?",
+          a: "The number of pivots — equivalently the size of the largest independent set of rows (or columns), i.e. the dimension of the row space." },
+        { q: "What is the largest possible rank of a 3×5 matrix?",
+          a: "3. Each pivot uses up one row, so rank ≤ min(rows, columns)." },
+      ],
+      eigen: [
+        { q: "May v = 0 serve as an eigenvector in Av = λv?",
+          a: "No. The zero vector satisfies the equation for every λ, which would make every number an eigenvalue. The definition requires v ≠ 0." },
+        { q: "What does it mean when an eigenvalue is complex?",
+          a: "No real direction stays fixed — the transformation rotates. Complex eigenvalues come in conjugate pairs a ± bi, meaning rotation plus scaling." },
+      ],
+      "eigen-howto": [
+        { q: "Why does det(A − λI) = 0 find the eigenvalues?",
+          a: "(A − λI)v = 0 has a non-zero solution exactly when A − λI is not invertible, i.e. when its determinant vanishes. That determinant is a polynomial in λ; its roots are the eigenvalues." },
+        { q: "After solving for an eigenvector, why must you check Av = λv?",
+          a: "Both the polynomial expansion and the row reduction can slip (signs, constants, pairing λ with the wrong vector). Av = λv is the definition itself and costs one multiplication." },
+      ],
+      adjugate: [
+        { q: "What is the 2×2 adjugate trick?",
+          a: "Swap the diagonal entries, negate the off-diagonal ones, then divide by det(A)." },
+        { q: "Adjugate or Gaussian elimination — which do you actually use to invert?",
+          a: "Gauss. The adjugate needs n² determinants of size n−1 (about O(n·n!)); it is for understanding the formula, not for computing." },
+      ],
+      orthogonal: [
+        { q: "What does QᵀQ = I say about the columns of Q?",
+          a: "They are unit vectors and mutually orthogonal — an orthonormal basis." },
+        { q: "What values can det(Q) take for an orthogonal Q?",
+          a: "±1. From det(Qᵀ)det(Q) = det(I) = 1 we get det(Q)² = 1: det = 1 is a pure rotation, det = −1 includes a flip." },
+      ],
+      vectorspace: [
+        { q: "What three conditions define a subspace?",
+          a: "Contains 0, closed under addition, closed under scalar multiplication. All three, every time." },
+        { q: "Why is a line through the origin a subspace but a shifted line not?",
+          a: "A shifted line does not contain 0, failing the first condition outright. (It also fails closure: adding two points on it lands off the line.)" },
+      ],
+      basis: [
+        { q: "What two conditions must a basis satisfy?",
+          a: "Linear independence and spanning the whole space." },
+        { q: "What do all bases of one space have in common?",
+          a: "The same number of vectors — that number is the dimension." },
+      ],
+      spaces: [
+        { q: "How do you get a basis for Col(A) versus Nul(A)?",
+          a: "Col(A): the pivot columns of the **original** matrix. Nul(A): solve Ax = 0, read free variables off the reduced matrix, write the special solutions." },
+        { q: "Do row operations preserve Col(A)?",
+          a: "No. They preserve the row space and the dependence pattern of the columns, but not the column space itself." },
+      ],
+      nullity: [
+        { q: "What does nullity(A) count?",
+          a: "The number of free variables in Ax = 0, which equals n − rank(A)." },
+        { q: "Largest possible nullity of a 5×3 matrix?",
+          a: "3 — free variables can never exceed the number of columns." },
+      ],
+      "rank-nullity": [
+        { q: "State the rank–nullity theorem.",
+          a: "rank(A) + nullity(A) = n, the number of columns. Pivots used plus free variables left equals total dimensions." },
+        { q: "A 4×6 matrix has rank 4. What is its nullity?",
+          a: "6 − 4 = 2. Nul(A) lives in R⁶, so the total is 6, not 4." },
+      ],
+      transform: [
+        { q: "How do you write down the standard matrix of a transformation T directly?",
+          a: "Apply T to the standard basis vectors and line up the images as columns: A = [T(e₁) … T(eₙ)]." },
+        { q: "What is the standard matrix of T(x, y) = (2x + y, x − y)?",
+          a: "[[2, 1], [1, −1]] — column 1 is T(e₁) = (2, 1), column 2 is T(e₂) = (1, −1)." },
+      ],
+    },
+  };
+  for (const lang of ["zh", "en"]) {
+    for (const a of window.LA_NOTES[lang]) {
+      if (QUIZ[lang][a.id]) a.quiz = QUIZ[lang][a.id];
+    }
+  }
+})();
+
+/* ---------------------------------------------------------------------------
  * 共用小工具：讲义独立页（notes.html）用，主页不再渲染讲义。
  * 放在这里而不是各页各写一份，避免两处渲染逻辑漂移。
  * ------------------------------------------------------------------------- */

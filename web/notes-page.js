@@ -171,6 +171,26 @@
     view.appendChild(lead);
     view.appendChild(body);
 
+    // 自测题：每篇 2 道概念小题，答案折叠在 <details> 里，先想再展开。
+    if (a.quiz && a.quiz.length) {
+      const quiz = document.createElement("div");
+      quiz.className = "note-quiz";
+      const h = document.createElement("h4");
+      h.textContent = tr("notes.quizTitle");
+      quiz.appendChild(h);
+      a.quiz.forEach((item, i) => {
+        const d = document.createElement("details");
+        const s = document.createElement("summary");
+        s.textContent = (i + 1) + ". " + item.q;
+        const p = document.createElement("p");
+        p.textContent = item.a;
+        d.appendChild(s);
+        d.appendChild(p);
+        quiz.appendChild(d);
+      });
+      view.appendChild(quiz);
+    }
+
     // 底部：「试一试」跳计算器并预填本篇示例 + 本篇专属的「提 Issue」答疑入口。
     // 这两样是「讲义 ↔ 计算」闭环和「前端自学 + GitHub 社区答疑」落点。
     if (a.try) {
