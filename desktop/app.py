@@ -269,11 +269,19 @@ class LAApp:
     def _refresh_widget_colors(self):
         """把那些用 tk（非 ttk）建、颜色写死的控件也刷成新配色。"""
         c = self.colors
-        for w in (getattr(self, "preview", None), getattr(self, "out", None)):
+        for w in (getattr(self, "preview", None), getattr(self, "out", None),
+                  getattr(self, "step_out", None)):
             try:
                 w.configure(bg=c["field"], fg=c["text"], insertbackground=c["accent"])
             except Exception:
                 pass
+        for attr in ("out", "step_out"):
+            w = getattr(self, attr, None)
+            if w is not None and hasattr(w, "tag_configure"):
+                try:
+                    self._config_step_tags(w)
+                except Exception:
+                    pass
         for _r, _c, entry in getattr(self, "edit_widgets", []):
             try:
                 entry.configure(bg=c["field"], fg=c["text"], insertbackground=c["accent"])
@@ -808,7 +816,43 @@ class LAApp:
         self._article_btn_var = tk.StringVar()
         self.article_btn = ttk.Button(
             rf, textvariable=self._article_btn_var, command=self._open_article_from_btn)
+
+        # ---- 单步播放器：有分步结果时出现（与网页版消费同一份 steps 数据）----
+        # 每步 = {text, matrix, op, pivot, rows}；pivot 是 0 基 {row, col}，
+        # rows 是这一步被改动的行。渲染时整行高亮（改动行淡色、主元行强调）。
+        self._steps = []
+        self._step_idx = 0
+        self._playing = False
+        self._play_job = None
+        self.step_pos_var = tk.StringVar(value="")
+        self.step_label_var = tk.StringVar(value="")
+        self.player = ttk.Frame(rf)
+        pbar = ttk.Frame(self.player)
+        pbar.pack(fill="x", pady=(0, 4))
+        ttk.Button(pbar, text="⏮", width=3, command=self._step_first).pack(side="left")
+        ttk.Button(pbar, text="◀", width=3, command=self._step_prev).pack(side="left", padx=2)
+        self.play_btn = ttk.Button(pbar, text="▶", width=3, command=self._toggle_play)
+        self.play_btn.pack(side="left", padx=2)
+        ttk.Button(pbar, text="▶|", width=3, command=self._step_last).pack(side="left")
+        ttk.Label(pbar, textvariable=self.step_pos_var).pack(side="left", padx=(8, 0))
+        ttk.Label(self.player, textvariable=self.step_label_var, wraplength=560,
+                  justify="left").pack(fill="x", anchor="w")
+        self.step_out = tk.Text(
+            self.player, bg=self.colors["field"], fg=self.colors["text"],
+            font=("Menlo", 13), wrap="none", relief="flat", bd=0, height=5,
+            state="disabled")
+        self.step_out.pack(fill="x", pady=(2, 0))
+        self._config_step_tags(self.step_out)
+        self.player.pack_forget()      # 默认隐藏；_set_steps 里按有无步骤显隐
+
         self._refresh_widget_colors()
+
+    def _config_step_tags(self, w):
+        """单步播放器矩阵的高亮配色（换主题时随 _refresh_widget_colors 重刷）。"""
+        c = self.colors
+        w.tag_configure("pv", background=c["accent"], foreground=c["btn_fg"])
+        w.tag_configure("hl", background=c["select"])
+
 
     def _open_article_from_btn(self):
         if self._article_note:
@@ -825,6 +869,7 @@ class LAApp:
         dec = self.dec_var.get()
         if not res.get("ok"):
             self._write("⚠️ " + str(res.get("error", "未知错误")), "err")
+            self._set_steps([])
             self.out.config(state="disabled")
             return
         t = res.get("type")
@@ -899,10 +944,115 @@ class LAApp:
                 if mat:
                     self._write("   " + format_matrix(mat, dec).replace("\n", "\n   "),
                                 "mat")
+        # 单步播放器与完整步骤列表消费同一份 steps；没步骤（或被关闭）就隐藏
+        self._set_steps(res.get("steps"))
         self._write_article_hint(raw_op=getattr(self, "last_op", None),
                                  det_method=self._det_label())
         self.out.config(state="disabled")
         self._fit_result_height()
+
+    # ---- 单步播放器 ----------------------------------------------------------
+    # 与网页版同一份 steps 数据（{text, matrix, op, pivot, rows}）。纯说明步骤
+    # （没有 matrix）也参与播放，只是不显示矩阵。
+    def _set_steps(self, steps):
+        self._stop_play()
+        self._steps = [s for s in (steps or []) if s]
+        self._step_idx = 0
+        player = getattr(self, "player", None)
+        if player is None:
+            return                          # 无头测试 / 播放器未建
+        if self._steps:
+            player.pack(fill="x", padx=10, pady=(0, 8))
+            self._render_step()
+        else:
+            player.pack_forget()
+
+    def _render_step(self):
+        n = len(self._steps)
+        if not n:
+            return
+        i = max(0, min(self._step_idx, n - 1))
+        self._step_idx = i
+        s = self._steps[i]
+        text = s.get("text") if isinstance(s, dict) else s
+        self.step_label_var.set(format_math.step_text(text))
+        self.step_pos_var.set(f"{i + 1}/{n}")
+
+        so = self.step_out
+        so.config(state="normal")
+        so.delete("1.0", "end")
+        mat = s.get("matrix") if isinstance(s, dict) else None
+        if mat:
+            rows = s.get("rows") or []
+            pivot = (s.get("pivot") or {}).get("row")
+            for r, line in enumerate(format_matrix(mat, self.dec_var.get()).split("\n")):
+                tag = "pv" if r == pivot else ("hl" if r in rows else None)
+                so.insert("end", line + "\n", tag)
+        else:
+            so.insert("end", "（说明性步骤，无矩阵快照）", None)
+        so.config(state="disabled")
+
+    def _step_goto(self, k):
+        if not self._steps:
+            return
+        self._stop_play()
+        self._step_idx = max(0, min(k, len(self._steps) - 1))
+        self._render_step()
+
+    def _step_first(self):
+        self._step_goto(0)
+
+    def _step_last(self):
+        if self._steps:
+            self._step_goto(len(self._steps) - 1)
+
+    def _step_prev(self):
+        self._step_goto(self._step_idx - 1)
+
+    def _step_next(self):
+        if not self._steps or self._step_idx >= len(self._steps) - 1:
+            self._stop_play()
+            return
+        self._step_idx += 1
+        self._render_step()
+
+    def _toggle_play(self):
+        if self._playing:
+            self._stop_play()
+            return
+        if not self._steps:
+            return
+        if self._step_idx >= len(self._steps) - 1:
+            self._step_idx = 0          # 从头自动播放
+        self._playing = True
+        self.play_btn.config(text="❚❚")
+        self._play_tick()
+
+    def _play_tick(self):
+        if not self._playing:
+            return
+        if self._step_idx >= len(self._steps) - 1:
+            self._stop_play()
+            return
+        self._step_idx += 1
+        self._render_step()
+        self._play_job = self.root.after(1500, self._play_tick)
+
+    def _stop_play(self):
+        self._playing = False
+        job = getattr(self, "_play_job", None)
+        if job:
+            try:
+                self.root.after_cancel(job)
+            except Exception:
+                pass
+            self._play_job = None
+        btn = getattr(self, "play_btn", None)
+        if btn is not None:
+            try:
+                btn.config(text="▶")
+            except Exception:
+                pass
 
     def _det_label(self):
         """当前选的 det 算法标签。取不到就按推荐的行变换法算。"""
@@ -1093,9 +1243,6 @@ class LAApp:
         self.model = LibraryModel()
         self.expr_var.set("")
         self.refresh_all()
-
-    def _open_article(self, note_id):
-        webbrowser.open(f"{NOTES_BASE_URL}#{note_id}")
 
     # ---- 计算 ----
     def compute_dropdown(self):
