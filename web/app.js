@@ -1331,6 +1331,39 @@ function renderQuickPad() {
   }
 }
 
+// --- 我的学习进度条 ---------------------------------------------------------
+// 讲义页（progress.js + notes-page.js）负责记录已读；主页只读 localStorage，
+// 显示「已读 n/m」和「继续读：上次的篇目」。主页不加载 notes.js，所以上次篇目
+// 的标题直接用进度记录里双语各存的那份。LA_PROGRESS 缺席（vm 测试沙箱）就整块隐藏。
+function renderLearnBar() {
+  const box = el("learnBar");
+  if (!box) return;
+  if (!window.LA_PROGRESS) { box.hidden = true; return; }
+  const path = window.LA_PROGRESS.PATH || [];
+  const readN = path.filter((id) => LA_PROGRESS.isRead(id)).length;
+  if (!path.length) { box.hidden = true; return; }
+
+  const countEl = el("learnCount");
+  const linkEl = el("learnLink");
+  if (countEl) countEl.textContent = tr("learn.count", { n: readN, m: path.length });
+
+  const last = LA_PROGRESS.lastRead();
+  if (readN >= path.length) {
+    if (linkEl) { linkEl.textContent = tr("learn.done"); linkEl.removeAttribute("href"); }
+    return;
+  }
+  if (linkEl) {
+    if (last) {
+      const lang = (window.I18N && I18N.get) ? I18N.get() : "zh";
+      linkEl.textContent = tr("learn.resume", { title: (lang === "en" ? last.en : last.zh) || last.id });
+      linkEl.setAttribute("href", "notes.html#" + encodeURIComponent(last.id));
+    } else {
+      linkEl.textContent = tr("learn.start");
+      linkEl.setAttribute("href", "notes.html");
+    }
+  }
+}
+
 // --- 算完之后的讲义推荐 -----------------------------------------------------
 
 /**
@@ -1418,8 +1451,11 @@ refreshAll();
 applyFromHash();        // 深链优先于默认/恢复的状态：分享链接或「试一试」进来直接算
 renderStarterChips();
 renderQuickPad();
-// 语言切换后动态生成的文案（场景芯片 / 常用计算面板）要跟着变
-I18N.onChange(() => { renderStarterChips(); renderQuickPad(); });
+renderLearnBar();
+// 语言切换后动态生成的文案（场景芯片 / 常用计算面板 / 学习进度条）要跟着变
+I18N.onChange(() => { renderStarterChips(); renderQuickPad(); renderLearnBar(); });
+// 讲义页标了新的已读（本页不开着，但同一标签页来回切时能刷新）
+window.addEventListener("la-progress", renderLearnBar);
 
 // ---------------------------------------------------------------------------
 // 宽屏分栏的可拖动分隔条：调整输入列 / 结果列的宽度比例。

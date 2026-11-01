@@ -9,6 +9,7 @@
      讲义（notes.js）已移到独立的 notes.html，计算器页不再需要它。 -->
 <script src="i18n.js"></script>
 <script src="examples.js"></script>
+<script src="progress.js"></script>
 <script>
   // 尽早确定主题与语言，避免首帧闪一下（在样式生效前读取本机偏好 / 上次选择）
   (function () {
@@ -575,6 +576,13 @@
   .footer-links a { color: var(--accent); text-decoration: none; font-weight: 500; }
   .footer-links a:hover { text-decoration: underline; }
 
+  /* 我的学习进度（learnBar）：与常用计算面板同款卡片，内部一条链接 */
+  .learn-bar .btn-learn { display: inline-block; background: var(--inset);
+    border: 1px solid var(--border); padding: 8px 14px; border-radius: 9px;
+    color: var(--text); text-decoration: none; font-size: 13px;
+    transition: border-color .14s ease, color .14s ease; }
+  .learn-bar .btn-learn:hover { border-color: var(--accent); color: var(--accent); }
+
   /* 引擎加载失败后的「重新加载引擎」按钮（la-bridge.js 注入到 #engineStatus 里） */
   .btn-retry-engine { margin-left: 10px; padding: 6px 14px; border-radius: 8px;
     border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
@@ -661,6 +669,15 @@
     <span class="lib-label" data-i18n="guide.title">第一次用？先载入一个示例</span>
     <div class="chips" id="starterChips"></div>
     <p class="hint starters-hint" data-i18n="guide.hint">选好运算后点「载入示例」，矩阵会自动填好并直接算给你看。</p>
+  </section>
+
+  <!-- 我的学习进度：读过的讲义（纯本地），一键回到上次读的那篇 -->
+  <section class="controls learn-bar" id="learnBar" hidden>
+    <div class="quick-head">
+      <span class="lib-label" data-i18n="learn.title">我的学习进度</span>
+      <span class="hint" id="learnCount"></span>
+    </div>
+    <a id="learnLink" class="btn-learn" href="notes.html"></a>
   </section>
 
   <!-- 常用计算：学生最常用的一排运算，一键载入示例并算出结果 -->

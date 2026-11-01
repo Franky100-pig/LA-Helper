@@ -45,6 +45,38 @@
     return n === 1 ? tr("notes.oneArticle") : n + " " + tr("notes.nArticles");
   }
 
+  function findArticle(id) {
+    for (const a of articles()) {
+      if (a.id === id) return a;
+    }
+    return null;
+  }
+
+  /** 英文标题：进度记录里双语各存一份，首页按当前语言显示。 */
+  function titleEn(id) {
+    for (const a of window.LA_NOTES.en || []) {
+      if (a.id === id) return a.title;
+    }
+    return "";
+  }
+
+  /** 侧栏已读标记：给读过的文章按钮加 ✓。 */
+  function updateReadMarks() {
+    if (!window.LA_PROGRESS) return;
+    listBox.querySelectorAll("[data-note]").forEach((btn) => {
+      const on = LA_PROGRESS.isRead(btn.dataset.note);
+      let mark = btn.querySelector(".readmark");
+      if (on && !mark) {
+        mark = document.createElement("span");
+        mark.className = "readmark";
+        mark.textContent = "✓ ";
+        btn.insertBefore(mark, btn.firstChild);
+      } else if (!on && mark) {
+        mark.parentNode.removeChild(mark);
+      }
+    });
+  }
+
   // -------------------------------------------------------------------------
   // 主题：与主页 / AI 页同一套（跟随系统，手动选择存 localStorage["la-theme"]）
   // -------------------------------------------------------------------------
@@ -191,6 +223,32 @@
       view.appendChild(quiz);
     }
 
+    // 自学进度：打开即记已读（纯本地），并显示进度与「下一篇」推荐。
+    if (window.LA_PROGRESS) {
+      LA_PROGRESS.markRead(a.id, a.title, titleEn(a.id));
+      updateReadMarks();
+
+      const prog = document.createElement("p");
+      prog.className = "learn-progress";
+      const total = window.LA_NOTES.PATH.length;
+      const readN = window.LA_NOTES.PATH.filter((id) => LA_PROGRESS.isRead(id)).length;
+      prog.textContent = tr("notes.readCount", { n: readN, m: total });
+      view.appendChild(prog);
+
+      const nextId = window.LA_PROGRESS.nextInPath(a.id);
+      if (nextId) {
+        const next = findArticle(nextId);
+        if (next) {
+          const nxt = document.createElement("button");
+          nxt.type = "button";
+          nxt.className = "btn-next";
+          nxt.textContent = tr("notes.next") + next.title + " →";
+          nxt.addEventListener("click", () => { location.hash = nextId; });
+          view.appendChild(nxt);
+        }
+      }
+    }
+
     // 底部：「试一试」跳计算器并预填本篇示例 + 本篇专属的「提 Issue」答疑入口。
     // 这两样是「讲义 ↔ 计算」闭环和「前端自学 + GitHub 社区答疑」落点。
     if (a.try) {
@@ -305,6 +363,12 @@
     renderSide({ mode: "cats" });
     route();
     syncButton();
+
+    // 进度：初始打一遍 ✓，之后每次 markRead 广播的事件也刷新侧栏
+    if (window.LA_PROGRESS) {
+      updateReadMarks();
+      window.addEventListener("la-progress", updateReadMarks);
+    }
 
     if (btn) btn.addEventListener("click", () => { I18N.toggle(); });
 

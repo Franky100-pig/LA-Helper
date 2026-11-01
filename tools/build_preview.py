@@ -38,7 +38,7 @@ PYODIDE_MIRRORS = [
 
 
 def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
-                     notes_page_js="", examples_js="", pages_html=""):
+                     notes_page_js="", examples_js="", pages_html="", progress_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build).
 
@@ -51,7 +51,7 @@ def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
     """
     blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
             + ai_help_js + i18n_js + notes_js + notes_page_js + examples_js
-            + pages_html)
+            + pages_html + progress_js)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -102,6 +102,8 @@ def build_index(html, ver=""):
         '<script src="i18n.js"></script>', f'<script src="i18n.js{q}"></script>')
     html = html.replace(
         '<script src="examples.js"></script>', f'<script src="examples.js{q}"></script>')
+    html = html.replace(
+        '<script src="progress.js"></script>', f'<script src="progress.js{q}"></script>')
     html = html.replace(
         "<script src=\"app.js\"></script>",
         '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
@@ -400,10 +402,11 @@ def main():
     notes_js = _read("notes.js")
     notes_page_js = _read("notes-page.js")
     examples_js = _read("examples.js")
+    progress_js = _read("progress.js")
     # 三个页面的内联样式也算进版本号：只改 CSS 时也要换 ?v，否则缓存会挡住更新
     pages_html = "".join(_read(n) for n in ("index.html", "notes.html", "ai-help.html"))
     ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js,
-                           examples_js, pages_html)
+                           examples_js, pages_html, progress_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -417,9 +420,9 @@ def main():
         encoding="utf-8",
     )
     (OUT / "la-bridge.js").write_text(BRIDGE, encoding="utf-8")
-    # 双语字典、示例与讲义：主页和 AI Help 页都要用，原样复制（版本由 ?v 统一兜住）
+    # 双语字典、示例、讲义与学习进度：主页和 AI Help 页都要用，原样复制（版本由 ?v 统一兜住）
     for name, src in (("i18n.js", i18n_js), ("notes.js", notes_js),
-                      ("examples.js", examples_js)):
+                      ("examples.js", examples_js), ("progress.js", progress_js)):
         if src:
             (OUT / name).write_text(src, encoding="utf-8")
     # 独立子页（AI Help / 讲义）：都不依赖 Pyodide 引擎，单独复制；
@@ -434,7 +437,7 @@ def main():
 
     for page, scripts in (
         ("ai-help.html", ("i18n.js", "ai-help.js")),
-        ("notes.html", ("i18n.js", "notes.js", "notes-page.js")),
+        ("notes.html", ("i18n.js", "progress.js", "notes.js", "notes-page.js")),
     ):
         if (web / page).exists():
             (OUT / page).write_text(
