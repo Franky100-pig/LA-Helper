@@ -192,6 +192,18 @@
       });
       row.appendChild(tryBtn);
 
+      // 「做配套练习」：跳 la-hw 对应题集（GitHub Pages 上的可交互 HTML）。
+      // 没有对应题集的讲义没有 a.practice，自然不渲染。
+      if (a.practice) {
+        const pr = document.createElement("a");
+        pr.className = "btn-practice";
+        pr.href = a.practice;
+        pr.target = "_blank";
+        pr.rel = "noopener noreferrer";
+        pr.textContent = tr("notes.practice");
+        row.appendChild(pr);
+      }
+
       const issue = document.createElement("a");
       issue.className = "btn-issue";
       issue.target = "_blank";

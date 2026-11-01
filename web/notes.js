@@ -1095,6 +1095,34 @@ window.LA_NOTES = {
 })();
 
 /* ---------------------------------------------------------------------------
+ * 「做配套练习」：把讲义和 la-hw 的题集连起来（讲义 → 练习方向）。
+ * 值是 la-hw 仓库里的 Set 编号；没有对应题集的讲义不加。
+ * la-hw 的 HTML 版挂在 GitHub Pages 上，可直接打开做题。
+ * ------------------------------------------------------------------------- */
+(function injectPractice() {
+  const PRACTICE = {
+    cofactor:      1,   // Set 1：行列式、余子式结构与伴随
+    adjugate:      1,
+    singular:      2,   // Set 2：用 REF 看行列式、提前识别奇异
+    "row-reduction": 2,
+    basis:         3,   // Set 3：线性无关、基与维数
+    vectorspace:   4,   // Set 4：向量空间与子空间判定
+    spaces:        5,   // Set 5：三大空间、秩与秩零度
+    rank:          5,
+    nullity:       5,
+    "rank-nullity": 5,
+    eigen:         6,   // Set 6：特征值与特征向量
+    "eigen-howto": 6,
+  };
+  for (const lang of ["zh", "en"]) {
+    for (const a of window.LA_NOTES[lang]) {
+      const n = PRACTICE[a.id];
+      if (n) a.practice = "https://franky100-pig.github.io/LA-hw/set" + n + "/problems.html";
+    }
+  }
+})();
+
+/* ---------------------------------------------------------------------------
  * 共用小工具：讲义独立页（notes.html）用，主页不再渲染讲义。
  * 放在这里而不是各页各写一份，避免两处渲染逻辑漂移。
  * ------------------------------------------------------------------------- */
