@@ -584,10 +584,17 @@
   .learn-bar .btn-learn:hover { border-color: var(--accent); color: var(--accent); }
 
   /* 引擎加载失败后的「重新加载引擎」按钮（la-bridge.js 注入到 #engineStatus 里） */
-  .btn-retry-engine { margin-left: 10px; padding: 6px 14px; border-radius: 8px;
-    border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
+  .btn-retry-engine { margin-left: 10px; padding: 6px 14px; border-radius: 8px;    border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent);
     font-size: 13px; font-weight: 600; cursor: pointer; }
   .btn-retry-engine:hover { opacity: .9; }
+
+  /* 引擎加载进度条（la-bridge.js 按performance resource 字节数驱动） */
+  .engine-progress { display: flex; align-items: center; gap: 10px; margin: 6px 0 2px; }
+  .engine-progress-track { flex: 1; max-width: 420px; height: 6px; border-radius: 3px;
+    background: var(--inset); border: 1px solid var(--border); overflow: hidden; }
+  .engine-progress-bar { height: 100%; width: 0; background: var(--accent);
+    transition: width .3s ease; }
+  .engine-progress-pct { font-size: 12px; color: var(--muted); white-space: nowrap; }
 </style>
 </head>
 <body>

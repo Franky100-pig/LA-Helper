@@ -153,8 +153,17 @@ def main():
     )
     print("  patch pyodide-lock.json sha256 (upstream wheels)")
 
-    total = sum(f.stat().st_size for f in dest.iterdir())
-    print(f"done: {len(list(dest.iterdir()))} files, {total // (1 << 20)} MB -> {dest}")
+    # 4) manifest.json：各文件字节数与总量，供首页的引擎加载进度条换算百分比。
+    #    没有它前端只能猜一个总数（会退化成「已下载 X MB」无百分比）。
+    sizes = {f.name: f.stat().st_size for f in sorted(dest.iterdir()) if f.is_file()}
+    manifest = {"total": sum(sizes.values()), "files": sizes}
+    (dest / "manifest.json").write_text(
+        json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8"
+    )
+    print("  write manifest.json")
+
+    total = sum(sizes.values())
+    print(f"done: {len(sizes)} files, {total // (1 << 20)} MB -> {dest}")
 
 
 if __name__ == "__main__":

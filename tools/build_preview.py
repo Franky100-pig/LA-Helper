@@ -108,6 +108,10 @@ def build_index(html, ver=""):
         "<script src=\"app.js\"></script>",
         '<p id="engineStatus" class="hint" data-i18n="engine.loading">'
         '正在加载计算引擎（首次约需十几秒，之后秒回）…</p>\n'
+        '<div id="engineProgress" class="engine-progress" hidden>\n'
+        '  <div class="engine-progress-track"><div id="engineProgressBar"></div></div>\n'
+        '  <span id="engineProgressPct" class="engine-progress-pct"></span>\n'
+        '</div>\n'
         f'<script src="core_bundle.js{q}"></script>\n'
         f'<script src="la-bridge.js{q}"></script>\n'
         f'<script src="app.js{q}"></script>',
@@ -144,6 +148,57 @@ BRIDGE = """\
 "use strict";
 // Boots CPython + SymPy (Pyodide/WASM) and exposes window.LA.dispatch().
 window.LA = { ready: false, error: null, dispatch: null };
+
+// Service Worker：把同源 /pyodide/* 缓存下来，二次访问（含离线）秒开。
+// 只在 https / localhost 注册；测试沙箱没有 navigator.serviceWorker，自动跳过。
+try {
+  if (typeof navigator !== "undefined" && navigator.serviceWorker &&
+      typeof location !== "undefined" &&
+      (location.protocol === "https:" || location.hostname === "localhost" ||
+       location.hostname === "127.0.0.1")) {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  }
+} catch (e) { /* 老浏览器 / 沙箱：没有 SW 就退回 HTTP 缓存 */ }
+
+// ---- 引擎加载进度条 --------------------------------------------------------
+// 首访要下 ~20MB（wasm + stdlib + wheel）。manifest.json 由 fetch_pyodide.py
+// 生成（total 是精确字节数）；已收字节数从 performance resource 里统计
+// /pyodide/ 的请求。SW 命中缓存时 size 记 0，进度直接跳满 —— 本来就是秒开。
+let progressStarted = false;
+function startEngineProgress() {
+  if (progressStarted || typeof performance === "undefined" ||
+      !performance.getEntriesByType || typeof setInterval !== "function") return;
+  progressStarted = true;
+  let total = 21000000;   // manifest 拉不到时的兜底值
+  try {
+    fetch("pyodide/manifest.json")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((m) => { if (m && m.total > 0) total = m.total; })
+      .catch(() => {});
+  } catch (e) { /* 沙箱里没有 fetch：用兜底值 */ }
+
+  const bar = document.getElementById("engineProgressBar");
+  const pct = document.getElementById("engineProgressPct");
+  const box = document.getElementById("engineProgress");
+  if (!bar || !pct || !box) return;
+  const timer = setInterval(() => {
+    let loaded = 0;
+    for (const e of performance.getEntriesByType("resource")) {
+      if (String(e.name).indexOf("/pyodide/") !== -1) {
+        loaded += (e.transferSize || e.encodedBodySize || e.decodedBodySize || 0);
+      }
+    }
+    const p = Math.min(100, Math.round((loaded / total) * 100));
+    bar.style.width = p + "%";
+    pct.textContent = (loaded / 1048576).toFixed(1) + " / " +
+      (total / 1048576).toFixed(1) + " MB";
+    box.hidden = false;
+    if (window.LA.ready || window.LA.error) {
+      clearInterval(timer);
+      setTimeout(() => { box.hidden = true; }, 800);
+    }
+  }, 300);
+}
 
 // The whole request envelope (op *or* expr) crosses into Python as JSON, so the
 // browser runs exactly the same dispatch() the local server runs.
@@ -258,6 +313,7 @@ let bootPromise = null;
 function boot() {
   if (bootPromise) return bootPromise;
   bootPromise = (async () => {
+    startEngineProgress();
     const btn = document.getElementById("compute");
     let loader = null;   // loadPyodide —— 任一源把 pyodide.js 送到了就有
     let lastErr = null;
@@ -447,6 +503,10 @@ def main():
     for js in ("ai-help.js", "notes-page.js"):
         if (web / js).exists():
             (OUT / js).write_text((web / js).read_text(encoding="utf-8"), encoding="utf-8")
+    # Service Worker：缓存同源 /pyodide/*，二次访问（含离线）秒开。
+    # SW 的更新走浏览器自身机制（字节相同不会重新激活），不需要 ?v。
+    if (web / "sw.js").exists():
+        (OUT / "sw.js").write_text((web / "sw.js").read_text(encoding="utf-8"), encoding="utf-8")
     # 关掉 GitHub Pages 的 Jekyll 处理（否则以下划线开头的文件会被忽略，
     # 且 Jekyll 可能改写内容）。纯静态站不需要它。
     (OUT / ".nojekyll").write_text("", encoding="utf-8")
