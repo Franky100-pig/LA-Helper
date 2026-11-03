@@ -7,6 +7,76 @@
  *
  * 两种语言用同一个 id，切换语言时按 id 重画即可。
  */
+
+// ---- 讲义交互图：在 Desmos 里嵌可拖拽 / 缩放的绘图计算器 --------------------
+// 三个图形配合「线性变换 / 特征值 / 基与维数」三篇讲义。引擎是 Desmos，key 在
+// web/desmos-config.js 配置（本地预览用官方 demo key，部署需填自己的免费 key）。
+// 图形数据存到 window.LA_NOTES._desmos，每个 DOM 节点用 data-desmos-idx 指向其中一项。
+function _dx(latex, extra) { return Object.assign({ latex: latex }, extra || {}); }
+
+// 线性变换：用滑块 a,b,c,d 操控矩阵 [[a,b],[c,d]]，看网格与基向量被怎么拉扯。
+// 背景网格是原始坐标系；彩色平行四边形 = 单位正方形被变换后的像，|det A| = 它的面积。
+function _desmosGridWarp() {
+  var exps = [
+    _dx("a=1", { id: "a", slider: { min: -2, max: 2, step: 0.1 } }),
+    _dx("b=0.8", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
+    _dx("c=0", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
+    _dx("d=1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
+    _dx("(t,0)\\left\\{0\\le t\\le1\\right\\}", { id: "e1", color: "#9aa4ae" }),
+    _dx("(0,t)\\left\\{0\\le t\\le1\\right\\}", { id: "e2", color: "#9aa4ae" }),
+    _dx("(t a,t c)\\left\\{0\\le t\\le1\\right\\}", { id: "ae1", color: "#c74440" }),
+    _dx("(t b,t d)\\left\\{0\\le t\\le1\\right\\}", { id: "ae2", color: "#388c46" }),
+    _dx("polygon((0,0),(a,c),(a,c)+(b,d),(b,d))", { id: "sq", color: "#4ea1ff", fillOpacity: 0.14 })
+  ];
+  for (var k = -3; k <= 3; k++) {
+    if (k === 0) continue;
+    exps.push(_dx("(x-(" + k + "*a))*d-(y-(" + k + "*c))*b=0", { id: "gv" + k }));
+    exps.push(_dx("(x-(" + k + "*b))*c-(y-(" + k + "*d))*a=0", { id: "gh" + k }));
+  }
+  return {
+    viewport: { xmin: -5, xmax: 5, ymin: -5, ymax: 5 },
+    options: { expressionsCollapsed: true },
+    expressions: exps
+  };
+}
+
+// 特征值：固定矩阵 A = [[2,1],[1,2]]。红 / 绿两条线是特征方向所在（y=x / y=-x）：
+// 红线上的 (1,1) 被 A 一乘只是沿红线拉长 3 倍，绿线上的 (1,-1) 的像仍落在绿线上。
+// 灰色向量 (1,0) 的像（蓝）方向变了 —— 它就不是特征向量。
+function _desmosEigen() {
+  return {
+    viewport: { xmin: -4, xmax: 4, ymin: -4, ymax: 4 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("y=x", { id: "le1", color: "#c74440" }),
+      _dx("y=-x", { id: "le2", color: "#388c46" }),
+      _dx("(t,0)\\left\\{0\\le t\\le1\\right\\}", { id: "v1", color: "#9aa4ae" }),
+      _dx("(2t,t)\\left\\{0\\le t\\le1\\right\\}", { id: "v1i", color: "#2d70b3" }),
+      _dx("(t,t)\\left\\{0\\le t\\le1\\right\\}", { id: "v2", color: "#c74440" }),
+      _dx("(3t,3t)\\left\\{0\\le t\\le1\\right\\}", { id: "v2i", color: "#c74440" }),
+      _dx("(t,-t)\\left\\{0\\le t\\le1\\right\\}", { id: "v3", color: "#388c46" })
+    ]
+  };
+}
+
+// 基与维数：用滑块 a,b,c,d 定义向量 u=(a,b)、v=(c,d)，蓝平行四边形 = 它们张成的区域。
+// 把 u、v 拖到共线（det=0）时，平行四边形塌成一条线 —— 这就是「线性相关、撑不满平面」。
+function _desmosSpan() {
+  return {
+    viewport: { xmin: -4, xmax: 4, ymin: -4, ymax: 4 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("a=1", { id: "a", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx("b=1", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx("c=2", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx("d=-1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx("u=(a,b)", { id: "u", color: "#c74440" }),
+      _dx("v=(c,d)", { id: "v", color: "#388c46" }),
+      _dx("polygon((0,0),u,u+v,v)", { id: "sp", color: "#4ea1ff", fillOpacity: 0.18 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
@@ -136,6 +206,7 @@ window.LA_NOTES = {
           "λ 是复数：这个方向其实被<b>旋转</b>了（比如旋转 90° 的矩阵没有实特征向量）。",
           "<b>代数重数</b>：特征多项式里这个根的次数；<b>几何重数</b>：对应的线性无关特征向量的个数。",
         ] },
+        { desmos: _desmosEigen(), caption: "矩阵固定为 A = [[2,1],[1,2]]。红 / 绿两条线是特征方向所在：红线上的向量 (1,1) 被 A 一乘只是沿红线拉长 3 倍，绿线上的 (1,-1) 的像仍落在绿线上（长度不变）。灰色向量 (1,0) 的像（蓝）方向变了 —— 它就不是特征向量。" },
         { h: "为什么有些矩阵不能对角化" },
         "当某个特征值的几何重数 &lt; 代数重数时，特征向量不够多、凑不齐一组基，就没法对角化（本页的结果里会直接标出「不可对角化」）。",
         { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。看懂了「是什么」，想练「怎么算」的话，接着看<a href='#eigen-howto'>《手算特征值与特征向量》</a>那篇。" },
@@ -281,6 +352,7 @@ window.LA_NOTES = {
           "少一个 → 撑不满，有些向量拼不出来（张成失败）。",
           "多一个 → 一定有一个能被别人拼出来（线性相关），是多余的。",
         ] },
+        { desmos: _desmosSpan(), caption: "拖动滑块摆出两个向量 u=(a,b) 和 v=(c,d)，蓝色平行四边形就是它们张成的全部线性组合。把 u、v 拖到共线（det=0）时，平行四边形塌成一条线 —— 两个向量再也无法撑满平面，这就是「线性相关」；只要它们不共线，就张成整个平面，成为 R² 的一组基。" },
         "所以基是「刚刚好」的那一组 —— 这也是它被反复使用的原因：它是描述一个空间最省的字典。",
         { h: "维数 = 基里向量的个数" },
         "平面里要 2 个向量才能撑满，所以 R² 的维数是 2；空间里要 3 个，所以 R³ 的维数是 3。",
@@ -427,6 +499,7 @@ window.LA_NOTES = {
           "<b>投影到 x 轴</b>：[[1, 0], [0, 0]] —— 把 y 方向整个压没。",
         ] },
         "一个很好用的几何读法：<b>|det A| = 面积缩放倍数</b>；<b>det A &lt; 0 表示翻面</b>（定向反了）；<b>det A = 0 表示有方向被压扁</b>，变换不可逆。",
+        { desmos: _desmosGridWarp(), caption: "拖动 a, b, c, d 四个滑块，看背景坐标系的网格和基向量被矩阵 [[a,b],[c,d]] 怎么拉扯。彩色的平行四边形是单位正方形被变换后的像，它的面积正好等于 |det A| —— 拖动到 det=0（比如 b=c=0 之外）时，整个平面被压扁成一条线。" },
         { h: "核与像：变换把什么压没了、又能造出什么" },
         { ul: [
           "<b>核 ker T</b> = 所有被送到 0 的输入 = 零空间 Nul(A)。核越大，丢的信息越多。",
@@ -662,6 +735,7 @@ window.LA_NOTES = {
           "λ is complex: that direction is actually being <b>rotated</b> (a 90° rotation matrix has no real eigenvectors).",
           "<b>Algebraic multiplicity</b>: how many times the root appears in the characteristic polynomial; <b>geometric multiplicity</b>: how many independent eigenvectors belong to it.",
         ] },
+        { desmos: _desmosEigen(), caption: "The matrix is fixed as A = [[2,1],[1,2]]. The red line y=x and the green line y=-x are the eigendirections: the red vector (1,1) is merely stretched 3x along the red line, and the green vector (1,-1) stays on the green line (unchanged). The grey vector (1,0) has its image pointing elsewhere — it is not an eigenvector." },
         { h: "Why some matrices cannot be diagonalised" },
         "When the geometric multiplicity of some eigenvalue is &lt; its algebraic multiplicity there are not enough eigenvectors to form a basis, so diagonalisation is impossible (this page flags it directly as \"not diagonalisable\").",
         { tip: "Try it here: compute the eigenvalues of [[0,-1],[1,0]] — you will get λ = i / −i, which is a pure rotation; then contrast it with [[2,0],[0,2]]. Ready to turn the idea into numbers? Continue with <a href='#eigen-howto'>\"Computing eigenvalues and eigenvectors step by step\"</a>." },
@@ -807,6 +881,7 @@ window.LA_NOTES = {
           "One vector too few → it does not span, so some vectors cannot be built.",
           "One vector too many → at least one is built from the others (dependent), so it is redundant.",
         ] },
+        { desmos: _desmosSpan(), caption: "Drag the sliders to place two vectors u=(a,b) and v=(c,d); the blue parallelogram is every linear combination they span. Drag u and v onto the same line (det = 0) and the parallelogram collapses into a line — two vectors can no longer fill the plane, which is exactly linear dependence. As long as they are not collinear, they span the whole plane and form a basis of R²." },
         "So a basis is exactly the \"just right\" set — which is why it gets used everywhere: it is the cheapest possible dictionary for a space.",
         { h: "Dimension = how many vectors a basis has" },
         "In the plane you need 2 vectors to fill it, so dim R² = 2; in space you need 3, so dim R³ = 3.",
@@ -953,6 +1028,7 @@ window.LA_NOTES = {
           "<b>Projection onto the x-axis</b>: [[1, 0], [0, 0]] — crushes the y direction to nothing.",
         ] },
         "A handy geometric reading: <b>|det A| = area scaling factor</b>; <b>det A &lt; 0 means orientation flipped</b>; <b>det A = 0 means some direction is flattened</b>, so T is not invertible.",
+        { desmos: _desmosGridWarp(), caption: "Drag the four sliders a, b, c, d to see how the grid and basis vectors get stretched by the matrix [[a,b],[c,d]]. The coloured parallelogram is the image of the unit square; its area equals |det A|. Drag toward det = 0 and the whole plane collapses onto a line." },
         { h: "Kernel and image: what gets crushed, what can be produced" },
         { ul: [
           "<b>ker T</b> = all inputs sent to 0 = the null space Nul(A). The bigger the kernel, the more information is lost.",
@@ -1334,12 +1410,21 @@ window.LA_NOTES.byLang = function (lang) {
 /** 把一篇讲义的 blocks 渲染成 HTML（内容是自己写的静态文案，直接当 HTML 用）。 */
 window.LA_NOTES.blocksHtml = function (blocks) {
   let html = "";
+  const desmos = [];
   for (const b of blocks || []) {
     if (typeof b === "string") html += "<p>" + b + "</p>";
     else if (b.h) html += "<h4>" + b.h + "</h4>";
     else if (b.ul) html += "<ul>" + b.ul.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
     else if (b.formula) html += "<div class='note-formula'>" + b.formula + "</div>";
     else if (b.tip) html += "<div class='note-tip'>" + b.tip + "</div>";
+    else if (b.desmos) {
+      const idx = desmos.length;
+      desmos.push(b.desmos);
+      const cap = b.caption ? "<figcaption>" + b.caption + "</figcaption>" : "";
+      html += "<figure class='desmos-fig'><div class='desmos-host' data-desmos-idx='" +
+        idx + "'></div>" + cap + "</figure>";
+    }
   }
+  window.LA_NOTES._desmos = desmos;
   return html;
 };
