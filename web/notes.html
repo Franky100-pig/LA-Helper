@@ -8,6 +8,9 @@
 <script src="i18n.js"></script>
 <script src="progress.js"></script>
 <script src="notes.js"></script>
+<!-- 讲义交互图（Desmos）：key 在 desmos-config.js 配置；本地预览免 key -->
+<script src="desmos-config.js"></script>
+<script src="desmos.js"></script>
 <script>
   // 尽早确定主题与语言，避免首帧闪一下（与主页同一套 localStorage key）
   (function () {
@@ -164,6 +167,17 @@
   .note-quiz summary { cursor: pointer; font-weight: 500; color: var(--ink); }
   .note-quiz details[open] summary { margin-bottom: 6px; }
   .note-quiz details p { margin: 0; color: var(--muted); }
+
+  /* 讲义里的 Desmos 交互图 */
+  .desmos-fig { margin: 14px 0; border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; background: var(--panel2); }
+  .desmos-host { width: 100%; height: 400px; }
+  .desmos-host.desmos-empty, .desmos-host.desmos-missing { display: flex;
+    align-items: center; justify-content: center; text-align: center; padding: 22px;
+    color: var(--muted); font-size: 13px; }
+  .desmos-fig figcaption { padding: 10px 14px; font-size: 13px; color: var(--muted);
+    border-top: 1px solid var(--border); line-height: 1.6; }
+  @media (max-width: 600px) { .desmos-host { height: 320px; } }
 
   /* 社区答疑页脚 */
   .site-footer { max-width: 1080px; margin: 8px auto 28px; padding: 16px 24px 0;

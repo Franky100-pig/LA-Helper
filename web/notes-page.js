@@ -203,6 +203,10 @@
     view.appendChild(lead);
     view.appendChild(body);
 
+    // 讲义里的 Desmos 交互图：把每个 .desmos-host 渲染成可拖拽 / 缩放的 Desmos 计算器
+    // （引擎与 key 见 web/desmos.js、web/desmos-config.js；本地预览免 key）。
+    if (window.LA_DESMOS) window.LA_DESMOS.mountAll(view);
+
     // 自测题：每篇 2 道概念小题，答案折叠在 <details> 里，先想再展开。
     if (a.quiz && a.quiz.length) {
       const quiz = document.createElement("div");
