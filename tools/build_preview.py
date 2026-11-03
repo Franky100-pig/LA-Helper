@@ -38,7 +38,8 @@ PYODIDE_MIRRORS = [
 
 
 def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
-                     notes_page_js="", examples_js="", pages_html="", progress_js=""):
+                     notes_page_js="", examples_js="", pages_html="", progress_js="",
+                     desmos_js=""):
     """Short hash of the bundled JS so the cache-bust query changes whenever the
     shipped code changes (a git hash would lag one commit behind the build).
 
@@ -48,10 +49,13 @@ def _content_version(web_app_js, core, ai_help_js="", i18n_js="", notes_js="",
 
     pages_html 同理：三个页面的 CSS 是内联在 HTML 里的，只改样式时 JS 哈希不会变，
     ?v 就骗过了缓存，用户看到的还是旧样式 —— 所以把页面源码也计入哈希。
+
+    desmos_js：讲义里的交互式 Desmos 图形加载器，只在 notes.html 用到；
+    它一旦改动也要换 ?v，否则重新部署后浏览器仍用旧的 desmos.js。
     """
     blob = (json.dumps(core, ensure_ascii=False) + BRIDGE + web_app_js
             + ai_help_js + i18n_js + notes_js + notes_page_js + examples_js
-            + pages_html + progress_js)
+            + pages_html + progress_js + desmos_js)
     return hashlib.sha1(blob.encode("utf-8")).hexdigest()[:8]
 
 
@@ -459,10 +463,11 @@ def main():
     notes_page_js = _read("notes-page.js")
     examples_js = _read("examples.js")
     progress_js = _read("progress.js")
+    desmos_js = _read("desmos.js") + _read("desmos-config.js")
     # 三个页面的内联样式也算进版本号：只改 CSS 时也要换 ?v，否则缓存会挡住更新
     pages_html = "".join(_read(n) for n in ("index.html", "notes.html", "ai-help.html"))
     ver = _content_version(web_app_js, core, ai_help_js, i18n_js, notes_js, notes_page_js,
-                           examples_js, pages_html, progress_js)
+                           examples_js, pages_html, progress_js, desmos_js)
     (OUT / "core_bundle.js").write_text(
         "window.LA_CORE_FILES = " + json.dumps(core, ensure_ascii=False) + ";\n",
         encoding="utf-8",
@@ -493,14 +498,15 @@ def main():
 
     for page, scripts in (
         ("ai-help.html", ("i18n.js", "ai-help.js")),
-        ("notes.html", ("i18n.js", "progress.js", "notes.js", "notes-page.js")),
+        ("notes.html", ("i18n.js", "progress.js", "notes.js", "notes-page.js",
+                        "desmos-config.js", "desmos.js")),
     ):
         if (web / page).exists():
             (OUT / page).write_text(
                 _bust((web / page).read_text(encoding="utf-8"), scripts),
                 encoding="utf-8",
             )
-    for js in ("ai-help.js", "notes-page.js"):
+    for js in ("ai-help.js", "notes-page.js", "desmos.js", "desmos-config.js"):
         if (web / js).exists():
             (OUT / js).write_text((web / js).read_text(encoding="utf-8"), encoding="utf-8")
     # Service Worker：缓存同源 /pyodide/*，二次访问（含离线）秒开。

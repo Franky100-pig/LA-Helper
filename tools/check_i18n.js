@@ -81,7 +81,7 @@ console.log("\n[2] 被引用的 key 是否都存在");
 // 页面与脚本清单：新增页面（如 notes.html）要加进来，否则它的 key 无人校验。
 const PAGE_FILES = [
   "index.html", "ai-help.html", "notes.html",
-  "app.js", "ai-help.js", "notes-page.js", "examples.js",
+  "app.js", "ai-help.js", "notes-page.js", "examples.js", "desmos.js",
 ];
 const sources = [
   ...PAGE_FILES.map((f) => path.join(WEB, f)),
