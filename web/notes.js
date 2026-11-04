@@ -13,6 +13,15 @@
 // web/desmos-config.js 配置（本地预览用官方 demo key，部署需填自己的免费 key）。
 // 图形数据存到 window.LA_NOTES._desmos，每个 DOM 节点用 data-desmos-idx 指向其中一项。
 function _dx(latex, extra) { return Object.assign({ latex: latex }, extra || {}); }
+// 渲染小工具：Desmos 里 bare "polygon(...)" 与参数曲线 "(x(t),y(t)){...}" 都会报警告、实际不画出来；
+// 只有 \operatorname{polygon}(...)（线段/多边形）、点 (x,y)、显式方程才可靠渲染。所以：
+//   _seg(x1,y1,x2,y2) 用 \operatorname{polygon} 画线段/向量；_fill(pts) 画填充多边形。
+function _seg(x1, y1, x2, y2) {
+  return "\\operatorname{polygon}((" + x1 + "," + y1 + "),(" + x2 + "," + y2 + "))";
+}
+function _fill(pts) {
+  return "\\operatorname{polygon}(" + pts + ")";
+}
 
 // 线性变换：用滑块 a,b,c,d 操控矩阵 [[a,b],[c,d]]，看网格与基向量被怎么拉扯。
 // 背景网格是原始坐标系；彩色平行四边形 = 单位正方形被变换后的像，|det A| = 它的面积。
@@ -22,11 +31,11 @@ function _desmosGridWarp() {
     _dx("b=0.8", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
     _dx("c=0", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
     _dx("d=1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
-    _dx("(t,0)\\left\\{0\\le t\\le1\\right\\}", { id: "e1", color: "#9aa4ae" }),
-    _dx("(0,t)\\left\\{0\\le t\\le1\\right\\}", { id: "e2", color: "#9aa4ae" }),
-    _dx("(t a,t c)\\left\\{0\\le t\\le1\\right\\}", { id: "ae1", color: "#c74440" }),
-    _dx("(t b,t d)\\left\\{0\\le t\\le1\\right\\}", { id: "ae2", color: "#388c46" }),
-    _dx("polygon((0,0),(a,c),(a,c)+(b,d),(b,d))", { id: "sq", color: "#4ea1ff", fillOpacity: 0.14 })
+    _dx(_seg(0, 0, 1, 0), { id: "e1", color: "#9aa4ae" }),
+    _dx(_seg(0, 0, 0, 1), { id: "e2", color: "#9aa4ae" }),
+    _dx(_seg(0, 0, "a", "c"), { id: "ae1", color: "#c74440" }),
+    _dx(_seg(0, 0, "b", "d"), { id: "ae2", color: "#388c46" }),
+    _dx(_fill("(0,0),(a,c),(a+b,c+d),(b,d)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.14 })
   ];
   for (var k = -3; k <= 3; k++) {
     if (k === 0) continue;
@@ -50,11 +59,11 @@ function _desmosEigen() {
     expressions: [
       _dx("y=x", { id: "le1", color: "#c74440" }),
       _dx("y=-x", { id: "le2", color: "#388c46" }),
-      _dx("(t,0)\\left\\{0\\le t\\le1\\right\\}", { id: "v1", color: "#9aa4ae" }),
-      _dx("(2t,t)\\left\\{0\\le t\\le1\\right\\}", { id: "v1i", color: "#2d70b3" }),
-      _dx("(t,t)\\left\\{0\\le t\\le1\\right\\}", { id: "v2", color: "#c74440" }),
-      _dx("(3t,3t)\\left\\{0\\le t\\le1\\right\\}", { id: "v2i", color: "#c74440" }),
-      _dx("(t,-t)\\left\\{0\\le t\\le1\\right\\}", { id: "v3", color: "#388c46" })
+      _dx(_seg(0, 0, 1, 0), { id: "v1", color: "#9aa4ae" }),
+      _dx(_seg(0, 0, 2, 1), { id: "v1i", color: "#2d70b3" }),
+      _dx(_seg(0, 0, 1, 1), { id: "v2", color: "#c74440" }),
+      _dx(_seg(0, 0, 3, 3), { id: "v2i", color: "#c74440" }),
+      _dx(_seg(0, 0, 1, -1), { id: "v3", color: "#388c46" })
     ]
   };
 }
@@ -70,9 +79,59 @@ function _desmosSpan() {
       _dx("b=1", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
       _dx("c=2", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
       _dx("d=-1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
-      _dx("u=(a,b)", { id: "u", color: "#c74440" }),
-      _dx("v=(c,d)", { id: "v", color: "#388c46" }),
-      _dx("polygon((0,0),u,u+v,v)", { id: "sp", color: "#4ea1ff", fillOpacity: 0.18 })
+      _dx(_seg(0, 0, "a", "b"), { id: "u", color: "#c74440" }),
+      _dx(_seg(0, 0, "c", "d"), { id: "v", color: "#388c46" }),
+      _dx(_fill("(0,0),(a,b),(a+c,b+d),(c,d)"), { id: "sp", color: "#4ea1ff", fillOpacity: 0.18 })
+    ]
+  };
+}
+
+// 正交变换（旋转）：旋转矩阵 R(θ)=[[cosθ,−sinθ],[sinθ,cosθ]] 保持长度与角度不变。
+// 灰 = 原基向量 e₁,e₂ 与向量 v；红/绿/蓝虚线 = 旋转后的像。拖 θ 看整组绕原点刚性转动。
+function _desmosRotate() {
+  return {
+    viewport: { xmin: -2.5, xmax: 2.5, ymin: -2.5, ymax: 2.5 },
+    options: { expressionsCollapsed: true, degreeMode: true },
+    expressions: [
+      _dx("k=30", { id: "k", slider: { min: 0, max: 360, step: 5 } }),
+      _dx("x^2+y^2=1", { id: "circ", color: "#c9d1d9", lineOpacity: 0.3 }),
+      _dx(_seg(0, 0, 1, 0), { id: "e1", color: "#9aa4ae" }),
+      _dx(_seg(0, 0, 0, 1), { id: "e2", color: "#9aa4ae" }),
+      _dx(_seg(0, 0, "\\cos(k)", "\\sin(k)"), { id: "re1", color: "#c74440" }),
+      _dx(_seg(0, 0, "\\cos(k+90)", "\\sin(k+90)"), { id: "re2", color: "#388c46" }),
+      _dx(_seg(0, 0, "\\cos(45)", "\\sin(45)"), { id: "v", color: "#2d70b3" }),
+      _dx(_seg(0, 0, "\\cos(k+45)", "\\sin(k+45)"), { id: "rv", color: "#2d70b3", lineStyle: "DASHED" })
+    ]
+  };
+}
+
+// det = 0 → 平面塌成线：A=[[1,2],[2,4+b]]，det(A)=b。拖 b→0 时两列向量共线，
+// 单位正方形的像（平行四边形）被压成一条线段（面积 0）——降维、信息丢、不可逆。
+function _desmosCollapse() {
+  return {
+    viewport: { xmin: -3, xmax: 5, ymin: -3, ymax: 9 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("b=1", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx(_seg(0, 0, 1, 2), { id: "c1", color: "#c74440" }),
+      _dx(_seg(0, 0, 2, "4+b"), { id: "c2", color: "#388c46" }),
+      _dx(_fill("(0,0),(1,2),(3,6+b),(2,4+b)"), { id: "par", color: "#4ea1ff", fillOpacity: 0.16 })
+    ]
+  };
+}
+
+// 三个空间里的两个：A=[[1,1],[1,1]] 的列空间与零空间。蓝线 = Col(A)（一切像都落在 y=x），
+// 粗蓝段是单位正方形的像；红线 = Nul(A)（y=−x 上的向量被压成 0）。
+function _desmosSubspaces() {
+  return {
+    viewport: { xmin: -3, xmax: 3, ymin: -3, ymax: 3 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("y=x", { id: "col", color: "#4ea1ff" }),
+      _dx("y=-x", { id: "nul", color: "#c74440" }),
+      _dx(_seg(0, 0, 2, 2), { id: "img", color: "#2d70b3", lineWidth: 6 }),
+      _dx(_seg(0, 0, 1, -1), { id: "kv", color: "#c74440" }),
+      _dx("(1,1)", { id: "colpt", color: "#388c46", pointStyle: "OPEN" })
     ]
   };
 }
@@ -162,6 +221,7 @@ window.LA_NOTES = {
       blocks: [
         { h: "几何图像" },
         "2×2 矩阵把单位正方形变成一个平行四边形，|det| 就是它的面积（3×3 对应体积）。det = 0 → 面积/体积变成 0 → 平面被压成一条线甚至一个点：降维了。此时两个不同的输入可能被映射到同一个输出，这个映射就没办法反推。",
+        { desmos: _desmosCollapse(), caption: "矩阵 A = [[1,2],[2,4+b]] 的行列式就是 b。拖动 b → 0：红、绿两个列向量变得共线，单位正方形的像（蓝色平行四边形）被压成一条线段、面积变成 0 —— 平面塌成一条线，沿垂直方向的信息全丢了，所以无法反推、没有逆。" },
         { h: "四句话说的是一件事" },
         { ul: [
           "A 不可逆",
@@ -299,6 +359,7 @@ window.LA_NOTES = {
         { formula: "Qᵀ · Q = I　⇔　Q⁻¹ = Qᵀ" },
         { h: "几何意义：刚性运动" },
         "正交变换只做<b>旋转和反射</b>，既不拉伸也不压扁：任意向量被它一乘，长度不变（‖Qx‖ = ‖x‖），向量之间的夹角也不变。所以「正交」=「不改变内积」。",
+        { desmos: _desmosRotate(), caption: "拖动角度 k，看正交矩阵 R(k) 把整组向量绕原点刚性转动：灰 = 原来的基向量 e₁、e₂，红/绿 = 旋转后的基向量，蓝实线 = 向量 v，蓝虚线 = v 旋转后的像。所有端点都落在同一个单位圆上，长度、夹角都不变——这正是「正交 = 保内积」的几何含义。注意 det = 1（纯旋转）。" },
         { h: "行列式只有 ±1" },
         "因为 det(QᵀQ) = det(I) = 1，而 det(Qᵀ) = det(Q)，所以 det(Q)² = 1 → det(Q) = 1 或 −1。det = 1 是纯旋转，det = −1 含一次反射。",
         { h: "和特征值的关系" },
@@ -384,6 +445,7 @@ window.LA_NOTES = {
           "<b>行空间 Row(A)</b>：所有「行向量的线性组合」。它的维数和列空间相同（都等于秩）。",
           "<b>零空间 Nul(A)</b>：所有被 A 压成 0 的向量，也就是 A·x = 0 的全部解。它回答：哪些方向被「压没了」？",
         ] },
+        { desmos: _desmosSubspaces(), caption: "拿最简单的 A = [[1,1],[1,1]]（两列相同）看三个空间中的两个：蓝线 = 列空间 Col(A)，所有输入的像都落在这条线 y=x 上（粗蓝段就是单位正方形的像）；红线 = 零空间 Nul(A)，这条线 y=−x 上的向量（例如 (1,−1)）被 A 压成 0。输入是 2 维，输出被压到 1 维（秩 = 1），沿红线方向的信息全丢了。" },
         { h: "它们住在哪个空间里" },
         "这一点最容易记混，但只要数一数「向量有几个数」就清楚了。设 A 是 m×n（m 行 n 列）：",
         { ul: [
@@ -691,6 +753,7 @@ window.LA_NOTES = {
       blocks: [
         { h: "The geometric picture" },
         "A 2×2 matrix turns the unit square into a parallelogram, and |det| is its area (volume for 3×3). det = 0 → the area/volume is 0 → the plane collapsed onto a line or even a point: a dimension was lost. Two different inputs can then land on the same output, and such a map cannot be reversed.",
+        { desmos: _desmosCollapse(), caption: "The determinant of A = [[1,2],[2,4+b]] is exactly b. Drag b → 0: the two column vectors (red, green) become parallel and the image of the unit square (the blue parallelogram) is squashed onto a segment of area 0 — the plane collapses to a line, all information along the perpendicular direction is lost, so the map cannot be reversed and has no inverse." },
         { h: "Four sentences that all say one thing" },
         { ul: [
           "A is not invertible",
@@ -828,6 +891,7 @@ window.LA_NOTES = {
         { formula: "Qᵀ · Q = I　⇔　Q⁻¹ = Qᵀ" },
         { h: "Geometric meaning: rigid motions" },
         "Orthogonal transformations only <b>rotate and reflect</b> — they never stretch or squash: multiplying any vector by one leaves its length unchanged (‖Qx‖ = ‖x‖) and leaves the angles between vectors unchanged. So \"orthogonal\" means \"preserves the inner product\".",
+        { desmos: _desmosRotate(), caption: "Drag the angle k to watch the orthogonal matrix R(k) rotate the whole set of vectors rigidly about the origin: grey = the original basis vectors e₁, e₂; red/green = the rotated basis vectors; solid blue = a vector v; dashed blue = v's rotated image. All endpoints stay on the same unit circle, so lengths and angles are unchanged — exactly what \"orthogonal = preserves the inner product\" means. Note det = 1 (a pure rotation)." },
         { h: "The determinant is only ever ±1" },
         "Since det(QᵀQ) = det(I) = 1 and det(Qᵀ) = det(Q), we get det(Q)² = 1, so det(Q) = 1 or −1. det = 1 is a pure rotation; det = −1 includes a reflection.",
         { h: "The link with eigenvalues" },
@@ -913,6 +977,7 @@ window.LA_NOTES = {
           "<b>Row space Row(A)</b>: all linear combinations of the rows. It always has the same dimension as the column space (both equal the rank).",
           "<b>Null space Nul(A)</b>: every vector that A squashes to 0, i.e. all solutions of A·x = 0. It answers: which directions get crushed?",
         ] },
+        { desmos: _desmosSubspaces(), caption: "Take the simplest A = [[1,1],[1,1]] (both columns identical) to see two of the three spaces: the blue line is the column space Col(A) — the image of every input lands on this line y = x (the thick blue segment is the image of the unit square); the red line is the null space Nul(A) — vectors on this line y = −x (like (1,−1)) are crushed to 0 by A. The input is 2-dimensional but the output is squashed to 1 dimension (rank = 1); all information along the red direction is lost." },
         { h: "Which space do they live in?" },
         "This is the part people mix up, and it is settled by counting entries. Let A be m×n (m rows, n columns):",
         { ul: [
