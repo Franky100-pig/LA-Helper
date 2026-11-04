@@ -105,17 +105,18 @@ function _desmosRotate() {
   };
 }
 
-// det = 0 → 平面塌成线：A=[[1,2],[2,4+b]]，det(A)=b。拖 b→0 时两列向量共线，
-// 单位正方形的像（平行四边形）被压成一条线段（面积 0）——降维、信息丢、不可逆。
+// det = 0 → 平面塌成线：A=[[1,1],[0,b]]，det(A)=b，两列 c₁=(1,0)、c₂=(1,b)。
+// 初始 b=1 是一个清清楚楚的平行四边形（det=1）；把 b 拖到 0，c₂ 和 c₁ 共线，
+// 平行四边形塌成一条线段（面积 0）——降维、信息丢、不可逆。
 function _desmosCollapse() {
   return {
-    viewport: { xmin: -3, xmax: 5, ymin: -3, ymax: 9 },
+    viewport: { xmin: -1.6, xmax: 3.2, ymin: -2.2, ymax: 2.2 },
     options: { expressionsCollapsed: true },
     expressions: [
-      _dx("b=1", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
-      _dx(_seg(0, 0, 1, 2), { id: "c1", color: "#c74440" }),
-      _dx(_seg(0, 0, 2, "4+b"), { id: "c2", color: "#388c46" }),
-      _dx(_fill("(0,0),(1,2),(3,6+b),(2,4+b)"), { id: "par", color: "#4ea1ff", fillOpacity: 0.16 })
+      _dx("b=1", { id: "b", slider: { min: -1.5, max: 1.5, step: 0.1 } }),
+      _dx(_fill("(0,0),(1,0),(2,b),(1,b)"), { id: "par", color: "#4ea1ff", fillOpacity: 0.18 }),
+      _dx(_seg(0, 0, 1, 0), { id: "c1", color: "#c74440" }),
+      _dx(_seg(0, 0, 1, "b"), { id: "c2", color: "#388c46" })
     ]
   };
 }
@@ -221,7 +222,7 @@ window.LA_NOTES = {
       blocks: [
         { h: "几何图像" },
         "2×2 矩阵把单位正方形变成一个平行四边形，|det| 就是它的面积（3×3 对应体积）。det = 0 → 面积/体积变成 0 → 平面被压成一条线甚至一个点：降维了。此时两个不同的输入可能被映射到同一个输出，这个映射就没办法反推。",
-        { desmos: _desmosCollapse(), caption: "矩阵 A = [[1,2],[2,4+b]] 的行列式就是 b。拖动 b → 0：红、绿两个列向量变得共线，单位正方形的像（蓝色平行四边形）被压成一条线段、面积变成 0 —— 平面塌成一条线，沿垂直方向的信息全丢了，所以无法反推、没有逆。" },
+        { desmos: _desmosCollapse(), caption: "初始示例：A = [[1,1],[0,b]]，它的行列式就是 b —— 打开时 b = 1，是一个清清楚楚的平行四边形（det = 1）。拖动 b → 0：红、绿两个列向量（c₁=(1,0)、c₂=(1,b)）变得共线，单位正方形的像（蓝色平行四边形）被压成一条线段、面积变成 0 —— 平面塌成一条线，沿垂直方向的信息全丢，所以无法反推、没有逆。" },
         { h: "四句话说的是一件事" },
         { ul: [
           "A 不可逆",
@@ -753,7 +754,7 @@ window.LA_NOTES = {
       blocks: [
         { h: "The geometric picture" },
         "A 2×2 matrix turns the unit square into a parallelogram, and |det| is its area (volume for 3×3). det = 0 → the area/volume is 0 → the plane collapsed onto a line or even a point: a dimension was lost. Two different inputs can then land on the same output, and such a map cannot be reversed.",
-        { desmos: _desmosCollapse(), caption: "The determinant of A = [[1,2],[2,4+b]] is exactly b. Drag b → 0: the two column vectors (red, green) become parallel and the image of the unit square (the blue parallelogram) is squashed onto a segment of area 0 — the plane collapses to a line, all information along the perpendicular direction is lost, so the map cannot be reversed and has no inverse." },
+        { desmos: _desmosCollapse(), caption: "Initial example: A = [[1,1],[0,b]], whose determinant is exactly b — it opens at b = 1, a clearly visible parallelogram (det = 1). Drag b → 0: the two column vectors (red, green; c₁=(1,0), c₂=(1,b)) become parallel and the image of the unit square (the blue parallelogram) is squashed onto a segment of area 0 — the plane collapses to a line, all information along the perpendicular direction is lost, so the map cannot be reversed and has no inverse." },
         { h: "Four sentences that all say one thing" },
         { ul: [
           "A is not invertible",
