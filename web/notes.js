@@ -31,11 +31,11 @@ function _desmosGridWarp() {
     _dx("b=0.8", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
     _dx("c=0", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
     _dx("d=1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
+    _dx(_fill("(0,0),(a,c),(a+b,c+d),(b,d)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.14 }),
     _dx(_seg(0, 0, 1, 0), { id: "e1", color: "#9aa4ae" }),
     _dx(_seg(0, 0, 0, 1), { id: "e2", color: "#9aa4ae" }),
     _dx(_seg(0, 0, "a", "c"), { id: "ae1", color: "#c74440" }),
-    _dx(_seg(0, 0, "b", "d"), { id: "ae2", color: "#388c46" }),
-    _dx(_fill("(0,0),(a,c),(a+b,c+d),(b,d)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.14 })
+    _dx(_seg(0, 0, "b", "d"), { id: "ae2", color: "#388c46" })
   ];
   for (var k = -3; k <= 3; k++) {
     if (k === 0) continue;
@@ -79,9 +79,9 @@ function _desmosSpan() {
       _dx("b=1", { id: "b", slider: { min: -2, max: 2, step: 0.1 } }),
       _dx("c=2", { id: "c", slider: { min: -2, max: 2, step: 0.1 } }),
       _dx("d=-1", { id: "d", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx(_fill("(0,0),(a,b),(a+c,b+d),(c,d)"), { id: "sp", color: "#4ea1ff", fillOpacity: 0.18 }),
       _dx(_seg(0, 0, "a", "b"), { id: "u", color: "#c74440" }),
-      _dx(_seg(0, 0, "c", "d"), { id: "v", color: "#388c46" }),
-      _dx(_fill("(0,0),(a,b),(a+c,b+d),(c,d)"), { id: "sp", color: "#4ea1ff", fillOpacity: 0.18 })
+      _dx(_seg(0, 0, "c", "d"), { id: "v", color: "#388c46" })
     ]
   };
 }
