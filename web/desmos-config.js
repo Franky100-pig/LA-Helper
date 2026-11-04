@@ -8,4 +8,4 @@
  * Desmos' public demo key automatically. But a deployed site (https) MUST use
  * your own key, otherwise the figure area shows a "key not configured" notice.
  */
-window.LA_DESMOS_KEY = "";
+window.LA_DESMOS_KEY = "85dc7bee976f4d9dae05016023ae80f2";
