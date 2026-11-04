@@ -48,6 +48,32 @@
       ? window.LA_I18N.t(key) : fallback;
   }
 
+  // 「↺ 重置示例」：把所有滑块恢复成初始值，并复位视窗。随便拖乱了，一键回到示例。
+  function addReset(host, calc, def) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "desmos-reset";
+    btn.textContent = t("desmos.reset", "↺ Reset");
+    btn.setAttribute("title", t("desmos.resetTitle", "Reset to the example"));
+    btn.addEventListener("click", function () {
+      (def.expressions || []).forEach(function (e) {
+        if (!e.slider) return;                         // 只有滑块需要复位
+        var init = Object.assign({}, e);
+        init.sliderBounds = init.slider;
+        delete init.slider;
+        calc.setExpression(init);                      // latex 里就是初始值，如 "b=1"
+      });
+      if (def.viewport) {
+        calc.setMathBounds({
+          left: def.viewport.xmin, right: def.viewport.xmax,
+          bottom: def.viewport.ymin, top: def.viewport.ymax
+        });
+      }
+      btn.blur();
+    });
+    host.appendChild(btn);
+  }
+
   function mount(host) {
     var idx = parseInt(host.getAttribute("data-desmos-idx"), 10);
     var list = window.LA_NOTES && window.LA_NOTES._desmos;
@@ -85,6 +111,7 @@
         });
       }
       host._desmosCalc = calc;
+      addReset(host, calc, def);
     }).catch(function (err) {
       host.classList.add("desmos-missing");
       var msg = (err && err.message === "no-key")
