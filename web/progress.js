@@ -88,6 +88,7 @@
     "transform",
     "eigen",
     "eigen-howto",
+    "similar",
   ];
 
   /** 路径上 id 的下一篇；路径尽头或不在路径上时返回 null。 */
