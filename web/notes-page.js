@@ -234,8 +234,8 @@
 
       const prog = document.createElement("p");
       prog.className = "learn-progress";
-      const total = window.LA_NOTES.PATH.length;
-      const readN = window.LA_NOTES.PATH.filter((id) => LA_PROGRESS.isRead(id)).length;
+      const total = window.LA_PROGRESS.PATH.length;
+      const readN = window.LA_PROGRESS.PATH.filter((id) => LA_PROGRESS.isRead(id)).length;
       prog.textContent = tr("notes.readCount", { n: readN, m: total });
       view.appendChild(prog);
 
