@@ -156,6 +156,25 @@ function _desmosSimilar() {
   };
 }
 
+// 特征方程：把 det(A−λI) 当成 λ 的函数画出来，就是一条抛物线 y=(x−2)(x−5)
+// （A=[[4,1],[2,3]]）。拖动 λ 探针 m：只有 m=2 或 5 时点才落在横轴上，
+// 也就是 det(A−λI)=0 的两个位置 ——「特征值 = 特征多项式的零点」一眼可见。
+function _desmosCharPoly() {
+  return {
+    viewport: { xmin: -1, xmax: 7, ymin: -5, ymax: 15 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("m=1", { id: "m", slider: { min: 0, max: 6, step: 0.1 } }),
+      _dx("y=(x-2)(x-5)", { id: "poly", color: "#4ea1ff", lineWidth: 3 }),
+      _dx("y=0", { id: "axis", color: "#9aa4ae", lineOpacity: 0.4 }),
+      _dx(_seg("m", 0, "m", "(m-2)(m-5)"), { id: "drop", color: "#9aa4ae", lineStyle: "DASHED" }),
+      _dx("(m,(m-2)(m-5))", { id: "probe", color: "#c74440", pointSize: 12 }),
+      _dx("(2,0)", { id: "r1", color: "#388c46", pointSize: 10 }),
+      _dx("(5,0)", { id: "r2", color: "#388c46", pointSize: 10 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
