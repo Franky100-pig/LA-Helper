@@ -181,18 +181,20 @@ function _desmosCharPoly() {
 // ——「换到特征基 → 各方向各自取幂 → 换回来」一眼可见。
 function _desmosMatrixPower() {
   return {
-    viewport: { xmin: -1.5, xmax: 10, ymin: -1.5, ymax: 10 },
+    viewport: { xmin: -1, xmax: 6.5, ymin: -1, ymax: 6.5 },
     options: { expressionsCollapsed: true },
     expressions: [
-      _dx("k=1", { id: "k", slider: { min: 0, max: 3, step: 1 } }),
-      _dx("y=0", { id: "l1", color: "#9aa4ae", lineOpacity: 0.35 }),
-      _dx("y=x", { id: "l2", color: "#9aa4ae", lineOpacity: 0.35 }),
+      _dx("k=2", { id: "k", slider: { min: 0, max: 2, step: 1 } }),
+      _dx("y=x", { id: "l2", color: "#9aa4ae", lineOpacity: 0.12 }),
       _dx(_fill("(0,0),(1,0),(2,1),(1,1)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.1 }),
-      _dx(_seg(0, 0, 1, 0), { id: "v1", color: "#c74440", lineWidth: 4 }),
-      _dx(_seg(0, 0, 1, 1), { id: "v2", color: "#388c46", lineWidth: 4 }),
-      _dx(_seg(0, 0, "2^k", "2^k"), { id: "v2k", color: "#388c46", lineWidth: 4, lineStyle: "DASHED" }),
+      _dx(_seg(0, 0, 1, 0), { id: "v1", color: "#c74440", lineWidth: 3 }),
+      _dx(_seg(0, 0, 1, 1), { id: "v2", color: "#388c46", lineWidth: 3 }),
       _dx(_seg(0, 0, 2, 1), { id: "u", color: "#2d70b3", lineWidth: 3 }),
-      _dx(_seg(0, 0, "1+2^k", "2^k"), { id: "uk", color: "#2d70b3", lineWidth: 3, lineStyle: "DASHED" })
+      _dx("(1,0)", { id: "p1", color: "#c74440", pointSize: 9 }),
+      _dx("(1,1)", { id: "p2", color: "#388c46", pointSize: 9 }),
+      _dx("(2,1)", { id: "pu", color: "#2d70b3", pointSize: 9 }),
+      _dx(_seg(0, 0, "2^k", "2^k"), { id: "v2k", color: "#388c46", lineWidth: 5, lineStyle: "DASHED" }),
+      _dx(_seg(0, 0, "1+2^k", "2^k"), { id: "uk", color: "#2d70b3", lineWidth: 5, lineStyle: "DASHED" })
     ]
   };
 }
@@ -500,7 +502,7 @@ window.LA_NOTES = {
         "A² = (PDP⁻¹)(PDP⁻¹) = P·D·(P⁻¹P)·D·P⁻¹ = PD²P⁻¹，中间的 P⁻¹P = I 直接抵消。一直乘下去：",
         { formula: "Aᵏ = P·Dᵏ·P⁻¹　·　Dᵏ = diag(λ₁ᵏ, …, λₙᵏ)" },
         "也就是说 A 的一百次方，只要把每个特征值各自取一百次方 —— k 次矩阵乘法变成一个数的乘方。",
-        { desmos: _desmosMatrixPower(), caption: "A = [[1,1],[0,2]] 的两条特征方向是灰色 y=0（λ=1）与 y=x（λ=2）。把 u=(2,1) 拆成红 (1,0) + 绿 (1,1)：拖整数 k，绿色分量按 2ᵏ 变长（虚线），红色分量 1ᵏ 原地不动，蓝色向量 u 的像 Aᵏu 就随之偏转。这正是「换到特征基 → 各方向各自取幂 → 换回来」。" },
+        { desmos: _desmosMatrixPower(), caption: "A = [[1,1],[0,2]] 的两条特征方向是 x 轴（λ=1）与淡灰线 y=x（λ=2）。把 u=(2,1) 拆成红 (1,0) + 绿 (1,1)：小圆点是原向量的终点，粗虚线是 Aᵏ 作用后的像。拖整数 k：绿色分量按 2ᵏ 变长、红色分量 1ᵏ 原地不动，蓝色向量 u 的像 Aᵏu 随之偏转。这正是「换到特征基 → 各方向各自取幂 → 换回来」。" },
         { h: "五步法：照着做就行" },
         { ul: [
           "① 解 det(A − λI) = 0，拿到所有特征值（见上一篇）；",
@@ -1167,7 +1169,7 @@ window.LA_NOTES = {
         "A² = (PDP⁻¹)(PDP⁻¹) = P·D·(P⁻¹P)·D·P⁻¹ = PD²P⁻¹, because P⁻¹P = I cancels in the middle. Keep going:",
         { formula: "Aᵏ = P·Dᵏ·P⁻¹　·　Dᵏ = diag(λ₁ᵏ, …, λₙᵏ)" },
         "So the hundredth power of A only needs each eigenvalue raised to the hundredth power — k matrix multiplications become one ordinary exponentiation per eigenvalue.",
-        { desmos: _desmosMatrixPower(), caption: "For A = [[1,1],[0,2]] the two eigendirections are the grey lines y=0 (λ=1) and y=x (λ=2). Split u=(2,1) into red (1,0) + green (1,1): drag the integer k and the green component grows by 2ᵏ (dashed), the red one stays put at 1ᵏ, and the image of the blue vector u swings around accordingly. That is exactly \"change to the eigenbasis → raise each direction separately → change back\"." },
+        { desmos: _desmosMatrixPower(), caption: "For A = [[1,1],[0,2]] the two eigendirections are the x-axis (λ=1) and the faint grey line y=x (λ=2). Split u=(2,1) into red (1,0) + green (1,1): the small dots mark the original endpoints, and the thick dashed lines are the images after Aᵏ. Drag the integer k — the green component grows by 2ᵏ, the red one stays put at 1ᵏ, and the image of the blue vector u swings around accordingly. That is exactly \"change to the eigenbasis → raise each direction separately → change back\"." },
         { h: "Five steps, just follow them" },
         { ul: [
           "① Solve det(A − λI) = 0 for all eigenvalues (see the previous note).",
