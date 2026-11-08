@@ -1548,7 +1548,9 @@ window.LA_NOTES = {
     rank:         { op: "rank" },
     eigen:        { op: "eigen" },
     "eigen-howto": { op: "eigen", A: [["4", "1"], ["2", "3"]] },
+    charpoly:     { op: "eigen", A: [["4", "1"], ["2", "3"]] },
     similar:      { op: "eigen", A: [["4", "1"], ["2", "3"]] },
+    diagonalize:  { op: "eigen", A: [["1", "1"], ["0", "2"]] },
     adjugate:     { op: "cofactor_matrix" },
     orthogonal:   { op: "inverse" },
     vectorspace:  { op: "rref" },
@@ -1586,7 +1588,9 @@ window.LA_NOTES = {
     "rank-nullity": 5,
     eigen:         6,   // Set 6：特征值与特征向量
     "eigen-howto": 6,
+    charpoly:      6,
     similar:       7,   // Set 7：相似与对角化
+    diagonalize:   7,
   };
   for (const lang of ["zh", "en"]) {
     for (const a of window.LA_NOTES[lang]) {
@@ -1646,11 +1650,23 @@ window.LA_NOTES = {
         { q: "解出特征向量后，为什么必须代回验证 Av = λv？",
           a: "展开多项式和行化简都容易出错（符号、常数项、λ 和向量配错对），而 Av = λv 是定义本身，一步乘法就能查出错误。" },
       ],
+      charpoly: [
+        { q: "特征方程 det(A − λI) = 0 里的 λ 到底是谁？",
+          a: "它是未知数：把 det(A − λI) 当成 λ 的多项式，令它等于 0，解出来的根才是特征值。别把 λ 当成矩阵里原本就有的数。" },
+        { q: "AM = 2 但 GM = 1，说明什么？",
+          a: "这个 λ 在特征多项式里是二重根，却只给出一条（一维）特征方向。方向不够，凑不齐 n 个线性无关特征向量 → 不可对角化；剪切矩阵 [[2,1],[0,2]] 就是这样。" },
+      ],
       similar: [
         { q: "两个矩阵特征值完全相同，它们一定相似吗？",
           a: "不一定。特征多项式相同只是必要条件，还要几何重数（或 Jordan 标准形）一致。反例：I 与 [[1,1],[0,1]] 的特征值都是 1（二重），但一个可对角化、一个不可，所以不相似。" },
         { q: "相似矩阵一定相同的量有哪些？",
           a: "行列式、迹、秩、特征多项式（从而特征值及其重数）、零度、可逆性、可对角化性。改变的只是坐标——特征向量被 P 换了一组基。" },
+      ],
+      diagonalize: [
+        { q: "3×3 矩阵有重根，是不是一定不能对角化？",
+          a: "不是。重根不可怕，只要每个 λ 的 GM = AM、ΣGM = 3 就照样能。例如 [[1,3,3],[−3,−5,−3],[3,3,1]] 的 λ = −2 是二重根，却给出二维特征空间。" },
+        { q: "为什么 A¹⁰⁰ 用对角化算特别快？P 和 D 的顺序能随便排吗？",
+          a: "Aᵏ = PDᵏP⁻¹，中间的 P⁻¹P 全抵消，只剩把每个特征值各自取 k 次幂。顺序不能乱：P 的第 i 列必须是 D 第 i 个对角元对应的特征向量，否则 A·P = P·D 不成立。" },
       ],
       adjugate: [
         { q: "2×2 求伴随的口诀是什么？",
@@ -1744,11 +1760,23 @@ window.LA_NOTES = {
         { q: "After solving for an eigenvector, why must you check Av = λv?",
           a: "Both the polynomial expansion and the row reduction can slip (signs, constants, pairing λ with the wrong vector). Av = λv is the definition itself and costs one multiplication." },
       ],
+      charpoly: [
+        { q: "In det(A − λI) = 0, what exactly is λ?",
+          a: "The unknown. Treat det(A − λI) as a polynomial in λ, set it to zero, and its roots are the eigenvalues. λ is not a number already sitting inside the matrix." },
+        { q: "What does AM = 2 with GM = 1 tell you?",
+          a: "That λ is a double root of the characteristic polynomial but supplies only a one-dimensional eigenspace. Not enough directions to reach n independent eigenvectors → not diagonalisable. The shear [[2,1],[0,2]] is exactly this case." },
+      ],
       similar: [
         { q: "If two matrices have exactly the same eigenvalues, are they necessarily similar?",
           a: "No. An identical characteristic polynomial is only a necessary condition; the geometric multiplicities (or Jordan form) must also match. Counterexample: I and [[1,1],[0,1]] both have eigenvalue 1 (double), but one is diagonalizable and the other is not, so they are not similar." },
         { q: "Which quantities are always the same for similar matrices?",
           a: "Determinant, trace, rank, characteristic polynomial (hence eigenvalues and their multiplicities), nullity, invertibility, and diagonalizability. Only the coordinates change — eigenvectors are re-expressed in the basis P." },
+      ],
+      diagonalize: [
+        { q: "If a 3×3 matrix has a repeated eigenvalue, must it fail to diagonalise?",
+          a: "No. Repeated roots are fine as long as GM = AM for every λ so that ΣGM = 3. For [[1,3,3],[−3,−5,−3],[3,3,1]] the eigenvalue λ = −2 is double but its eigenspace is two-dimensional." },
+        { q: "Why is A¹⁰⁰ so cheap once you diagonalise? And can you order P and D any way you like?",
+          a: "Aᵏ = PDᵏP⁻¹; the inner P⁻¹P cancels, leaving only one exponentiation per eigenvalue. The order is fixed: column i of P must be an eigenvector for diagonal entry i of D, or A·P = P·D fails." },
       ],
       adjugate: [
         { q: "What is the 2×2 adjugate trick?",
