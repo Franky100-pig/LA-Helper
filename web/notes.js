@@ -1365,6 +1365,7 @@ window.LA_NOTES = {
     "rank-nullity": 5,
     eigen:         6,   // Set 6：特征值与特征向量
     "eigen-howto": 6,
+    similar:       7,   // Set 7：相似与对角化
   };
   for (const lang of ["zh", "en"]) {
     for (const a of window.LA_NOTES[lang]) {
