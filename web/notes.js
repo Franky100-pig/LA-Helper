@@ -471,6 +471,56 @@ window.LA_NOTES = {
       ],
     },
     {
+      id: "diagonalize",
+      title: "对角化：给矩阵换一套最省事的坐标",
+      tag: "对角化",
+      cat: "eigen",
+      lead: "如果 A 能凑齐 n 个线性无关的特征向量，就能写成 A = PDP⁻¹：拿特征向量当坐标轴时，这个变换只做缩放，麻烦的坐标混合全没了。这篇讲它是什么、什么时候能做，以及最好用的 Aᵏ。",
+      blocks: [
+        { h: "一句话直觉" },
+        "同一个线性变换，换一套坐标轴来写，矩阵元素会变（这就是上一篇的「相似」）。对角化的目标很朴素：<b>挑一套坐标轴，让矩阵变成对角阵 D</b>。对角阵的意思是 x 坐标只被乘 λ₁、y 坐标只被乘 λ₂，互不干扰 —— 计算瞬间变简单。",
+        { formula: "A = P·D·P⁻¹　（等价地　D = P⁻¹·A·P）" },
+        { ul: [
+          "P 的列 = n 个<b>线性无关</b>的特征向量（就是新坐标轴）；",
+          "D 的对角元 = 对应的特征值，<b>顺序必须和 P 的列一一对应</b>；",
+          "读法：先用 P⁻¹ 换到特征基 → 用 D 各方向独立缩放 → 再用 P 换回原来的坐标。"
+        ] },
+        { h: "为什么这不是「作弊」" },
+        "只要看 A·P 就够了：A 乘 P 的第 i 列（第 i 个特征向量 vᵢ）等于 λᵢvᵢ，所以 A·P 的第 i 列就是 λᵢvᵢ —— 这正好等于 P·D 的第 i 列。两边右乘 P⁻¹，得到 A = PDP⁻¹。",
+        { formula: "A·[v₁ … vₙ] = [λ₁v₁ … λₙvₙ] = [v₁ … vₙ]·diag(λ₁, …, λₙ)　→　A·P = P·D" },
+        "所以「能不能对角化」完全等价于一句话：<b>能不能凑齐 n 个线性无关的特征向量</b>。P 可逆 ⇔ 它的列线性无关，就这么直接。",
+        { h: "什么时候能，什么时候不能" },
+        { ul: [
+          "<b>一定能</b>：n×n 矩阵有 n 个<b>互不相同</b>的特征值（不同 λ 的特征向量自动线性无关）。",
+          "<b>也可能能</b>：有重根，但每个 λ 的 GM = AM，把各特征空间的基合起来仍凑够 n 个。",
+          "<b>一定不能</b>：某个 λ 的 GM &lt; AM，方向不够 —— 比如剪切矩阵 [[2,1],[0,2]]。",
+          "<b>判定一句话</b>：Σ GM(λᵢ) = n ⇔ 可对角化。"
+        ] },
+        { h: "最好用的地方：算高次幂" },
+        "A² = (PDP⁻¹)(PDP⁻¹) = P·D·(P⁻¹P)·D·P⁻¹ = PD²P⁻¹，中间的 P⁻¹P = I 直接抵消。一直乘下去：",
+        { formula: "Aᵏ = P·Dᵏ·P⁻¹　·　Dᵏ = diag(λ₁ᵏ, …, λₙᵏ)" },
+        "也就是说 A 的一百次方，只要把每个特征值各自取一百次方 —— k 次矩阵乘法变成一个数的乘方。",
+        { desmos: _desmosMatrixPower(), caption: "A = [[1,1],[0,2]] 的两条特征方向是灰色 y=0（λ=1）与 y=x（λ=2）。把 u=(2,1) 拆成红 (1,0) + 绿 (1,1)：拖整数 k，绿色分量按 2ᵏ 变长（虚线），红色分量 1ᵏ 原地不动，蓝色向量 u 的像 Aᵏu 就随之偏转。这正是「换到特征基 → 各方向各自取幂 → 换回来」。" },
+        { h: "五步法：照着做就行" },
+        { ul: [
+          "① 解 det(A − λI) = 0，拿到所有特征值（见上一篇）；",
+          "② 每个 λ 解 (A − λI)v = 0，得到每个特征空间的一组基；",
+          "③ 检查 Σ GM = n，不等于 n 就停手：不可对角化；",
+          "④ 把这些基向量<b>竖着排</b>成 P；",
+          "⑤ 把对应特征值按顺序写进 D，最后验证 A·P = P·D（比求 P⁻¹ 省事）。"
+        ] },
+        { tip: "红字级别的坑：P 的第 1 列必须对应 D 的第 1 个对角元，排错顺序等式立刻不成立。还有一点：对角化<b>不唯一</b> —— 特征向量可以乘任意非零倍数、可以换顺序、重根的特征空间可以换一组基，得到的 P 和 D 都合法。" },
+        { h: "完整例子：3×3 有重根也能对角化" },
+        "A = [[1,3,3], [−3,−5,−3], [3,3,1]] 的特征多项式是 (1−λ)(2+λ)²，所以 λ = 1 与 λ = −2（二重）。",
+        { ul: [
+          "λ = 1 → E₁ = span{(1, −1, 1)}，GM = 1；",
+          "λ = −2 → E₋₂ = span{(−1, 1, 0), (−1, 0, 1)}，GM = 2（虽然是重根，但方向够用）；",
+          "1 + 2 = 3 = n → 可对角化。取 P = [[1,−1,−1], [−1,1,0], [1,0,1]]、D = diag(1, −2, −2)。"
+        ] },
+        { tip: "对照着看：把上面的 A 换成剪切矩阵 [[2,1],[0,2]]，λ = 2 是二重根却只有一条特征方向，ΣGM = 1 &lt; 2，于是不可对角化。「重根不可怕，方向不够才可怕」。点下面「试一试 →」可以拿 A = [[1,1],[0,2]] 算特征值，正是上面那张图用的矩阵。" },
+      ],
+    },
+    {
       id: "adjugate",
       title: "伴随矩阵与求逆公式",
       tag: "可逆性",
@@ -1085,6 +1135,56 @@ window.LA_NOTES = {
           "<b>If not diagonalizable</b>: also compare geometric multiplicities (or Jordan form); a mismatch means not similar.",
         ] },
         { tip: "Try it on this page: compute the eigenvalues of A = [[4,1],[2,3]] (5 and 2) — it is similar to diag(5,2). Then run J = [[1,1],[0,1]]: its eigenvalue is also 1 (double), yet it is not diagonalizable. Comparing the two shows why \"same eigenvalues\" does not imply \"similar\"." },
+      ],
+    },
+    {
+      id: "diagonalize",
+      title: "Diagonalization: pick the laziest coordinate system",
+      tag: "Diagonalization",
+      cat: "eigen",
+      lead: "If A has n linearly independent eigenvectors, you can write A = PDP⁻¹: with eigenvectors as your axes, the transformation only scales — all the messy mixing of coordinates disappears. Here is what it is, when it works, and the payoff: Aᵏ.",
+      blocks: [
+        { h: "The one-sentence intuition" },
+        "One linear transformation, different coordinate axes — different matrix entries (that was similarity in the previous note). Diagonalization has a modest goal: <b>choose axes that make the matrix diagonal</b>. A diagonal matrix just multiplies the x-coordinate by λ₁ and the y-coordinate by λ₂, independently. Everything gets easier at once.",
+        { formula: "A = P·D·P⁻¹　(equivalently　D = P⁻¹·A·P)" },
+        { ul: [
+          "Columns of P = n <b>linearly independent</b> eigenvectors (the new axes).",
+          "Diagonal entries of D = the matching eigenvalues, <b>in the same order as the columns of P</b>.",
+          "Read it as: P⁻¹ switches into the eigenbasis → D scales each direction independently → P switches back."
+        ] },
+        { h: "Why this is not cheating" },
+        "Just look at A·P. Multiplying the i-th column of P (the i-th eigenvector vᵢ) by A gives λᵢvᵢ, so the i-th column of A·P is λᵢvᵢ — exactly the i-th column of P·D. Right-multiply by P⁻¹ and you get A = PDP⁻¹.",
+        { formula: "A·[v₁ … vₙ] = [λ₁v₁ … λₙvₙ] = [v₁ … vₙ]·diag(λ₁, …, λₙ)　→　A·P = P·D" },
+        "So \"can A be diagonalised?\" collapses to one question: <b>can you collect n linearly independent eigenvectors?</b> P is invertible exactly when its columns are independent. That is all.",
+        { h: "When it works and when it doesn't" },
+        { ul: [
+          "<b>Always works</b>: an n×n matrix with n <b>distinct</b> eigenvalues (eigenvectors for different λ are automatically independent).",
+          "<b>May still work</b>: repeated roots are fine as long as GM = AM for every λ, so the eigenspace bases still add up to n vectors.",
+          "<b>Never works</b>: some λ has GM &lt; AM — not enough directions. The shear [[2,1],[0,2]] is the classic case.",
+          "<b>One-line test</b>: Σ GM(λᵢ) = n ⇔ diagonalisable."
+        ] },
+        { h: "The best payoff: high powers" },
+        "A² = (PDP⁻¹)(PDP⁻¹) = P·D·(P⁻¹P)·D·P⁻¹ = PD²P⁻¹, because P⁻¹P = I cancels in the middle. Keep going:",
+        { formula: "Aᵏ = P·Dᵏ·P⁻¹　·　Dᵏ = diag(λ₁ᵏ, …, λₙᵏ)" },
+        "So the hundredth power of A only needs each eigenvalue raised to the hundredth power — k matrix multiplications become one ordinary exponentiation per eigenvalue.",
+        { desmos: _desmosMatrixPower(), caption: "For A = [[1,1],[0,2]] the two eigendirections are the grey lines y=0 (λ=1) and y=x (λ=2). Split u=(2,1) into red (1,0) + green (1,1): drag the integer k and the green component grows by 2ᵏ (dashed), the red one stays put at 1ᵏ, and the image of the blue vector u swings around accordingly. That is exactly \"change to the eigenbasis → raise each direction separately → change back\"." },
+        { h: "Five steps, just follow them" },
+        { ul: [
+          "① Solve det(A − λI) = 0 for all eigenvalues (see the previous note).",
+          "② For each λ, solve (A − λI)v = 0 to get a basis of that eigenspace.",
+          "③ Check Σ GM = n. If not, stop: not diagonalisable.",
+          "④ Stack those basis vectors as the <b>columns</b> of P.",
+          "⑤ Put the matching eigenvalues into D in the same order, then verify A·P = P·D (cheaper than computing P⁻¹)."
+        ] },
+        { tip: "The classic trap: column 1 of P must match diagonal entry 1 of D; swap them and the identity fails immediately. Also, diagonalization is <b>not unique</b> — you may rescale any eigenvector, reorder the columns, or pick a different basis for a repeated eigenspace, and the resulting P and D are equally valid." },
+        { h: "A full example: 3×3 with a repeated root that still works" },
+        "A = [[1,3,3], [−3,−5,−3], [3,3,1]] has characteristic polynomial (1−λ)(2+λ)², so λ = 1 and λ = −2 (double).",
+        { ul: [
+          "λ = 1 → E₁ = span{(1, −1, 1)}, GM = 1.",
+          "λ = −2 → E₋₂ = span{(−1, 1, 0), (−1, 0, 1)}, GM = 2 — a repeated root, but directions are plentiful.",
+          "1 + 2 = 3 = n → diagonalisable. Take P = [[1,−1,−1], [−1,1,0], [1,0,1]] and D = diag(1, −2, −2)."
+        ] },
+        { tip: "Contrast: swap in the shear [[2,1],[0,2]]. Its λ = 2 is a double root with only one eigendirection, so ΣGM = 1 &lt; 2 and it cannot be diagonalised. Repeated roots are not the problem — missing directions are. Hit \"Try it →\" below to compute the eigenvalues of A = [[1,1],[0,2]], the matrix used in the figure above." },
       ],
     },
     {
