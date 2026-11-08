@@ -175,6 +175,28 @@ function _desmosCharPoly() {
   };
 }
 
+// 对角化最实用的结论 Aᵏ = P·Dᵏ·P⁻¹：取 A=[[1,1],[0,2]]（λ=1 方向 y=0，λ=2 方向 y=x）。
+// 把 u=(2,1) 拆成两个特征方向之和 (1,0)+(1,1)，则 Aᵏu = 1ᵏ(1,0) + 2ᵏ(1,1)。
+// 拖整数 k：绿色分量沿 y=x 按 2ᵏ 变长、红色分量原地不动，蓝色一般向量的像方向随之偏转
+// ——「换到特征基 → 各方向各自取幂 → 换回来」一眼可见。
+function _desmosMatrixPower() {
+  return {
+    viewport: { xmin: -1.5, xmax: 10, ymin: -1.5, ymax: 10 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("k=1", { id: "k", slider: { min: 0, max: 3, step: 1 } }),
+      _dx("y=0", { id: "l1", color: "#9aa4ae", lineOpacity: 0.35 }),
+      _dx("y=x", { id: "l2", color: "#9aa4ae", lineOpacity: 0.35 }),
+      _dx(_fill("(0,0),(1,0),(2,1),(1,1)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.1 }),
+      _dx(_seg(0, 0, 1, 0), { id: "v1", color: "#c74440", lineWidth: 4 }),
+      _dx(_seg(0, 0, 1, 1), { id: "v2", color: "#388c46", lineWidth: 4 }),
+      _dx(_seg(0, 0, "2^k", "2^k"), { id: "v2k", color: "#388c46", lineWidth: 4, lineStyle: "DASHED" }),
+      _dx(_seg(0, 0, 2, 1), { id: "u", color: "#2d70b3", lineWidth: 3 }),
+      _dx(_seg(0, 0, "1+2^k", "2^k"), { id: "uk", color: "#2d70b3", lineWidth: 3, lineStyle: "DASHED" })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
