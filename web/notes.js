@@ -137,6 +137,25 @@ function _desmosSubspaces() {
   };
 }
 
+// 相似 / 对角化：A=[[4,1],[2,3]]，特征值 5（方向 (1,1)）与 2（方向 (1,−2)）。
+// 实线 = 向量 x，虚线 = 它的像 A·x。像始终留在同一条特征线上，只是长度变成 5 倍 / 2 倍
+// —— 在特征基下 A 就是 diag(5,2)，这正是 A ~ diag(5,2)。
+function _desmosSimilar() {
+  return {
+    viewport: { xmin: -2, xmax: 6.5, ymin: -5.5, ymax: 6.5 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("t=1", { id: "t", slider: { min: 0.2, max: 1.2, step: 0.1 } }),
+      _dx("y=x", { id: "l1", color: "#9aa4ae", lineOpacity: 0.35 }),
+      _dx("y=-2x", { id: "l2", color: "#9aa4ae", lineOpacity: 0.35 }),
+      _dx(_seg(0, 0, "5t", "5t"), { id: "i1", color: "#c74440", lineStyle: "DASHED", lineWidth: 4 }),
+      _dx(_seg(0, 0, "2t", "-4t"), { id: "i2", color: "#388c46", lineStyle: "DASHED", lineWidth: 4 }),
+      _dx(_seg(0, 0, "t", "t"), { id: "v1", color: "#c74440", lineWidth: 4 }),
+      _dx(_seg(0, 0, "t", "-2t"), { id: "v2", color: "#388c46", lineWidth: 4 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
@@ -352,6 +371,7 @@ window.LA_NOTES = {
         "拿上一篇的 A = [[4,1],[2,3]]：它的特征值是 5 和 2，对应的特征向量是 (1,1) 和 (1,−2)。把这两个特征向量<b>竖着排成 P</b>：",
         { formula: "P = [[1, 1], [1, −2]]　→　P⁻¹·A·P = [[5, 0], [0, 2]] = D" },
         "也就是说 <b>A ~ D = diag(5, 2)</b>。这不是巧合：用特征向量当基时，矩阵在每条特征方向上都只做缩放，非对角元全部消失。这就是<b>对角化</b>的本质 —— 找一个基，让同一个变换看起来最简单。",
+        { desmos: _desmosSimilar(), caption: "矩阵 A = [[4,1],[2,3]] 的两条特征方向：红线 y=x（特征值 5）、绿线 y=−2x（特征值 2）。拖动 t：实线是向量 x，虚线是它的像 A·x —— 像始终留在同一条特征线上，只是长度分别变成 5 倍和 2 倍。也就是说，在这组特征基下 A 只是 diag(5,2)，这正是 A ~ diag(5,2)。" },
         { h: "反过来不成立：特征值相同 ≠ 相似" },
         "特征多项式相同只是相似的<b>必要条件</b>，不是充分条件。看这个反例：",
         { formula: "I = [[1,0],[0,1]]　与　J = [[1,1],[0,1]]　都有特征多项式 (λ−1)²，特征值都是 1（二重）" },
@@ -928,6 +948,7 @@ window.LA_NOTES = {
         "Take A = [[4,1],[2,3]] from the previous note: its eigenvalues are 5 and 2, with eigenvectors (1,1) and (1,−2). Put those eigenvectors <b>as the columns of P</b>:",
         { formula: "P = [[1, 1], [1, −2]]　→　P⁻¹·A·P = [[5, 0], [0, 2]] = D" },
         "So <b>A ~ D = diag(5, 2)</b>. This is no accident: using eigenvectors as a basis, the map only scales along each eigen-direction and every off-diagonal entry vanishes. That is the essence of <b>diagonalization</b> — choosing a basis in which the same transformation looks as simple as possible.",
+        { desmos: _desmosSimilar(), caption: "The two eigen-directions of A = [[4,1],[2,3]]: the red line y=x (eigenvalue 5) and the green line y=−2x (eigenvalue 2). Drag t: the solid segment is a vector x, the dashed segment is its image A·x — the image stays on the same eigen-line, simply 5× and 2× longer. In this eigenbasis A is just diag(5,2), which is exactly A ~ diag(5,2)." },
         { h: "The converse fails: same eigenvalues ≠ similar" },
         "An identical characteristic polynomial is only a <b>necessary</b> condition, not a sufficient one. Here is the counterexample:",
         { formula: "I = [[1,0],[0,1]]　and　J = [[1,1],[0,1]]　both have characteristic polynomial (λ−1)², so both have eigenvalue 1 (double)" },
