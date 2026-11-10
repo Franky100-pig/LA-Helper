@@ -528,6 +528,17 @@ window.LA_NOTES = {
           "交换 P 的两列时，D 的对角元必须<b>同步交换</b>，否则配对拆开、算出来的不是 A；",
           "验算别求逆：逐列检查 <b>A·P = P·D</b>（即 A·vᵢ = λᵢ·vᵢ），比算 P⁻¹ 再验 A = PDP⁻¹ 快得多。"
         ] },
+        { h: "技巧二：P⁻¹ 的口诀，以及「能躲就躲」" },
+        "2×2 直接套公式（主对角互换、副对角变号，再除以 det）：",
+        { formula: "P = [[a, b], [c, d]]　→　P⁻¹ = 1/(ad − bc) · [[d, −b], [−c, a]]" },
+        "例如 P = [[2, 1], [1, −1]]，det P = −3，所以 P⁻¹ = (1/3)[[1, 1], [1, −2]]。3×3 往上别硬算伴随矩阵，用 <b>[P | I] → [I | P⁻¹]</b> 行化简更稳。",
+        { ul: [
+          "<b>先把 P 的列挑好</b>：特征向量可以乘任意非零倍数，清掉分数、选小整数，det P 往往是个小整数，P⁻¹ 就是「整数矩阵 ÷ det」，手算不易错；",
+          "<b>很多题根本不用 P⁻¹</b>：只求 D、判断能否对角化、验 A·P = P·D 都用不到；连算 Aᵏ·x 也可以把 x 拆成 Σcᵢvᵢ，直接写成 Σcᵢλᵢᵏvᵢ，绕开求逆；",
+          "<b>算完随手验一列</b>：P·P⁻¹ 的第一列应该是 (1, 0, …)，一分钟就能抓出符号错；",
+          "换个角度：P⁻¹ 正是「标准坐标 → 特征基坐标」的<b>换基矩阵</b>，它的第 j 列就是 eⱼ 用特征基写出来的坐标。"
+        ] },
+        { tip: "一句话：D 靠配对抄出来，P⁻¹ 靠口诀算出来；验算用 A·P = P·D，能不求逆就不求逆。" },
         { h: "完整例子：3×3 有重根也能对角化" },
         "A = [[1,3,3], [−3,−5,−3], [3,3,1]] 的特征多项式是 (1−λ)(2+λ)²，所以 λ = 1 与 λ = −2（二重）。",
         { ul: [
@@ -1211,6 +1222,17 @@ window.LA_NOTES = {
           "If you swap two columns of P, <b>swap the diagonal entries of D too</b> — otherwise the pairing breaks and you no longer reconstruct A.",
           "Verify without an inverse: check <b>A·P = P·D</b> column by column (A·vᵢ = λᵢ·vᵢ); much cheaper than computing P⁻¹ and checking A = PDP⁻¹."
         ] },
+        { h: "Trick 2: a formula for P⁻¹, and when to skip it" },
+        "For 2×2, use the formula outright (swap the diagonal entries, negate the off-diagonal ones, divide by det):",
+        { formula: "P = [[a, b], [c, d]]　→　P⁻¹ = 1/(ad − bc) · [[d, −b], [−c, a]]" },
+        "For example P = [[2, 1], [1, −1]] has det P = −3, so P⁻¹ = (1/3)[[1, 1], [1, −2]]. For 3×3 and larger, do not grind through the adjugate — row-reduce <b>[P | I] → [I | P⁻¹]</b> instead.",
+        { ul: [
+          "<b>Pick friendly columns first.</b> Eigenvectors may be rescaled freely, so clear fractions and choose small integers: det P is then usually a small integer and P⁻¹ is just \"integer matrix ÷ det\", which is much safer by hand.",
+          "<b>Often you never need P⁻¹.</b> Finding D, deciding diagonalisability, and checking A·P = P·D all skip it. Even Aᵏ·x can be done by writing x = Σcᵢvᵢ and jumping straight to Σcᵢλᵢᵏvᵢ.",
+          "<b>Check one column when done.</b> The first column of P·P⁻¹ should be (1, 0, …); a minute of work catches sign slips.",
+          "Another view: P⁻¹ is exactly the <b>change-of-coordinates matrix</b> from standard coordinates to the eigenbasis — its j-th column is eⱼ written in that eigenbasis."
+        ] },
+        { tip: "In short: D comes from pairing (copy it), P⁻¹ comes from the formula (compute it), and verification uses A·P = P·D. Skip the inverse whenever you can." },
         { h: "A full example: 3×3 with a repeated root that still works" },
         "A = [[1,3,3], [−3,−5,−3], [3,3,1]] has characteristic polynomial (1−λ)(2+λ)², so λ = 1 and λ = −2 (double).",
         { ul: [
