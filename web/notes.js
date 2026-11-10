@@ -1922,3 +1922,125 @@ window.LA_NOTES.blocksHtml = function (blocks) {
   window.LA_NOTES._desmos = desmos;
   return html;
 };
+
+/* ---------------------------------------------------------------------------
+ * 知识点清单（syllabus）：讲义首页那张「知识点地图」的单一数据源。
+ *
+ * 结构：{ zh: [组, ...], en: [组, ...] }，组 = { g: 组名, items: [知识点, ...] }，
+ * 知识点 = { t: 名称, id: 对应讲义 id }，id 为 null 表示「这个知识点还没写」。
+ *
+ * 为什么要单独列一份，而不是直接拿文章目录当清单：
+ *   目录只列「已经写了什么」，看不出「还缺什么」。这份清单按一门线代课的知识
+ *   点铺开，已写的挂上 id 直接可点，缺口就显式摆在那里，读者一眼能看出覆盖面。
+ *   新增讲义时把对应 id 填上即可（test_notes.js 会检查每篇文章都被清单收编）。
+ *
+ * 约定：id 与文章 id 一一对应、不重复；zh/en 两组结构、顺序、id 必须完全一致。
+ * ------------------------------------------------------------------------- */
+window.LA_NOTES.TOPICS = {
+  zh: [
+    { g: "基础与运算", items: [
+      { t: "矩阵乘法为什么这样定义", id: "matmul" },
+      { t: "线性方程组与高斯消元", id: null },
+      { t: "线性相关与线性无关", id: null },
+      { t: "点积、叉积与内积", id: null },
+    ] },
+    { g: "行列式", items: [
+      { t: "代数余子式与按行展开", id: "cofactor" },
+      { t: "用行变换算行列式", id: "row-reduction" },
+      { t: "行列式的几何意义（面积 / 体积）", id: null },
+      { t: "Cramer 法则", id: null },
+    ] },
+    { g: "向量空间与基", items: [
+      { t: "向量空间与子空间", id: "vectorspace" },
+      { t: "基与维数", id: "basis" },
+      { t: "列空间 / 零空间 / 行空间", id: "spaces" },
+      { t: "换基矩阵与坐标变换", id: null },
+    ] },
+    { g: "秩与零度", items: [
+      { t: "秩到底在说什么", id: "rank" },
+      { t: "零空间与零度", id: "nullity" },
+      { t: "秩-零度定理", id: "rank-nullity" },
+    ] },
+    { g: "可逆性", items: [
+      { t: "det = 0 为什么没有逆", id: "singular" },
+      { t: "伴随矩阵与求逆公式", id: "adjugate" },
+    ] },
+    { g: "线性变换", items: [
+      { t: "线性变换与矩阵表示", id: "transform" },
+      { t: "正交矩阵与刚性变换", id: "orthogonal" },
+      { t: "正交投影", id: null },
+      { t: "Gram-Schmidt 正交化", id: null },
+    ] },
+    { g: "特征值与对角化", items: [
+      { t: "特征值与特征向量的几何意义", id: "eigen" },
+      { t: "特征方程与 AM / GM", id: "charpoly" },
+      { t: "手算特征值与特征向量", id: "eigen-howto" },
+      { t: "相似矩阵", id: "similar" },
+      { t: "对角化与 Aᵏ", id: "diagonalize" },
+      { t: "复特征值与旋转", id: null },
+      { t: "GM ≤ AM 的证明 / Jordan 形", id: null },
+    ] },
+    { g: "进阶分解", items: [
+      { t: "最小二乘", id: null },
+      { t: "QR 分解", id: null },
+      { t: "SVD 奇异值分解", id: null },
+    ] },
+    { g: "速查与练习", items: [
+      { t: "术语速查", id: "glossary" },
+      { t: "更多练习题", id: "practice" },
+    ] },
+  ],
+  en: [
+    { g: "Foundations & operations", items: [
+      { t: "Why matrix multiplication works this way", id: "matmul" },
+      { t: "Linear systems & Gaussian elimination", id: null },
+      { t: "Linear dependence & independence", id: null },
+      { t: "Dot product, cross product & inner product", id: null },
+    ] },
+    { g: "Determinants", items: [
+      { t: "Cofactors & Laplace expansion", id: "cofactor" },
+      { t: "Computing det by row reduction", id: "row-reduction" },
+      { t: "Geometric meaning of det (area / volume)", id: null },
+      { t: "Cramer's rule", id: null },
+    ] },
+    { g: "Vector spaces & bases", items: [
+      { t: "Vector spaces & subspaces", id: "vectorspace" },
+      { t: "Basis & dimension", id: "basis" },
+      { t: "Column / null / row space", id: "spaces" },
+      { t: "Change-of-basis matrix & coordinates", id: null },
+    ] },
+    { g: "Rank & nullity", items: [
+      { t: "What rank really measures", id: "rank" },
+      { t: "Null space & nullity", id: "nullity" },
+      { t: "The rank-nullity theorem", id: "rank-nullity" },
+    ] },
+    { g: "Invertibility", items: [
+      { t: "Why det = 0 kills the inverse", id: "singular" },
+      { t: "Adjugate matrix & inverse formula", id: "adjugate" },
+    ] },
+    { g: "Linear transformations", items: [
+      { t: "Linear maps & their matrices", id: "transform" },
+      { t: "Orthogonal matrices & rigid motions", id: "orthogonal" },
+      { t: "Orthogonal projection", id: null },
+      { t: "Gram-Schmidt orthogonalization", id: null },
+    ] },
+    { g: "Eigenvalues & diagonalization", items: [
+      { t: "Geometry of eigenvalues & eigenvectors", id: "eigen" },
+      { t: "Characteristic equation, AM & GM", id: "charpoly" },
+      { t: "Computing eigenvalues & eigenvectors", id: "eigen-howto" },
+      { t: "Similar matrices", id: "similar" },
+      { t: "Diagonalization & Aᵏ", id: "diagonalize" },
+      { t: "Complex eigenvalues & rotations", id: null },
+      { t: "Proof of GM ≤ AM / Jordan form", id: null },
+    ] },
+    { g: "Advanced decompositions", items: [
+      { t: "Least squares", id: null },
+      { t: "QR decomposition", id: null },
+      { t: "SVD (singular value decomposition)", id: null },
+    ] },
+    { g: "Reference & practice", items: [
+      { t: "Glossary of terms", id: "glossary" },
+      { t: "More practice sets", id: "practice" },
+    ] },
+  ],
+};
