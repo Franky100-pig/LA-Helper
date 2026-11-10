@@ -512,6 +512,14 @@ window.LA_NOTES = {
           "⑤ 把对应特征值按顺序写进 D，最后验证 A·P = P·D（比求 P⁻¹ 省事）。"
         ] },
         { tip: "红字级别的坑：P 的第 1 列必须对应 D 的第 1 个对角元，排错顺序等式立刻不成立。还有一点：对角化<b>不唯一</b> —— 特征向量可以乘任意非零倍数、可以换顺序、重根的特征空间可以换一组基，得到的 P 和 D 都合法。" },
+        { h: "技巧一：D 是「抄」出来的，不是算出来的" },
+        "定义虽然写着 D = P⁻¹AP，但实操没人在乘这三个矩阵：<b>把特征值按 P 的列顺序依次填进对角线</b>就完事。因为 A·P = P·D 的本质是「第 i 列满足 A·vᵢ = λᵢ·vᵢ」，配对对了，D 就被唯一确定了。",
+        { ul: [
+          "重根要<b>重复写</b>：λ = −2 二重 → D = diag(1, −2, −2)，别只写一个 −2；",
+          "两秒自查：<b>tr(D) = Σλᵢ = tr(A)</b>、<b>det(D) = Πλᵢ = det(A)</b>，对不上就是特征值算错或抄错；",
+          "交换 P 的两列时，D 的对角元必须<b>同步交换</b>，否则配对拆开、算出来的不是 A；",
+          "验算别求逆：逐列检查 <b>A·P = P·D</b>（即 A·vᵢ = λᵢ·vᵢ），比算 P⁻¹ 再验 A = PDP⁻¹ 快得多。"
+        ] },
         { h: "完整例子：3×3 有重根也能对角化" },
         "A = [[1,3,3], [−3,−5,−3], [3,3,1]] 的特征多项式是 (1−λ)(2+λ)²，所以 λ = 1 与 λ = −2（二重）。",
         { ul: [
@@ -1179,6 +1187,14 @@ window.LA_NOTES = {
           "⑤ Put the matching eigenvalues into D in the same order, then verify A·P = P·D (cheaper than computing P⁻¹)."
         ] },
         { tip: "The classic trap: column 1 of P must match diagonal entry 1 of D; swap them and the identity fails immediately. Also, diagonalization is <b>not unique</b> — you may rescale any eigenvector, reorder the columns, or pick a different basis for a repeated eigenspace, and the resulting P and D are equally valid." },
+        { h: "Trick 1: D is copied, not computed" },
+        "The definition says D = P⁻¹AP, but nobody actually multiplies those three matrices. In practice you <b>write the eigenvalues along the diagonal in the same order as the columns of P</b>. Since A·P = P·D just says \"column i satisfies A·vᵢ = λᵢ·vᵢ\", getting the pairing right determines D completely.",
+        { ul: [
+          "<b>Repeat repeated roots</b>: a double λ = −2 gives D = diag(1, −2, −2), not a single −2.",
+          "Two-second check: <b>tr(D) = Σλᵢ = tr(A)</b> and <b>det(D) = Πλᵢ = det(A)</b>; a mismatch means a wrong eigenvalue or a copying slip.",
+          "If you swap two columns of P, <b>swap the diagonal entries of D too</b> — otherwise the pairing breaks and you no longer reconstruct A.",
+          "Verify without an inverse: check <b>A·P = P·D</b> column by column (A·vᵢ = λᵢ·vᵢ); much cheaper than computing P⁻¹ and checking A = PDP⁻¹."
+        ] },
         { h: "A full example: 3×3 with a repeated root that still works" },
         "A = [[1,3,3], [−3,−5,−3], [3,3,1]] has characteristic polynomial (1−λ)(2+λ)², so λ = 1 and λ = −2 (double).",
         { ul: [
