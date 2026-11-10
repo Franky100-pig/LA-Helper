@@ -104,6 +104,33 @@
   .welcome-title { font-size: 17px; font-weight: 600; color: var(--text); margin: 0 0 8px; }
   .welcome-hint { font-size: 13px; color: var(--muted); margin: 0; }
 
+  /* 知识点地图：欢迎卡片下方的知识点清单（已写 / 待补 / 已读） */
+  .welcome.compact { min-height: 0; padding: 14px 16px 8px; }
+  .topic-map { margin-top: 4px; }
+  .topic-map h3 { margin: 4px 0 6px; font-size: 16px; }
+  .topic-map .map-hint, .topic-map .map-stats { font-size: 13px; margin: 4px 0; color: var(--muted); }
+  .topic-map .map-stats { color: var(--accent2); }
+  .map-filters { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 6px; }
+  .map-filter { background: var(--panel2); color: var(--muted); font: inherit; font-size: 13px;
+    border: 1px solid var(--border); border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+  .map-filter:hover { color: var(--accent); border-color: var(--accent); }
+  .map-filter.on { color: var(--accent); border-color: var(--accent); background: var(--inset-focus); }
+  .topic-group { margin: 14px 0; }
+  .topic-group h4 { margin: 0 0 8px; font-size: 13px; color: var(--accent); font-weight: 600; }
+  .topic-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .topic-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+    padding: 5px 11px; border: 1px solid var(--border); border-radius: 999px;
+    background: var(--panel2); color: var(--text); text-decoration: none; }
+  a.topic-chip:hover { border-color: var(--accent); color: var(--accent); }
+  .topic-chip.is-read { border-color: var(--ok); }
+  .topic-chip .chip-state { color: var(--ok); font-weight: 700; }
+  .topic-chip.planned { border-style: dashed; color: var(--muted); background: transparent; }
+  .topic-chip .chip-badge { font-size: 11px; color: var(--muted); border: 1px solid var(--border);
+    border-radius: 999px; padding: 0 6px; }
+  .topic-chip[hidden], .topic-group[hidden] { display: none; }
+  .map-suggest { display: inline-block; margin-top: 14px; font-size: 13px; }
+  .map-back { display: inline-block; margin: 0 0 12px; font-size: 13px; }
+
   .article { background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 22px; }
   .article h2 { margin: 0 0 6px; font-size: 19px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .badge { font-size: 12px; color: var(--accent2); border: 1px solid var(--border);
