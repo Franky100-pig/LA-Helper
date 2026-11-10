@@ -102,5 +102,38 @@ for (const lang of ["zh", "en"]) {
 }
 
 // ---------------------------------------------------------------------------
+// [6] 知识点清单 TOPICS：中英同构、无死链、每篇文章都被收编
+//     首页的「知识点地图」直接吃这份数据；漏一篇讲义 = 目录里凭空少一个知识点，
+//     而 id 写错 = 点了跳到空白页。两类问题都不会报错，只能静态兜住。
+console.log("\n[6] 知识点清单 TOPICS 完整性");
+const T = NOTES.TOPICS;
+const tBad = [];
+const flatIds = (lang) => (T[lang] || []).flatMap((g) => (g.items || []).map((it) => it.id));
+if (!T || !Array.isArray(T.zh) || !Array.isArray(T.en)) {
+  tBad.push("TOPICS 缺失或不是 {zh,en} 结构");
+} else {
+  if (T.zh.length !== T.en.length) tBad.push(`分组数不同：zh ${T.zh.length} / en ${T.en.length}`);
+  T.zh.forEach((g, gi) => {
+    const e = T.en[gi];
+    if (!g.g || !e || !e.g) tBad.push(`第 ${gi + 1} 组缺组名`);
+    if (!Array.isArray(g.items) || !e || !Array.isArray(e.items) || g.items.length !== e.items.length) {
+      tBad.push(`第 ${gi + 1} 组条目数不同`);
+    }
+  });
+  check(JSON.stringify(flatIds("zh")) === JSON.stringify(flatIds("en")), "zh/en 知识点顺序与 id 完全一致");
+  const linked = flatIds("zh").filter((id) => id);
+  const dead = linked.filter((id) => !zhIds.includes(id));
+  const dup = linked.filter((id, i) => linked.indexOf(id) !== i);
+  if (dead.length) tBad.push(`死链（没有对应讲义）：${dead.join(", ")}`);
+  if (dup.length) tBad.push(`同一篇被列了多次：${[...new Set(dup)].join(", ")}`);
+  const missing = zhIds.filter((id) => !linked.includes(id));
+  if (missing.length) tBad.push(`讲义没被清单收编：${missing.join(", ")}`);
+  const planned = flatIds("zh").filter((id) => !id).length;
+  if (planned === 0) tBad.push("没有任何「待补」条目，缺口视图会失去意义");
+}
+check(tBad.length === 0, tBad.length ? tBad.join("; ")
+  : `全部 ${T && T.zh ? T.zh.length : 0} 组 / ${flatIds("zh").length} 个知识点合法`);
+
+// ---------------------------------------------------------------------------
 console.log(`\n${failures ? `失败：${failures} 处问题。` : "全部通过 ✓"}`);
 process.exit(failures ? 1 : 0);
