@@ -491,6 +491,14 @@ window.LA_NOTES = {
         "只要看 A·P 就够了：A 乘 P 的第 i 列（第 i 个特征向量 vᵢ）等于 λᵢvᵢ，所以 A·P 的第 i 列就是 λᵢvᵢ —— 这正好等于 P·D 的第 i 列。两边右乘 P⁻¹，得到 A = PDP⁻¹。",
         { formula: "A·[v₁ … vₙ] = [λ₁v₁ … λₙvₙ] = [v₁ … vₙ]·diag(λ₁, …, λₙ)　→　A·P = P·D" },
         "所以「能不能对角化」完全等价于一句话：<b>能不能凑齐 n 个线性无关的特征向量</b>。P 可逆 ⇔ 它的列线性无关，就这么直接。",
+        { h: "先补两个缩写：AM 和 GM" },
+        "这篇会反复用到这两个词，先放个速查（完整解释在<a href='#charpoly'>《特征方程》</a>那篇）：",
+        { ul: [
+          "<b>AM（代数重数）</b>：λ 作为特征多项式的<b>根</b>重复了几次 —— 看多项式，(λ − 5)² 里 5 的 AM = 2；",
+          "<b>GM（几何重数）</b>：λ 对应的<b>特征空间 E_λ = Nul(A − λI) 有几维</b>，也就是能找出几个线性无关的特征向量 —— 看零空间，等于解 (A − λI)x = 0 时的自由变量个数；",
+          "永远 <b>GM ≤ AM</b>；把每个 λ 的 GM 加起来，就是总共能凑出多少个独立特征向量，够 n 个才能对角化。"
+        ] },
+        { formula: "AM = 根的重数　·　GM = dim E_λ = dim Nul(A − λI) = n − rank(A − λI)　·　Σ GM = 对角化的门槛" },
         { h: "什么时候能，什么时候不能" },
         { ul: [
           "<b>一定能</b>：n×n 矩阵有 n 个<b>互不相同</b>的特征值（不同 λ 的特征向量自动线性无关）。",
@@ -1166,6 +1174,14 @@ window.LA_NOTES = {
         "Just look at A·P. Multiplying the i-th column of P (the i-th eigenvector vᵢ) by A gives λᵢvᵢ, so the i-th column of A·P is λᵢvᵢ — exactly the i-th column of P·D. Right-multiply by P⁻¹ and you get A = PDP⁻¹.",
         { formula: "A·[v₁ … vₙ] = [λ₁v₁ … λₙvₙ] = [v₁ … vₙ]·diag(λ₁, …, λₙ)　→　A·P = P·D" },
         "So \"can A be diagonalised?\" collapses to one question: <b>can you collect n linearly independent eigenvectors?</b> P is invertible exactly when its columns are independent. That is all.",
+        { h: "Two abbreviations first: AM and GM" },
+        "These show up constantly on this page, so here is a quick recap (the full explanation lives in <a href='#charpoly'>\"The characteristic equation\"</a>):",
+        { ul: [
+          "<b>AM (algebraic multiplicity)</b>: how many times λ appears as a <b>root</b> of the characteristic polynomial — read it off the polynomial; in (λ − 5)² the value 5 has AM = 2.",
+          "<b>GM (geometric multiplicity)</b>: the <b>dimension of the eigenspace</b> E_λ = Nul(A − λI), i.e. how many linearly independent eigenvectors belong to λ — read it off the null space, it equals the number of free variables when solving (A − λI)x = 0.",
+          "Always <b>GM ≤ AM</b>. Adding up the GM of every λ tells you how many independent eigenvectors you can collect; you need n of them to diagonalise."
+        ] },
+        { formula: "AM = multiplicity of the root　·　GM = dim E_λ = dim Nul(A − λI) = n − rank(A − λI)　·　Σ GM = the diagonalisation threshold" },
         { h: "When it works and when it doesn't" },
         { ul: [
           "<b>Always works</b>: an n×n matrix with n <b>distinct</b> eigenvalues (eigenvectors for different λ are automatically independent).",
