@@ -6,7 +6,8 @@
  *   notes.js  -> window.LA_NOTES.{zh,en}.byLang().blocksHtml()
  *
  * 路由约定：
- *   notes.html            -> 左侧列分类，右侧显示「欢迎」卡片
+ *   notes.html            -> 左侧列分类，右侧显示「欢迎」卡片 + 知识点地图
+ *   notes.html#map        -> 同上，但用可分享的链接直达知识点地图
  *   notes.html#c=<catId>  -> 左侧列该分类下的文章，右侧仍显示「欢迎」卡片
  *   notes.html#<noteId>   -> 直接打开某一篇；左侧自动展开它所属的分类
  * 换视图 = 改 hash（pushState 语义），所以浏览器的前进/后退、复制链接分享都正常。
@@ -78,6 +79,155 @@
   }
 
   // -------------------------------------------------------------------------
+  // 知识点地图：首页按主题列出全部知识点，已写的能点开、没写的显式标「待补」。
+  // 数据来自 notes.js 的 LA_NOTES.TOPICS（中英双语单一数据源）。
+  // -------------------------------------------------------------------------
+  let mapFilter = "all";                       // all | unread | planned
+
+  function isRead(id) {
+    return !!(window.LA_PROGRESS && LA_PROGRESS.isRead(id));
+  }
+
+  function topicGroups() {
+    const T = window.LA_NOTES.TOPICS || {};
+    return T[I18N.get()] || T.zh || [];
+  }
+
+  function topicChips() {
+    return Array.from(view.querySelectorAll(".topic-chip"));
+  }
+
+  /** 统计行：已覆盖 / 总数 / 还没读 / 待补。数字全部由 DOM 现算，切语言后自动对。 */
+  function updateTopicStats() {
+    const chips = topicChips();
+    const linked = chips.filter((c) => c.dataset.topicId);
+    const unread = linked.filter((c) => c.dataset.state === "unread").length;
+    const planned = chips.filter((c) => c.dataset.state === "planned").length;
+    const stats = view.querySelector("[data-map-stats]");
+    if (stats) {
+      stats.textContent = tr("notes.mapStats", {
+        n: linked.length, m: chips.length, u: unread, p: planned,
+      });
+    }
+  }
+
+  /** 筛选：只显示「还没读」或「待补」，全隐藏的分组也一并收起。 */
+  function applyTopicFilter() {
+    view.querySelectorAll(".topic-group").forEach((g) => {
+      let visible = 0;
+      g.querySelectorAll(".topic-chip").forEach((c) => {
+        const show = mapFilter === "all" || c.dataset.state === mapFilter;
+        c.hidden = !show;
+        if (show) visible++;
+      });
+      g.hidden = visible === 0;
+    });
+    view.querySelectorAll(".map-filter").forEach((b) => {
+      b.classList.toggle("on", b.dataset.filter === mapFilter);
+    });
+  }
+
+  /** 已读状态：打开讲义时 la-progress 会广播，这里同步 ✓ 与统计数字。 */
+  function updateTopicMarks() {
+    view.querySelectorAll(".topic-chip[data-topic-id]").forEach((chip) => {
+      const on = isRead(chip.dataset.topicId);
+      chip.dataset.state = on ? "read" : "unread";
+      chip.classList.toggle("is-read", on);
+      chip.classList.toggle("is-unread", !on);
+      let mark = chip.querySelector(".chip-state");
+      if (on && !mark) {
+        mark = document.createElement("span");
+        mark.className = "chip-state";
+        mark.textContent = "✓";
+        chip.appendChild(mark);
+      } else if (!on && mark) {
+        mark.parentNode.removeChild(mark);
+      }
+    });
+    updateTopicStats();
+    applyTopicFilter();
+  }
+
+  function renderTopicMap(parent) {
+    const map = document.createElement("section");
+    map.className = "topic-map";
+
+    const title = document.createElement("h3");
+    title.textContent = tr("notes.mapTitle");
+    const hint = document.createElement("p");
+    hint.className = "map-hint";
+    hint.textContent = tr("notes.mapHint");
+    const stats = document.createElement("p");
+    stats.className = "map-stats";
+    stats.dataset.mapStats = "1";
+    map.appendChild(title);
+    map.appendChild(hint);
+    map.appendChild(stats);
+
+    const filters = document.createElement("div");
+    filters.className = "map-filters";
+    [["all", "notes.mapAll"], ["unread", "notes.mapUnread"], ["planned", "notes.mapPlanned"]]
+      .forEach(([key, label]) => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "map-filter";
+        b.dataset.filter = key;
+        b.textContent = tr(label);
+        b.addEventListener("click", () => { mapFilter = key; applyTopicFilter(); });
+        filters.appendChild(b);
+      });
+    map.appendChild(filters);
+
+    const groupsBox = document.createElement("div");
+    groupsBox.className = "topic-groups";
+    for (const g of topicGroups()) {
+      const group = document.createElement("div");
+      group.className = "topic-group";
+      const gh = document.createElement("h4");
+      gh.textContent = g.g;
+      const chips = document.createElement("div");
+      chips.className = "topic-chips";
+      for (const item of g.items || []) {
+        if (item.id) {
+          const a = document.createElement("a");
+          a.className = "topic-chip is-unread";
+          a.href = "#" + item.id;
+          a.dataset.topicId = item.id;
+          a.dataset.state = "unread";
+          a.textContent = item.t;
+          chips.appendChild(a);
+        } else {
+          const s = document.createElement("span");
+          s.className = "topic-chip planned";
+          s.dataset.state = "planned";
+          s.title = tr("notes.mapPlannedTip");
+          s.textContent = item.t;
+          const badge = document.createElement("span");
+          badge.className = "chip-badge";
+          badge.textContent = tr("notes.mapPlanned");
+          s.appendChild(badge);
+          chips.appendChild(s);
+        }
+      }
+      group.appendChild(gh);
+      group.appendChild(chips);
+      groupsBox.appendChild(group);
+    }
+    map.appendChild(groupsBox);
+
+    const suggest = document.createElement("a");
+    suggest.className = "map-suggest";
+    suggest.href = "https://github.com/Franky100-pig/LA-Helper/issues/new";
+    suggest.target = "_blank";
+    suggest.rel = "noopener noreferrer";
+    suggest.textContent = tr("notes.mapSuggest");
+    map.appendChild(suggest);
+
+    parent.appendChild(map);
+    updateTopicMarks();
+  }
+
+  // -------------------------------------------------------------------------
   // 主题：与主页 / AI 页同一套（跟随系统，手动选择存 localStorage["la-theme"]）
   // -------------------------------------------------------------------------
   (function initTheme() {
@@ -121,6 +271,15 @@
     if (state.mode === "cats") {
       if (sideTitle) sideTitle.textContent = tr("notes.catsTitle");
       if (backBtn) backBtn.hidden = true;
+
+      // 固定入口：从任何一篇讲义都能一键回到知识点地图
+      const mapBtn = document.createElement("button");
+      mapBtn.type = "button";
+      mapBtn.className = "note-item cat-item map-nav" + (state.activeMap ? " on" : "");
+      mapBtn.textContent = tr("notes.mapNav");
+      mapBtn.addEventListener("click", () => { location.hash = "map"; });
+      listBox.appendChild(mapBtn);
+
       for (const c of categories()) {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -152,12 +311,12 @@
   }
 
   // -------------------------------------------------------------------------
-  // 右侧：没选文章时显示欢迎卡片
+  // 右侧：没选文章时显示欢迎卡片 + 知识点地图
   // -------------------------------------------------------------------------
   function renderWelcome() {
     view.textContent = "";
     const box = document.createElement("div");
-    box.className = "welcome";
+    box.className = "welcome compact";
 
     const art = document.createElement("div");
     art.className = "welcome-art";
@@ -176,6 +335,7 @@
     box.appendChild(hint);
     view.appendChild(box);
 
+    renderTopicMap(view);          // 知识点清单（已写 / 待补 / 已读）
     I18N.syncDocTitle("notes.label");
   }
 
@@ -184,6 +344,14 @@
   // -------------------------------------------------------------------------
   function renderArticle(a) {
     view.textContent = "";
+
+    // 面包屑：每篇讲义都能一步回到知识点地图，看自己还少了什么
+    const back = document.createElement("a");
+    back.className = "map-back";
+    back.href = "#map";
+    back.textContent = tr("notes.mapBack");
+    view.appendChild(back);
+
     const h2 = document.createElement("h2");
     h2.textContent = a.title;
     const badge = document.createElement("span");
@@ -310,6 +478,13 @@
   function route() {
     const raw = decodeURIComponent((location.hash || "").replace(/^#/, ""));
 
+    // #map：知识点地图（与空 hash 同一视图，但链接可分享、前进/后退可用）
+    if (raw === "map") {
+      renderSide({ mode: "cats", activeMap: true });
+      renderWelcome();
+      return;
+    }
+
     // #c=<catId>：展开某个分类，右侧留欢迎页
     if (raw.indexOf("c=") === 0) {
       const c = categories().find((x) => x.id === raw.slice(2));
@@ -336,8 +511,8 @@
       }
     }
 
-    // 空 hash（或未知 id）：回到分类列表 + 欢迎页
-    renderSide({ mode: "cats" });
+    // 空 hash（或未知 id）：回到分类列表 + 欢迎页 + 知识点地图
+    renderSide({ mode: "cats", activeMap: true });
     renderWelcome();
   }
 
@@ -368,10 +543,14 @@
     route();
     syncButton();
 
-    // 进度：初始打一遍 ✓，之后每次 markRead 广播的事件也刷新侧栏
+    // 进度：初始打一遍 ✓，之后每次 markRead 广播的事件也刷新侧栏与地图
     if (window.LA_PROGRESS) {
       updateReadMarks();
-      window.addEventListener("la-progress", updateReadMarks);
+      updateTopicMarks();
+      window.addEventListener("la-progress", () => {
+        updateReadMarks();
+        updateTopicMarks();
+      });
     }
 
     if (btn) btn.addEventListener("click", () => { I18N.toggle(); });
