@@ -1,3 +1,6 @@
+import re
+import time
+
 from core.matrix import Matrix
 from core import eigen
 
@@ -83,6 +86,88 @@ def test_eigen_with_step_by_step_walkthrough():
     assert any("p(λ)" in t for t in step_texts)
     assert any("AM = 2" in t or "AM=2" in t for t in step_texts)
     assert any("GM = 1" in t for t in step_texts)
+
+
+def test_eigen_steps_start_from_characteristic_equation_and_show_work():
+    """The calculator must not jump from a matrix snapshot to a basis vector.
+
+    A student asked for the derivation to start at "find the eigenvalues", so
+    the walkthrough has to be a chain: Av = λv -> det(A-λI)=0 -> polynomial ->
+    roots -> (per eigenvalue) RREF + free variables -> basis -> check Av = λv.
+    """
+    A = Matrix([[4, 1], [2, 3]])
+    pairs, steps = eigen.eigen(A, record_steps=True)
+    texts = [s["text"] for s in steps]
+
+    # 1. First step derives the characteristic equation, not just the matrix.
+    assert "Av = λv" in texts[0]
+    assert "det(A − λI) = 0" in texts[0]
+
+    # 2. Polynomial -> factored -> roots, in that order.
+    i_poly = next(i for i, t in enumerate(texts) if "p(λ)" in t and "det(A − λI)" in t)
+    i_fact = next(i for i, t in enumerate(texts) if "因式分解" in t)
+    i_roots = next(i for i, t in enumerate(texts) if "AM" in t)
+    assert i_poly < i_fact < i_roots
+
+    # 3. Every eigenvalue gets a row-reduced snapshot (with pivot/free info),
+    #    not a bare "solve this system" line.
+    rref_steps = [s for s in steps if s["matrix"] is not None and "RREF" in s["text"]]
+    assert len(rref_steps) == len(pairs)
+    assert any("自由变量" in t for t in texts)
+
+    # 4. The basis is verified against the definition.
+    assert any("代回验证" in t and "✓" in t for t in texts)
+
+
+def test_eigen_steps_are_bilingual():
+    """New steps must not leak Chinese into the English UI (or vice versa)."""
+    from core import i18n
+    A = Matrix([[4, 1], [2, 3]])
+    old = i18n.get_lang()
+    try:
+        i18n.set_lang("en")
+        _, steps = eigen.eigen(A, record_steps=True)
+        texts = [s["text"] for s in steps]
+        assert "characteristic equation" in texts[0].lower()
+        assert any("RREF" in t for t in texts)
+        assert any("Check Av = λv" in t for t in texts)
+        assert not any("\u4e00" <= ch <= "\u9fff" for t in texts for ch in t)
+    finally:
+        i18n.set_lang(old)
+
+
+def test_eigen_unreadable_roots_keep_steps_short_and_numeric():
+    """A cubic with irrational roots must not hang or dump a 180-char radical.
+
+    Exact rref() on a Cardano radical does not terminate, and a numeric λ is
+    not exactly singular, so its rref is the identity. Both are wrong to show:
+    the step says the reduction was skipped, and the system/basis use the same
+    decimals as the result card.
+    """
+    import time
+    A = Matrix([[2, 0, 1], [1, 3, 2], [4, 1, 0]])
+    t0 = time.time()
+    pairs, steps = eigen.eigen(A, record_steps=True)
+    assert time.time() - t0 < 20, "exact row reduction blew up on an irrational root"
+
+    texts = [s["text"] for s in steps]
+    assert sum("精确行化简不可靠" in t for t in texts) == len(pairs)
+    # No step should contain a Cardano radical / giant exact formula.
+    assert all(len(t) < 320 for t in texts), [len(t) for t in texts]
+    # The basis step matches the numeric vector shown in the result card:
+    # decimals, not a nested-radical expression.
+    basis_steps = [t for t in texts if "特征向量基" in t]
+    assert basis_steps
+    assert all("**" not in t and "sqrt" not in t for t in basis_steps)
+    assert any(re.search(r"\d\.\d", t) for t in basis_steps)
+
+
+def test_eigen_numeric_path_explains_the_shortcut():
+    """When exact factoring is skipped, say so instead of showing no steps."""
+    pairs, steps = eigen.eigen(Matrix([[4, 1], [2, 3]]),
+                               numeric=True, record_steps=True)
+    assert pairs
+    assert steps and "数值" in steps[-1]["text"]
 
 
 def test_diagonalize_invertible_matrix():
