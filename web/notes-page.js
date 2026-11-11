@@ -268,17 +268,17 @@
   function renderSide(state) {
     listBox.textContent = "";
 
+    // 固定入口：分类列表 / 分类内 / 正文，三种视图都常驻，一键回到知识点地图
+    const mapBtn = document.createElement("button");
+    mapBtn.type = "button";
+    mapBtn.className = "note-item cat-item map-nav" + (state.activeMap ? " on" : "");
+    mapBtn.textContent = tr("notes.mapNav");
+    mapBtn.addEventListener("click", () => { location.hash = "map"; });
+    listBox.appendChild(mapBtn);
+
     if (state.mode === "cats") {
       if (sideTitle) sideTitle.textContent = tr("notes.catsTitle");
       if (backBtn) backBtn.hidden = true;
-
-      // 固定入口：从任何一篇讲义都能一键回到知识点地图
-      const mapBtn = document.createElement("button");
-      mapBtn.type = "button";
-      mapBtn.className = "note-item cat-item map-nav" + (state.activeMap ? " on" : "");
-      mapBtn.textContent = tr("notes.mapNav");
-      mapBtn.addEventListener("click", () => { location.hash = "map"; });
-      listBox.appendChild(mapBtn);
 
       for (const c of categories()) {
         const btn = document.createElement("button");
