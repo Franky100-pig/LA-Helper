@@ -1728,6 +1728,7 @@ window.LA_NOTES = {
     vectorspace:  { op: "rref" },
     basis:        { op: "rref" },
     spaces:       { op: "rref" },
+    "change-basis": { op: "inverse", A: [["1", "1"], ["1", "-1"]] },
     nullity:      { op: "rank" },
     "rank-nullity": { op: "rank" },
     transform:    { op: "transform" },
@@ -1870,6 +1871,12 @@ window.LA_NOTES = {
         { q: "行变换会改变 Col(A) 吗？",
           a: "会。行变换保持行空间和列之间的依赖关系，但不保持列空间本身——所以 Col 的基必须回原矩阵取。" },
       ],
+      "change-basis": [
+        { q: "P_{C←B} 的第 2 列是什么？",
+          a: "B 的第二个基向量 b₂ 用 C 写出来的坐标 [b₂]_C。因为 [x]_B = (0,1) 时 x = b₂，矩阵乘 (0,1) 正好取出第 2 列。" },
+        { q: "把 C 的基向量用 B 表示，得到的矩阵是 P_{C←B} 吗？",
+          a: "不是，那是 P_{B←C} = P_B⁻¹P_C = (P_{C←B})⁻¹。基向量与坐标方向相反：用 B 表示 C，翻译的是 C 坐标 → B 坐标。" },
+      ],
       nullity: [
         { q: "nullity(A) 数的是什么？",
           a: "Ax = 0 解里自由变量的个数 = 列数 n − rank(A)。" },
@@ -1979,6 +1986,12 @@ window.LA_NOTES = {
           a: "Col(A): the pivot columns of the **original** matrix. Nul(A): solve Ax = 0, read free variables off the reduced matrix, write the special solutions." },
         { q: "Do row operations preserve Col(A)?",
           a: "No. They preserve the row space and the dependence pattern of the columns, but not the column space itself." },
+      ],
+      "change-basis": [
+        { q: "What is the second column of P_{C←B}?",
+          a: "The coordinates of b₂ (the second basis vector of B) written in C, i.e. [b₂]_C. When [x]_B = (0,1) we have x = b₂, and multiplying by (0,1) picks out exactly the second column." },
+        { q: "If you express C's basis vectors in B, is that matrix P_{C←B}?",
+          a: "No — that is P_{B←C} = P_B⁻¹P_C = (P_{C←B})⁻¹. Bases and coordinates run in opposite directions: expressing C in B translates C coordinates into B coordinates." },
       ],
       nullity: [
         { q: "What does nullity(A) count?",
