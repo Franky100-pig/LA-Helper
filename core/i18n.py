@@ -375,6 +375,10 @@ MESSAGES = {
     # These used to be hardcoded **English**, which is why the Chinese UI
     # showed "Swap R1 ↔ R2" in the middle of an otherwise Chinese derivation.
     # The bilingual pass only banned Chinese, so nothing caught them.
+    "eigen.step.start": {
+        "zh": "从 Av = λv（v ≠ 0）出发：(A − λI)v = 0 有非零解 ⇔ det(A − λI) = 0 —— 这就是特征方程",
+        "en": "Start from Av = λv (v ≠ 0): (A − λI)v = 0 has a nonzero solution ⇔ det(A − λI) = 0 — the characteristic equation",
+    },
     "eigen.step.char_matrix": {
         "zh": "构造特征矩阵 A − λI",
         "en": "Construct characteristic matrix A − λI",
@@ -388,16 +392,36 @@ MESSAGES = {
         "en": "Factored characteristic polynomial: p(λ) = {factored} = 0",
     },
     "eigen.step.eigenvalues": {
-        "zh": "特征值根及代数重数 (AM)：{roots}",
-        "en": "Eigenvalue roots and algebraic multiplicities (AM): {roots}",
+        "zh": "解特征方程 p(λ) = 0 得特征值及代数重数 (AM)：{roots}",
+        "en": "Solve p(λ) = 0 for the eigenvalues and their algebraic multiplicities (AM): {roots}",
     },
     "eigen.step.eigenspace": {
         "zh": "对特征值 λ = {val}，解方程 (A − λI)v = 0（代数重数 AM = {mult}）",
         "en": "For eigenvalue λ = {val}, solve (A − λI)v = 0 (algebraic multiplicity AM = {mult})",
     },
+    "eigen.step.rref": {
+        "zh": "把 A − λI 行化为最简阶梯形（RREF）：主元列为第 {pivots} 列，自由变量 {free}",
+        "en": "Row-reduce A − λI to RREF: pivot columns {pivots}, free variables {free}",
+    },
+    "eigen.step.rref_skipped": {
+        "zh": "特征值 λ = {val} 的精确形式过长（或只能数值求解），精确行化简不可靠，此处省略；下面直接给出特征向量基",
+        "en": "λ = {val} has an unwieldy exact form (or is only known numerically), so exact row reduction is unreliable and is skipped here; the eigenvector basis follows",
+    },
     "eigen.step.eigenspace_basis": {
-        "zh": "特征向量基（几何重数 GM = {geom}）：{vectors}",
-        "en": "Eigenvector basis (geometric multiplicity GM = {geom}): {vectors}",
+        "zh": "对自由变量取特殊解，得特征向量基（几何重数 GM = {geom}）：{vectors}",
+        "en": "Set each free variable to get the eigenvector basis (geometric multiplicity GM = {geom}): {vectors}",
+    },
+    "eigen.step.basis_numeric": {
+        "zh": "数值求解 (A − λI)v = 0 得特征向量基（几何重数 GM = {geom}）：{vectors}",
+        "en": "Numerically solving (A − λI)v = 0 gives the eigenvector basis (geometric multiplicity GM = {geom}): {vectors}",
+    },
+    "eigen.step.verify": {
+        "zh": "代回验证 Av = λv：A·{vec}ᵀ = {image}ᵀ = {val}·{vec}ᵀ ✓",
+        "en": "Check Av = λv: A·{vec}ᵀ = {image}ᵀ = {val}·{vec}ᵀ ✓",
+    },
+    "eigen.step.numeric": {
+        "zh": "矩阵较大或精确根过长，改用数值方法求特征值；精确的特征多项式推导省略",
+        "en": "Large matrix or unwieldy exact roots: switching to a numerical eigenvalue solver; the exact characteristic-polynomial derivation is skipped",
     },
     "eigen.step.defective": {
         "zh": "特征值 λ = {val} 几何重数亏损：GM = {geom} < AM = {mult}（不可对角化）",
