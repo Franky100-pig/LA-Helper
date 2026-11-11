@@ -678,7 +678,7 @@ window.LA_NOTES = {
           "主元个数 = 向量个数 → 线性无关，它们就是自己所张成空间的基。",
           "主元个数 &lt; 向量个数 → 有冗余，不是基，需要去掉多余的。",
         ] },
-        { tip: "在本页试一下：把 3 个 R³ 的向量填进矩阵，算「REF 行阶梯形」数主元。3 个主元说明这 3 个向量是一组基（撑满 R³）；只有 2 个主元说明它们其实挤在一个平面上。" },
+        { tip: "在本页试一下：把 3 个 R³ 的向量填进矩阵，算「REF 行阶梯形」数主元。3 个主元说明这 3 个向量是一组基（撑满 R³）；只有 2 个主元说明它们其实挤在一个平面上。选好基之后，怎么把坐标从一组基翻译到另一组？接着看<a href='#change-basis'>《换基：同一个向量，两套坐标》</a>。" },
       ],
     },
     {
@@ -1418,7 +1418,7 @@ window.LA_NOTES = {
           "Pivots = number of vectors → independent, so they are a basis of the space they span.",
           "Pivots &lt; number of vectors → something is redundant, so it is not a basis; remove the extras.",
         ] },
-        { tip: "Try it here: enter 3 vectors from R³ as a matrix and run \"REF (row echelon form)\", then count the pivots. Three pivots means those 3 vectors are a basis (they fill R³); only 2 pivots means they are actually squashed onto a plane." },
+        { tip: "Try it here: enter 3 vectors from R³ as a matrix and run \"REF (row echelon form)\", then count the pivots. Three pivots means those 3 vectors are a basis (they fill R³); only 2 pivots means they are actually squashed onto a plane. Once a basis is fixed, how do you translate coordinates between two bases? Continue with <a href='#change-basis'>\"Change of basis: one vector, two sets of coordinates\"</a>." },
       ],
     },
     {
