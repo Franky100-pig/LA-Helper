@@ -112,6 +112,14 @@ def eigen(A, numeric=None, precision=PRECISION, record_steps=False):
     char_info = characteristic_polynomial(A, record_steps=record_steps) if not numeric else None
     steps = list(char_info["steps"]) if (record_steps and char_info) else []
 
+    # The walkthrough opens by deriving the characteristic equation — students
+    # asked to see "where the eigenvalues come from", not just a matrix dump.
+    # On the numerical path there is no exact polynomial to show, so say so.
+    if record_steps:
+        steps.insert(0, step(i18n.tr("eigen.step.start"), op="note"))
+        if numeric:
+            steps.append(step(i18n.tr("eigen.step.numeric"), op="note"))
+
     if numeric:
         M_calc = M.evalf(15)
     else:
@@ -121,8 +129,16 @@ def eigen(A, numeric=None, precision=PRECISION, record_steps=False):
     pairs = []
 
     if record_steps and vecs and not numeric:
-        roots_desc = ", ".join(f"λ = {fmt_expr(sp.simplify(v))} (AM={m})" for v, m, _ in vecs)
-        steps.append(step(i18n.tr("eigen.step.eigenvalues", roots=roots_desc), op="note"))
+        # Use exactly the value the result card will show for each eigenvalue.
+        # An unwieldy exact root would otherwise produce a 500-char line here
+        # while λ reads "-1.51711" everywhere else.
+        roots_parts = []
+        for val, mult, _ in vecs:
+            v = sp.simplify(val)
+            shown_v = fmt_expr(v) if _is_readable(v) else _fmt_num(v, precision)
+            roots_parts.append(f"λ = {shown_v} (AM={mult})")
+        steps.append(step(i18n.tr("eigen.step.eigenvalues",
+                                  roots=", ".join(roots_parts)), op="note"))
 
     I = sp.eye(n)
     for val, mult, basis in vecs:
@@ -132,9 +148,11 @@ def eigen(A, numeric=None, precision=PRECISION, record_steps=False):
         approx = _fmt_num(v, precision)
         shown = approx if (numeric or not readable) else exact
         vectors = []
+        shown_vecs = []          # same values the result card shows (numeric when needed)
         for b in basis:
             if numeric or not readable:
                 b = b.evalf(precision).applyfunc(_clean_noise)
+            shown_vecs.append(b)
             vectors.append(Matrix.from_sympy(b))
 
         geom = len(basis)
@@ -142,16 +160,70 @@ def eigen(A, numeric=None, precision=PRECISION, record_steps=False):
 
         if record_steps and not numeric:
             A_sub = M - v * I
-            sub_grid = [[fmt_expr(sp.simplify(A_sub[r, c])) for c in range(n)] for r in range(n)]
+            # When λ is an unwieldy radical, the *displayed* system should use
+            # the same decimal the result card shows. Otherwise this snapshot
+            # is a 180-character formula while the answer next to it says 1.51711.
+            grid_src = A_sub if readable else M - sp.N(v, precision) * I
+            sub_grid = [[fmt_expr(sp.simplify(grid_src[r, c]))
+                         for c in range(n)] for r in range(n)]
             steps.append(step(
                 i18n.tr("eigen.step.eigenspace", val=shown, mult=mult),
                 sub_grid, op="note"
             ))
-            vec_strs = ["[" + ", ".join(fmt_expr(b[r]) for r in range(n)) + "]ᵀ" for b in basis]
-            steps.append(step(
-                i18n.tr("eigen.step.eigenspace_basis", val=shown, geom=geom, vectors=", ".join(vec_strs)),
-                op="note"
+            # Show the row reduction itself: the pivot columns tell you which
+            # variables are locked, the free ones become the parameters in the
+            # special solutions. Without this the basis looks like magic.
+            #
+            # Guard: only on a short, *exact* eigenvalue. A cubic with three
+            # irrational roots gives a 180-char Cardano radical — rref() on that
+            # does not finish (measured >15 s, process killed), and an rref built
+            # from a numeric λ is just the identity because λ is only an
+            # approximation, so A − λI is not exactly singular. Neither is
+            # worth showing; say so instead of faking a step.
+            rref_step = None
+            if readable and sp.count_ops(A_sub) < 80:
+                try:
+                    rref_mat, pivots = A_sub.rref()
+                    rref_grid = [[fmt_expr(sp.simplify(rref_mat[r, c]))
+                                  for c in range(n)] for r in range(n)]
+                    pivot_cols = ", ".join(str(j + 1) for j in pivots) or "—"
+                    free_vars = ", ".join("x" + str(j + 1) for j in range(n)
+                                          if j not in pivots) or "—"
+                    rref_step = step(
+                        i18n.tr("eigen.step.rref", pivots=pivot_cols, free=free_vars),
+                        rref_grid, op="note"
+                    )
+                except Exception:
+                    pass
+            steps.append(rref_step or step(
+                i18n.tr("eigen.step.rref_skipped", val=shown), op="note"
             ))
+            vec_strs = ["[" + ", ".join(fmt_expr(b[r]) for r in range(n)) + "]ᵀ"
+                        for b in shown_vecs]
+            vec_join = ", ".join(vec_strs)
+            # Keep both keys as full literals: a dynamic "eigen.step." + name
+            # would trip the i18n guard's missing-key scan.
+            if rref_step:
+                basis_text = i18n.tr("eigen.step.eigenspace_basis",
+                                     val=shown, geom=geom, vectors=vec_join)
+            else:
+                basis_text = i18n.tr("eigen.step.basis_numeric",
+                                     geom=geom, vectors=vec_join)
+            steps.append(step(basis_text, op="note"))
+            # One multiplication against the definition catches sign / pairing
+            # slips, and closes the loop for this eigenvalue.
+            if shown_vecs and readable:
+                try:
+                    b0 = shown_vecs[0]
+                    img = M * b0
+                    vec_s = "[" + ", ".join(fmt_expr(sp.simplify(b0[r])) for r in range(n)) + "]"
+                    img_s = "[" + ", ".join(fmt_expr(sp.simplify(img[r])) for r in range(n)) + "]"
+                    steps.append(step(
+                        i18n.tr("eigen.step.verify", vec=vec_s, image=img_s, val=shown),
+                        op="note"
+                    ))
+                except Exception:
+                    pass
             if is_defective:
                 steps.append(step(
                     i18n.tr("eigen.step.defective", val=shown, geom=geom, mult=mult),
