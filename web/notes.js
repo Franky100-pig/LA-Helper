@@ -199,6 +199,30 @@ function _desmosMatrixPower() {
   };
 }
 
+// 换基：同一个向量 x=(p,q)，标准基分解（灰虚线）与斜基 B={(1,1),(1,−1)} 分解
+// （红 b₁ 分量 + 绿 b₂ 分量）同时画出。B 坐标 c₁=(p+q)/2、c₂=(p−q)/2。
+// 全部用可靠的 \operatorname{polygon} 线段 + 点 + 显式方程；滑块只用拉丁字母。
+function _desmosChangeBasis() {
+  var c1 = "p/2+q/2";
+  return {
+    viewport: { xmin: -3, xmax: 6, ymin: -4, ymax: 5 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("p=3", { id: "p", slider: { min: -2, max: 4, step: 1 } }),
+      _dx("q=1", { id: "q", slider: { min: -2, max: 4, step: 1 } }),
+      _dx("y=x", { id: "l1", color: "#9aa4ae", lineOpacity: 0.12 }),
+      _dx("y=-x", { id: "l2", color: "#9aa4ae", lineOpacity: 0.12 }),
+      _dx(_seg(0, 0, "p", "0"), { id: "s1", color: "#9aa4ae", lineWidth: 2, lineStyle: "DASHED" }),
+      _dx(_seg("p", "0", "p", "q"), { id: "s2", color: "#9aa4ae", lineWidth: 2, lineStyle: "DASHED" }),
+      _dx(_seg(0, 0, c1, c1), { id: "b1", color: "#c74440", lineWidth: 4 }),
+      _dx(_seg(c1, c1, "p", "q"), { id: "b2", color: "#388c46", lineWidth: 4 }),
+      _dx(_seg(0, 0, "p", "q"), { id: "x", color: "#2d70b3", lineWidth: 3 }),
+      _dx("(p,q)", { id: "xp", color: "#2d70b3", pointSize: 10 }),
+      _dx("(" + c1 + "," + c1 + ")", { id: "mid", color: "#c74440", pointSize: 9 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
