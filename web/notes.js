@@ -2108,6 +2108,7 @@ window.LA_NOTES = {
     "dot-product": { op: "multiply", A: [["2", "1"]], B: [["1"], ["3"]] },
     projection:   { op: "multiply", A: [["1", "1"]], B: [["3"], ["1"]] },
     "gram-schmidt": { op: "multiply", A: [["2", "1"]], B: [["1"], ["2"]] },
+    "complex-eigen": { op: "eigen", A: [["0", "-1"], ["1", "0"]] },
     practice:     { op: "solve" },
   };
   for (const lang of ["zh", "en"]) {
