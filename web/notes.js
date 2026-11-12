@@ -304,11 +304,13 @@ function _desmosComplexEigen() {
     expressions: [
       _dx("a=0.8", { id: "a", slider: { min: -1.5, max: 1.5, step: 0.05 } }),
       _dx("b=0.6", { id: "b", slider: { min: -1.5, max: 1.5, step: 0.05 } }),
-      _dx("r=\\sqrt{a^2+b^2}"),
-      _dx("x1=a^2-b^2"),
-      _dx("y1=2*a*b"),
-      _dx("x2=a*x1-b*y1"),
-      _dx("y2=b*x1+a*y1"),
+      // 别用 r 当变量名：Desmos 把 "r=..." 当成极坐标方程，会额外画一个圆。
+      _dx("k=\\sqrt{a^2+b^2}"),
+      // 变量名只能是单个字母：写成 x1 / y1 会被 Desmos 当成「多个变量」直接报错。
+      _dx("m=a^2-b^2"),
+      _dx("n=2*a*b"),
+      _dx("p=a*m-b*n"),
+      _dx("q=b*m+a*n"),
       // 单位正方形被 A 作用后的像：还是正方形，只是转了 θ、放大了 r 倍。
       _dx(_fill("(0,0),(a,b),(a-b,a+b),(-b,a)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.12 }),
       _dx(_seg(0, 0, 1, 0), { id: "v0", color: "#9aa4ae", lineWidth: 2 }),
@@ -317,10 +319,10 @@ function _desmosComplexEigen() {
       _dx("(a,b)", { id: "v1p", color: "#c74440", pointSize: 8 }),
       // 首尾相接的虚线：v → Av → A²v → A³v。r 偏离 1 时它就卷成螺旋。
       _dx(_seg(1, 0, "a", "b"), { id: "t1", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
-      _dx(_seg("a", "b", "x1", "y1"), { id: "t2", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
-      _dx(_seg("x1", "y1", "x2", "y2"), { id: "t3", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
-      _dx("(x1,y1)", { id: "v2p", color: "#a8621c", pointSize: 7 }),
-      _dx("(x2,y2)", { id: "v3p", color: "#a8621c", pointSize: 7 })
+      _dx(_seg("a", "b", "m", "n"), { id: "t2", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
+      _dx(_seg("m", "n", "p", "q"), { id: "t3", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
+      _dx("(m,n)", { id: "v2p", color: "#a8621c", pointSize: 7 }),
+      _dx("(p,q)", { id: "v3p", color: "#a8621c", pointSize: 7 })
     ]
   };
 }
