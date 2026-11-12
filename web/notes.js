@@ -293,6 +293,38 @@ function _desmosGramSchmidt() {
   };
 }
 
+// 复特征值：A = [[a,−b],[b,a]]。它做的事只有两件 —— 逆时针转 θ = atan2(b,a)，
+// 再把长度乘 r = √(a²+b²)。b=0 时退化成纯缩放（有实特征值）；b≠0 时判别式 −4b² < 0，
+// 没有实的特征方向，只能转。橙色折线是 (1,0) 被反复作用：r<1 向内旋、r=1 原地打转、
+// r>1 向外旋，这正是 Aᵏ 的三种命运。
+function _desmosComplexEigen() {
+  return {
+    viewport: { xmin: -3, xmax: 3, ymin: -3, ymax: 3 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("a=0.8", { id: "a", slider: { min: -1.5, max: 1.5, step: 0.05 } }),
+      _dx("b=0.6", { id: "b", slider: { min: -1.5, max: 1.5, step: 0.05 } }),
+      _dx("r=\\sqrt{a^2+b^2}"),
+      _dx("x1=a^2-b^2"),
+      _dx("y1=2*a*b"),
+      _dx("x2=a*x1-b*y1"),
+      _dx("y2=b*x1+a*y1"),
+      // 单位正方形被 A 作用后的像：还是正方形，只是转了 θ、放大了 r 倍。
+      _dx(_fill("(0,0),(a,b),(a-b,a+b),(-b,a)"), { id: "sq", color: "#4ea1ff", fillOpacity: 0.12 }),
+      _dx(_seg(0, 0, 1, 0), { id: "v0", color: "#9aa4ae", lineWidth: 2 }),
+      _dx("(1,0)", { id: "v0p", color: "#9aa4ae", pointSize: 7 }),
+      _dx(_seg(0, 0, "a", "b"), { id: "v1", color: "#c74440", lineWidth: 3 }),
+      _dx("(a,b)", { id: "v1p", color: "#c74440", pointSize: 8 }),
+      // 首尾相接的虚线：v → Av → A²v → A³v。r 偏离 1 时它就卷成螺旋。
+      _dx(_seg(1, 0, "a", "b"), { id: "t1", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
+      _dx(_seg("a", "b", "x1", "y1"), { id: "t2", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
+      _dx(_seg("x1", "y1", "x2", "y2"), { id: "t3", color: "#a8621c", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.75 }),
+      _dx("(x1,y1)", { id: "v2p", color: "#a8621c", pointSize: 7 }),
+      _dx("(x2,y2)", { id: "v3p", color: "#a8621c", pointSize: 7 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
