@@ -1029,6 +1029,35 @@ window.LA_NOTES = {
         { tip: "建议顺序：在 LA-Helper 里算一道题 → 截图或记下步骤 → 打开 LA-hw 的解答 HTML 对照，看看自己的行变换、符号、化简有没有遗漏。" },
       ],
     },
+    {
+      id: "dot-product",
+      title: "点积到底在量什么",
+      tag: "矩阵运算",
+      cat: "matops",
+      lead: "对应分量相乘再相加，看着只是个算式；其实它量的是「两个向量有多同向」，也是所有投影公式的分子。",
+      blocks: [
+        { h: "先会算，再谈它在量什么" },
+        "两个同维向量，对应位置相乘再全部加起来，得到一个<b>数</b>（标量）—— 注意结果不是向量。",
+        { formula: "u · v = u₁v₁ + u₂v₂ + ⋯ + uₙvₙ = ‖u‖‖v‖cos θ" },
+        "左边是坐标算法，右边是几何读法：长度相乘，再乘上夹角余弦。<b>同一个数，两种看法</b>；下面每个公式都在两边来回切。",
+        { h: "三个立刻能用的结论" },
+        { ul: [
+          "u·v &gt; 0 → 夹角小于 90°，大致同向；u·v = 0 → 垂直（<b>正交</b>）；u·v &lt; 0 → 夹角大于 90°，大致反向。",
+          "u·u = ‖u‖²，所以 ‖u‖ = √(u·u)。长度不是另外规定的，是点积给的。",
+          "判断正交别去量角，直接算 u·v 是不是 0 —— 高维里没有量角器，点积照样能用。",
+        ] },
+        { h: "投影：点积最实在的用途" },
+        "想把 v 投到 u 的方向上，先问「v 在 u 方向上有多长」：答案是 (u·v)/‖u‖。再乘上单位方向 u/‖u‖，就得到投影向量。",
+        { formula: "proj_u v = ((u · v) / (u · u)) · u" },
+        "分母写成 u·u 而不是 ‖u‖，是因为 ‖u‖² = u·u —— 两个 ‖u‖ 约掉了，公式里不必开方，也不用先算长度。",
+        { desmos: _desmosDotProduct(), caption: "固定 u=(2,1)（红），拖动滑块 p、q 摆出 v=(p,q)（蓝），绿色向量就是 v 在 u 方向上的投影 c·u，其中 c=(u·v)/(u·u)=(2p+q)/5；灰色虚线是垂直误差。把 v 拖到 (1,−2)：此时 2p+q=0，点积为 0，绿色投影缩成一个点。继续拖到反向，投影会翻到 u 的背后 —— 这就是点积正负号的几何含义。" },
+        { h: "矩阵乘法里全是点积" },
+        "(A·B)(i,j) = A 的第 i 行 · B 的第 j 列。所以「行乘列再相加」不是怪规矩，它就是在问这一行与这一列有多同向。矩阵乘法、投影、最小二乘，用的是同一个点积。",
+        { h: "那叉积呢" },
+        "叉积只在 R³ 里好使：a×b 得到的<b>仍是一个向量</b>，方向垂直于 a、b 张成的平面，长度 = ‖a‖‖b‖sin θ = 平行四边形的面积。点积给一个数、量「同向程度」；叉积给一个向量、量「张开多少」。两者互补，别把结果类型搞混。二维里常用行列式 a₁b₂ − a₂b₁ 代替它，那正是有向面积。",
+        { tip: "在本页试一下：点底部「试一试」，操作选「矩阵乘法 A×B」，A 是一行 [2, 1]、B 是一列 [1; 3]，结果那个 1×1 的数就是 2·1 + 1·3 = 5，正是这两个向量的点积。" },
+      ],
+    },
   ],
 
   en: [
@@ -1769,6 +1798,35 @@ window.LA_NOTES = {
         { tip: "Suggested workflow: solve one problem in LA-Helper → screenshot or write down the steps → open the LA-hw solution HTML and check whether your row operations, signs, and simplifications line up." },
       ],
     },
+    {
+      id: "dot-product",
+      title: "What the dot product actually measures",
+      tag: "Matrix operations",
+      cat: "matops",
+      lead: "Multiply matching components, add them up — but the number you get is really a measure of how much two vectors point the same way.",
+      blocks: [
+        { h: "The computation, then the meaning" },
+        "Take two vectors of the same length, multiply component by component, and add. You get a <b>number</b> (a scalar), not another vector.",
+        { formula: "u · v = u₁v₁ + u₂v₂ + ⋯ + uₙvₙ = ‖u‖‖v‖cos θ" },
+        "The left side is the coordinate recipe; the right side is the geometry: lengths multiplied, then scaled by the cosine of the angle. <b>One number, two readings</b> — every formula below switches between them.",
+        { h: "Three things you can read off immediately" },
+        { ul: [
+          "u·v &gt; 0 means the angle is under 90° (roughly aligned); u·v = 0 means they are <b>perpendicular</b> (orthogonal); u·v &lt; 0 means they point roughly opposite ways.",
+          "u·u = ‖u‖², so ‖u‖ = √(u·u). Length isn't a separate definition — the dot product supplies it.",
+          "To test orthogonality, don't measure an angle: check whether u·v is 0. That works in any dimension, where protractors don't.",
+        ] },
+        { h: "Projection: where the dot product earns its keep" },
+        "To drop v onto the direction of u, first ask how much of v runs along u: that's (u·v)/‖u‖. Multiply by the unit direction u/‖u‖ and you have the projected vector.",
+        { formula: "proj_u v = ((u · v) / (u · u)) · u" },
+        "The denominator is u·u, not ‖u‖: since ‖u‖² = u·u, the two ‖u‖ factors cancel, so there's no square root and no need to compute a length first.",
+        { desmos: _desmosDotProduct(), caption: "u=(2,1) is fixed (red); drag the sliders p and q to place v=(p,q) (blue). The green vector is v's projection onto u, c·u with c=(u·v)/(u·u)=(2p+q)/5; the dashed grey segment is the perpendicular error. Drag v to (1,−2): now 2p+q=0, the dot product is zero, and the green projection collapses to a point. Keep going past perpendicular and the projection flips behind u — that's exactly what a negative dot product looks like." },
+        { h: "Matrix multiplication is nothing but dot products" },
+        "(A·B)(i,j) = row i of A dotted with column j of B. So 'multiply a row by a column and add' isn't an arbitrary rule: it asks how aligned that row and that column are. Matrix products, projections and least squares all lean on the same dot product.",
+        { h: "What about the cross product?" },
+        "The cross product really lives in R³: a×b is <b>another vector</b>, perpendicular to the plane spanned by a and b, with length ‖a‖‖b‖sin θ — the area of the parallelogram. A dot product gives a number (alignment); a cross product gives a vector (area swept out). In 2D the determinant a₁b₂ − a₂b₁ plays that role: it's the signed area.",
+        { tip: "Try it below: hit 'Try it', pick matrix multiplication A×B with A as the single row [2, 1] and B as the single column [1; 3]. The resulting 1×1 entry, 2·1 + 1·3 = 5, is precisely the dot product of those two vectors." },
+      ],
+    },
   ],
 };
 
@@ -1800,6 +1858,7 @@ window.LA_NOTES = {
     "rank-nullity": { op: "rank" },
     transform:    { op: "transform" },
     glossary:     { op: "det" },
+    "dot-product": { op: "multiply", A: [["2", "1"]], B: [["1"], ["3"]] },
     practice:     { op: "solve" },
   };
   for (const lang of ["zh", "en"]) {
@@ -1962,6 +2021,12 @@ window.LA_NOTES = {
         { q: "T(x, y) = (2x + y, x − y) 的标准矩阵是什么？",
           a: "[[2, 1], [1, −1]]。第一列是 T(e₁) = (2, 1)，第二列是 T(e₂) = (1, −1)。" },
       ],
+      "dot-product": [
+        { q: "u·v = 0 一定说明 u 和 v 垂直吗？",
+          a: "只要 u、v 都不是零向量，就说明它们正交。零向量与任何向量点积都是 0，但它没有方向、谈不上夹角，是唯一要留意的例外。" },
+        { q: "为什么投影公式的分母是 u·u 而不是 ‖u‖？",
+          a: "投影写成 p = c·u，垂直条件 u·(v − c·u) = 0 解出 c = (u·v)/(u·u)。分母来自 (u·v)/‖u‖ 与 u/‖u‖ 相乘时两个 ‖u‖ 约成 ‖u‖² = u·u，写成点积就不用开方。" },
+      ],
     },
     en: {
       cofactor: [
@@ -2078,6 +2143,12 @@ window.LA_NOTES = {
         { q: "What is the standard matrix of T(x, y) = (2x + y, x − y)?",
           a: "[[2, 1], [1, −1]] — column 1 is T(e₁) = (2, 1), column 2 is T(e₂) = (1, −1)." },
       ],
+      "dot-product": [
+        { q: "Does u·v = 0 always mean u and v are perpendicular?",
+          a: "Yes, provided neither is the zero vector. The zero vector dots to 0 with everything but has no direction, so it's the one exception worth remembering." },
+        { q: "Why is the denominator u·u and not ‖u‖?",
+          a: "Write p = c·u; the perpendicularity condition u·(v − c·u) = 0 gives c = (u·v)/(u·u). The two ‖u‖ factors cancel into ‖u‖² = u·u, so a dot-product denominator avoids square roots." },
+      ],
     },
   };
   for (const lang of ["zh", "en"]) {
@@ -2138,7 +2209,7 @@ window.LA_NOTES.TOPICS = {
       { t: "矩阵乘法为什么这样定义", id: "matmul" },
       { t: "线性方程组与高斯消元", id: null },
       { t: "线性相关与线性无关", id: null },
-      { t: "点积、叉积与内积", id: null },
+      { t: "点积、叉积与内积", id: "dot-product" },
     ] },
     { g: "行列式", items: [
       { t: "代数余子式与按行展开", id: "cofactor" },
@@ -2191,7 +2262,7 @@ window.LA_NOTES.TOPICS = {
       { t: "Why matrix multiplication works this way", id: "matmul" },
       { t: "Linear systems & Gaussian elimination", id: null },
       { t: "Linear dependence & independence", id: null },
-      { t: "Dot product, cross product & inner product", id: null },
+      { t: "Dot product, cross product & inner product", id: "dot-product" },
     ] },
     { g: "Determinants", items: [
       { t: "Cofactors & Laplace expansion", id: "cofactor" },
