@@ -9,8 +9,11 @@
  */
 
 // ---- 讲义交互图：在 Desmos 里嵌可拖拽 / 缩放的绘图计算器 --------------------
-// 三个图形配合「线性变换 / 特征值 / 基与维数」三篇讲义。引擎是 Desmos，key 在
+// 全篇共 14 张图（变换、特征值、基、相似、换基、点积、投影、Gram-Schmidt、
+// 复特征值…），每张跟着对应讲义渲染。引擎是 Desmos，key 在
 // web/desmos-config.js 配置（本地预览用官方 demo key，部署需填自己的免费 key）。
+// 写图时记住 Desmos 的两个保留语义：变量名只能是单个字母（x1 会被当成多个变量、
+// 直接报 "Too many variables"），"r=..." 会被当成极坐标方程画出一个圆。
 // 图形数据存到 window.LA_NOTES._desmos，每个 DOM 节点用 data-desmos-idx 指向其中一项。
 function _dx(latex, extra) { return Object.assign({ latex: latex }, extra || {}); }
 // 渲染小工具：Desmos 里 bare "polygon(...)" 与参数曲线 "(x(t),y(t)){...}" 都会报警告、实际不画出来；
