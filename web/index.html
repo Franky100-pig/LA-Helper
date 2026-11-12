@@ -814,11 +814,6 @@
       <p class="print-date" id="printDate"></p>
     </div>
     <div class="result-card">
-      <!-- 算完之后的讲义推荐（app.js 填 href 与标题；没有对应讲义时保持 hidden） -->
-      <a id="articlePick" class="article-pick" href="#" hidden>
-        <span class="ap-why" data-i18n="article.why">想知道为什么？读这篇有更深的理解</span>
-        <span class="ap-title" id="articlePickTitle"></span>
-      </a>
       <div class="empty-state">
         <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
           <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -828,6 +823,13 @@
         <p data-i18n="empty.sub">结果会在这里显示，勾选“显示步骤”可看详细推导</p>
       </div>
     </div>
+    <!-- 算完之后的讲义推荐（app.js 填 href 与标题；没有对应讲义时保持 hidden）。
+         必须放在 .result-card 外面：renderResult() 用 innerHTML 重画整张卡，
+         放在里面会被每次计算顺手删掉。 -->
+    <a id="articlePick" class="article-pick" href="#" hidden>
+      <span class="ap-why" data-i18n="article.why">想知道为什么？读这篇有更深的理解</span>
+      <span class="ap-title" id="articlePickTitle"></span>
+    </a>
   </section>
   </div><!-- /.col-result -->
 </main>
