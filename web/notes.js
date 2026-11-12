@@ -1153,6 +1153,32 @@ window.LA_NOTES = {
         { tip: "在本页试一下：点底部「试一试」，A 是一行 [2, 1]（b₁ᵀ）、B 是一列 [1; 2]（a₂），结果是 4 = a₂·b₁；再算 b₁·b₁ = 5，于是 b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2)，与 b₁ 点积正好为 0，跟图里的绿向量一致。" },
       ],
     },
+    {
+      id: "complex-eigen",
+      title: "复特征值：旋转藏在实矩阵里",
+      tag: "特征值",
+      cat: "eigen",
+      lead: "实矩阵也会有复数特征值。这不算错 —— 它是在告诉你：这个变换在旋转，实平面上根本没有不动的方向。",
+      blocks: [
+        { h: "复数是从哪冒出来的" },
+        "特征值来自解特征方程 p(λ) = det(A − λI) = 0。对 2×2 矩阵它是个二次方程，判别式 (tr A)² − 4 det A 一旦小于 0 就没有实根，只剩共轭的一对 a ± bi。A 的元素全是实数，根却带 i —— 这是精确结果，不是近似误差。",
+        { formula: "λ² − (tr A)λ + det A = 0　⟹　λ = (tr A ± √((tr A)² − 4 det A)) / 2" },
+        "最干净的例子是逆时针转 90° 的 A = [[0,−1],[1,0]]：p(λ) = λ² + 1，λ = ±i。几何上毫无神秘 —— 转 90° 之后，除了零向量，没有哪个向量还留在原来那条直线上。",
+        { h: "实 λ 与复 λ 的对照" },
+        { ul: [
+          "<b>λ 是实数</b>：存在实的特征方向，A 在那条线上只是缩放（负号就是掉头）。",
+          "<b>λ = a ± bi（b ≠ 0）</b>：没有实的特征方向；A 在一对正交方向上「转 θ、再乘 r」。",
+          "共轭成对出现，是因为 A 的元素全是实数 —— 复根必然成对，两个特征向量也互为共轭。",
+        ] },
+        { h: "把复数结果变回实的：三步" },
+        "取 λ = a − bi（约定 b > 0），解 (A − λI)v = 0 得到复特征向量，再把 v 拆成实部加虚部：v = p + iq。于是",
+        { formula: "P = [p　q]，　C = [[a, −b], [b, a]]，　A = P C P⁻¹" },
+        "C 就是「转 θ、乘 r」的标准形，其中 r = √(a² + b²)、θ = atan2(b, a)。P 是实矩阵，所以 A 与 C 实相似 —— 这就是 6.3 节相似矩阵的一个实例，只是对角阵换成了旋转块。",
+        { desmos: _desmosComplexEigen(), caption: "拖 a、b 看 A = [[a,−b],[b,a]] 到底在干什么。蓝框是单位正方形被作用后的像：它转了个角度、同时整体缩放。橙虚线是 (1,0) 反复乘 A 走出来的轨迹。默认 a=0.8、b=0.6 时 r=1，正好是纯旋转 36.9°，橙点绕着原点打转、离不开单位圆；把 a 调到 0.5（r<1）就向内卷，调到 1.2（r>1）就向外旋。" },
+        { h: "符号别弄反" },
+        "取 λ = a + bi 也算得下去，但那时配套的是 C = [[a, b], [−b, a]]，表示<b>顺时针</b>转。两种写法都对，只要「特征向量」和「C」配套；混着用（拿 a + bi 的向量去配 [[a,−b],[b,a]]）必然对不上 A。",
+      ],
+    },
   ],
 
   en: [
@@ -1980,6 +2006,32 @@ window.LA_NOTES = {
         { tip: "Try it below: A is the single row [2, 1] (b₁ᵀ) and B the single column [1; 2] (a₂). The product is 4 = a₂·b₁; with b₁·b₁ = 5 we get b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2), whose dot product with b₁ is 0 — the green vector in the figure." },
       ],
     },
+    {
+      id: "complex-eigen",
+      title: "Complex eigenvalues: rotation hiding in a real matrix",
+      tag: "Eigenvalues",
+      cat: "eigen",
+      lead: "A real matrix can have complex eigenvalues. That is not a mistake — it says the map rotates, and no real direction survives untouched.",
+      blocks: [
+        { h: "Where the complex numbers come from" },
+        "Eigenvalues solve the characteristic equation p(λ) = det(A − λI) = 0. For a 2×2 matrix that is a quadratic, so once the discriminant (tr A)² − 4 det A goes negative there are no real roots — only a conjugate pair a ± bi. Every entry of A is real, yet the roots carry an i. That is an exact result, not round-off.",
+        { formula: "λ² − (tr A)λ + det A = 0　⟹　λ = (tr A ± √((tr A)² − 4 det A)) / 2" },
+        "The cleanest example is the 90° rotation A = [[0,−1],[1,0]]: p(λ) = λ² + 1, so λ = ±i. Geometrically there is no mystery — after a quarter turn, no vector except zero is still on its own line.",
+        { h: "Real λ versus complex λ" },
+        { ul: [
+          "<b>λ real</b>: a real eigendirection exists, and A merely scales along it (a negative λ flips it).",
+          "<b>λ = a ± bi with b ≠ 0</b>: no real eigendirection; on a pair of perpendicular directions A rotates by θ and scales by r.",
+          "They come in conjugate pairs because A is real — the roots pair up, and so do the eigenvectors.",
+        ] },
+        { h: "Turning the complex answer back into real data: three steps" },
+        "Take λ = a − bi (with b > 0), solve (A − λI)v = 0 for a complex eigenvector, then split it into real and imaginary parts: v = p + iq. Then",
+        { formula: "P = [p　q]，　C = [[a, −b], [b, a]]，　A = P C P⁻¹" },
+        "C is the canonical \"rotate by θ, scale by r\" block, with r = √(a² + b²) and θ = atan2(b, a). Since P is real, A and C are real-similar — this is section 6.3's similarity with the diagonal matrix replaced by a rotation block.",
+        { desmos: _desmosComplexEigen(), caption: "Drag a and b to see what A = [[a,−b],[b,a]] actually does. The blue outline is the image of the unit square: rotated and scaled. The orange dashed path is (1,0) hit by A over and over. At the default a=0.8, b=0.6 we get r=1, a pure rotation of 36.9°, so the orange points circle the origin without leaving the unit circle; pull a down to 0.5 (r<1) and the path spirals in, push it to 1.2 (r>1) and it spirals out." },
+        { h: "Do not flip the sign" },
+        "Taking λ = a + bi also works, but then the matching block is C = [[a, b], [−b, a]] — a <b>clockwise</b> turn. Both conventions are correct as long as the eigenvector and the block agree; mixing them (an a + bi eigenvector with [[a,−b],[b,a]]) will never reproduce A.",
+      ],
+    },
   ],
 };
 
@@ -2423,7 +2475,7 @@ window.LA_NOTES.TOPICS = {
       { t: "手算特征值与特征向量", id: "eigen-howto" },
       { t: "相似矩阵", id: "similar" },
       { t: "对角化与 Aᵏ", id: "diagonalize" },
-      { t: "复特征值与旋转", id: null },
+      { t: "复特征值与旋转", id: "complex-eigen" },
       { t: "GM ≤ AM 的证明 / Jordan 形", id: null },
     ] },
     { g: "进阶分解", items: [
@@ -2476,7 +2528,7 @@ window.LA_NOTES.TOPICS = {
       { t: "Computing eigenvalues & eigenvectors", id: "eigen-howto" },
       { t: "Similar matrices", id: "similar" },
       { t: "Diagonalization & Aᵏ", id: "diagonalize" },
-      { t: "Complex eigenvalues & rotations", id: null },
+      { t: "Complex eigenvalues & rotations", id: "complex-eigen" },
       { t: "Proof of GM ≤ AM / Jordan form", id: null },
     ] },
     { g: "Advanced decompositions", items: [
