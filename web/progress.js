@@ -80,6 +80,7 @@
     "adjugate",
     "singular",
     "orthogonal",
+    "projection",
     "rank",
     "nullity",
     "rank-nullity",

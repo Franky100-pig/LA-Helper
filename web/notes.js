@@ -1058,6 +1058,37 @@ window.LA_NOTES = {
         { tip: "在本页试一下：点底部「试一试」，操作选「矩阵乘法 A×B」，A 是一行 [2, 1]、B 是一列 [1; 3]，结果那个 1×1 的数就是 2·1 + 1·3 = 5，正是这两个向量的点积。" },
       ],
     },
+    {
+      id: "projection",
+      title: "正交投影：把向量压到一条线上",
+      tag: "线性变换",
+      cat: "transform",
+      lead: "想在一条直线（或一个子空间）上找向量的「影子」，办法只有一句：让误差垂直于那条线。",
+      blocks: [
+        { h: "先把问题拆成两段" },
+        "给定向量 b 和一条过原点的直线 L（方向向量 u），把 b 拆成落在 L 上的 p，加上垂直于 L 的 e。",
+        { formula: "b = p + e,　p ∈ L,　e ⊥ L" },
+        "p 叫 <b>正交投影</b>，e 叫残差（误差）。注意 p 在 L 上，e 才垂直于 L —— 这两个别记反。",
+        { h: "公式只用到「垂直 ⟺ 点积为 0」" },
+        "因为 p 在 L 上，它一定是 u 的某个倍数：p = c·u。要求 e = b − c·u 与 u 垂直，也就是 u·(b − c·u) = 0。展开解出 c = (u·b)/(u·u)。",
+        { formula: "p = proj_L b = ((u · b) / (u · u)) · u　·　e = b − p" },
+        "整个推导没有技巧，只用了点积的分配律。把 b=(3,1)、u=(1,1) 代进去：u·b = 4、u·u = 2，所以 c = 2、p = (2,2)、e = (1,−1) —— 检查 e·u = 0 ✓。",
+        { desmos: _desmosProjection(), caption: "蓝向量 b=(3,1) 固定；拖动滑块 m 改变直线 L: y = m·x 的斜率。绿向量是投影 p = c·u，其中 u=(1,m)、c=(3+m)/(1+m²)；红虚线是误差 e = b − p，它始终与 L 垂直。初始 m=1 时正好是上面的手算结果 p=(2,2)、e=(1,−1)。把 m 拖到 0（L 变成 x 轴），投影就只剩 (3,0)。" },
+        { h: "为什么 p 是 L 上离 b 最近的点" },
+        "在 L 上任取另一点 x：b − x = e + (p − x)。这两段互相垂直（e ⊥ L，而 p − x 在 L 上），勾股定理给 ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖²。所以 x = p 时距离最小。<b>最小二乘就是这句话的矩阵版</b>：解不出 Ax=b 时，退而求距离最近的近似解。",
+        { h: "投到子空间：把 u 换成矩阵 A" },
+        "如果 L 换成 A 的列空间 Col(A)，同样的垂直条件写成 Aᵀ(b − Ax̂) = 0，也就是正规方程（normal equations）。",
+        { formula: "AᵀA x̂ = Aᵀb　⇒　p = A x̂ = A(AᵀA)⁻¹Aᵀ b" },
+        "P = A(AᵀA)⁻¹Aᵀ 是投影矩阵，满足 <b>P² = P</b>（投一次已经在子空间里，再投不变）与 <b>Pᵀ = P</b>（对称）。若 A 的列本来就正交单位化（QᵀQ = I），公式直接简化成 P = QQᵀ。",
+        { h: "三个常见错误" },
+        { ul: [
+          "分母写成 ‖u‖ 而不是 u·u，漏了一次平方。",
+          "忘了直线 / 子空间必须<b>过原点</b>；不过原点的集合不是子空间，得先平移回原点再投。",
+          "把 p 和 e 弄反：在 L 上的是 p，垂直于 L 的才是 e。",
+        ] },
+        { tip: "在本页试一下：点底部「试一试」，A 是一行 [1, 1]（uᵀ）、B 是一列 [3; 1]（b），矩阵乘法的结果是 4 = u·b，正是公式的分子；再算 u·u = 2，于是 c = 2、p = (2,2)，和图里 m=1 时一致。" },
+      ],
+    },
   ],
 
   en: [
@@ -1827,6 +1858,37 @@ window.LA_NOTES = {
         { tip: "Try it below: hit 'Try it', pick matrix multiplication A×B with A as the single row [2, 1] and B as the single column [1; 3]. The resulting 1×1 entry, 2·1 + 1·3 = 5, is precisely the dot product of those two vectors." },
       ],
     },
+    {
+      id: "projection",
+      title: "Orthogonal projection: dropping a vector onto a line",
+      tag: "Linear transformations",
+      cat: "transform",
+      lead: "To find a vector's shadow on a line (or a subspace), there's only one move: make the error perpendicular to it.",
+      blocks: [
+        { h: "Split the vector in two" },
+        "Given b and a line L through the origin with direction u, write b as a piece p that lies on L plus a piece e perpendicular to L.",
+        { formula: "b = p + e,　p ∈ L,　e ⊥ L" },
+        "p is the <b>orthogonal projection</b>; e is the residual (the error). p lies on L — e is the one perpendicular to it. Don't swap them.",
+        { h: "The formula needs only 'perpendicular means dot product zero'" },
+        "Since p lies on L, it's some multiple of u: p = c·u. Requiring e = b − c·u to be perpendicular to u gives u·(b − c·u) = 0, so c = (u·b)/(u·u).",
+        { formula: "p = proj_L b = ((u · b) / (u · u)) · u　·　e = b − p" },
+        "No tricks — just the distributive law for dot products. With b=(3,1) and u=(1,1): u·b = 4, u·u = 2, so c = 2, p = (2,2), e = (1,−1). Check: e·u = 0 ✓.",
+        { desmos: _desmosProjection(), caption: "b=(3,1) is fixed (blue); drag m to rotate the line L: y = m·x. The green vector is the projection p = c·u with u=(1,m) and c=(3+m)/(1+m²); the dashed red segment e = b − p stays perpendicular to L. At m=1 you get the hand-computed p=(2,2), e=(1,−1). Drag m to 0 and L becomes the x-axis, so the projection is just (3,0)." },
+        { h: "Why p is the closest point on L to b" },
+        "Take any other point x on L: b − x = e + (p − x). Those two pieces are perpendicular (e ⊥ L, while p − x lies along L), so Pythagoras gives ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖². The distance is smallest at x = p. <b>Least squares is exactly this sentence in matrix form</b>: when Ax = b has no solution, settle for the closest one.",
+        { h: "Onto a subspace: replace u with a matrix A" },
+        "If L becomes Col(A), the same perpendicularity condition reads Aᵀ(b − Ax̂) = 0 — the normal equations.",
+        { formula: "AᵀA x̂ = Aᵀb　⇒　p = A x̂ = A(AᵀA)⁻¹Aᵀ b" },
+        "P = A(AᵀA)⁻¹Aᵀ is the projection matrix, with <b>P² = P</b> (once you're in the subspace, projecting again changes nothing) and <b>Pᵀ = P</b> (it's symmetric). If the columns of A are already orthonormal (QᵀQ = I), this collapses to P = QQᵀ.",
+        { h: "Three common mistakes" },
+        { ul: [
+          "Writing ‖u‖ in the denominator instead of u·u — that's a missing square.",
+          "Forgetting that the line or subspace must <b>pass through the origin</b>; a shifted set isn't a subspace, so translate it back first.",
+          "Swapping p and e: p lies on L, e is perpendicular to it.",
+        ] },
+        { tip: "Try it below: A is the single row [1, 1] (uᵀ) and B the single column [3; 1] (b). The product is 4 = u·b, the numerator of the formula. Since u·u = 2, c = 2 and p = (2,2) — matching the figure at m=1." },
+      ],
+    },
   ],
 };
 
@@ -1859,6 +1921,7 @@ window.LA_NOTES = {
     transform:    { op: "transform" },
     glossary:     { op: "det" },
     "dot-product": { op: "multiply", A: [["2", "1"]], B: [["1"], ["3"]] },
+    projection:   { op: "multiply", A: [["1", "1"]], B: [["3"], ["1"]] },
     practice:     { op: "solve" },
   };
   for (const lang of ["zh", "en"]) {
@@ -2027,6 +2090,12 @@ window.LA_NOTES = {
         { q: "为什么投影公式的分母是 u·u 而不是 ‖u‖？",
           a: "投影写成 p = c·u，垂直条件 u·(v − c·u) = 0 解出 c = (u·v)/(u·u)。分母来自 (u·v)/‖u‖ 与 u/‖u‖ 相乘时两个 ‖u‖ 约成 ‖u‖² = u·u，写成点积就不用开方。" },
       ],
+      projection: [
+        { q: "正交投影公式是怎么推出来的？",
+          a: "设 p = c·u（因为 p 在 L 上）。要求误差 e = b − c·u 垂直于 u，即 u·(b − c·u) = 0，展开得 c = (u·b)/(u·u)，代回就是 p = ((u·b)/(u·u))u。" },
+        { q: "为什么说投影 p 是直线 L 上离 b 最近的点？",
+          a: "任取 L 上另一点 x，b − x = e + (p − x)，两段互相垂直，勾股定理给 ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖²，等号只在 x = p 时成立。" },
+      ],
     },
     en: {
       cofactor: [
@@ -2149,6 +2218,12 @@ window.LA_NOTES = {
         { q: "Why is the denominator u·u and not ‖u‖?",
           a: "Write p = c·u; the perpendicularity condition u·(v − c·u) = 0 gives c = (u·v)/(u·u). The two ‖u‖ factors cancel into ‖u‖² = u·u, so a dot-product denominator avoids square roots." },
       ],
+      projection: [
+        { q: "Where does the projection formula come from?",
+          a: "Set p = c·u (p lies on L). Demand that e = b − c·u be perpendicular to u: u·(b − c·u) = 0 gives c = (u·b)/(u·u), so p = ((u·b)/(u·u))u." },
+        { q: "Why is p the closest point on L to b?",
+          a: "For any other x on L, b − x = e + (p − x) with the two pieces perpendicular, so ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖², with equality only at x = p." },
+      ],
     },
   };
   for (const lang of ["zh", "en"]) {
@@ -2235,7 +2310,7 @@ window.LA_NOTES.TOPICS = {
     { g: "线性变换", items: [
       { t: "线性变换与矩阵表示", id: "transform" },
       { t: "正交矩阵与刚性变换", id: "orthogonal" },
-      { t: "正交投影", id: null },
+      { t: "正交投影", id: "projection" },
       { t: "Gram-Schmidt 正交化", id: null },
     ] },
     { g: "特征值与对角化", items: [
@@ -2288,7 +2363,7 @@ window.LA_NOTES.TOPICS = {
     { g: "Linear transformations", items: [
       { t: "Linear maps & their matrices", id: "transform" },
       { t: "Orthogonal matrices & rigid motions", id: "orthogonal" },
-      { t: "Orthogonal projection", id: null },
+      { t: "Orthogonal projection", id: "projection" },
       { t: "Gram-Schmidt orthogonalization", id: null },
     ] },
     { g: "Eigenvalues & diagonalization", items: [
