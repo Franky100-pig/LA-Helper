@@ -282,7 +282,10 @@ function _desmosGramSchmidt() {
       _dx("(2,1)", { id: "b1p", color: "#c74440", pointSize: 9 }),
       _dx(_seg(0, 0, "p", "q"), { id: "a2", color: "#2d70b3", lineWidth: 3 }),
       _dx("(p,q)", { id: "a2p", color: "#2d70b3", pointSize: 9 }),
-      _dx(_seg(0, 0, "2c", "c"), { id: "proj", color: "#9aa4ae", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.4 }),
+      // 投影段和 b₁ 同方向、会完全压在红向量上：换成醒目橙色虚线 + 末端空心点，
+      // 否则读者只看见一条红线段、找不到 caption 里说的「投影」。
+      _dx(_seg(0, 0, "2c", "c"), { id: "proj", color: "#a8621c", lineWidth: 3, lineStyle: "DASHED", lineOpacity: 0.85 }),
+      _dx("(2c,c)", { id: "projpt", color: "#a8621c", pointSize: 9, pointStyle: "OPEN" }),
       _dx(_seg("2c", "c", "p", "q"), { id: "b2shift", color: "#388c46", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.5 }),
       _dx(_seg(0, 0, "p-2c", "q-c"), { id: "b2", color: "#388c46", lineWidth: 4 }),
       _dx("(p-2c,q-c)", { id: "b2p", color: "#388c46", pointSize: 9 })
@@ -1102,7 +1105,7 @@ window.LA_NOTES = {
         "第一步照抄 a₁：b₁ = a₁。第二步从 a₂ 里减掉它在 b₁ 上的投影 —— 就是上一篇那条公式：",
         { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
         "减完剩下的部分一定与 b₁ 垂直，一行就能验：b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0。",
-        { desmos: _desmosGramSchmidt(), caption: "红向量 b₁=a₁=(2,1) 固定；拖动 p、q 摆出第二个向量 a₂=(p,q)（蓝）。灰色虚线是 a₂ 在 b₁ 上的投影 (2c,c)，其中 c=(2p+q)/5；绿粗向量就是减掉投影后剩下的 b₂=(p−2c, q−c)。随便怎么拖，b₂ 始终与 b₁ 垂直 —— 初始 p=1、q=2 时 b₂=(−0.6, 1.2)，与 (2,1) 点积正好为 0。" },
+        { desmos: _desmosGramSchmidt(), caption: "红向量 b₁=a₁=(2,1) 固定；拖动 p、q 摆出第二个向量 a₂=(p,q)（蓝）。橙色虚线和末端的空心点是 a₂ 在 b₁ 上的投影 (2c,c)，其中 c=(2p+q)/5 —— 它正好落在红向量所在的直线上；绿色虚线是同一段向量平移过去的样子，绿粗向量就是减掉投影后剩下的 b₂=(p−2c, q−c)。随便怎么拖，b₂ 始终与 b₁ 垂直 —— 初始 p=1、q=2 时 b₂=(−0.6, 1.2)，与 (2,1) 点积正好为 0。" },
         { h: "三个及以上：每个都要减干净" },
         { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
         "新的向量要减掉它在<b>所有</b>前面方向上的投影，只减最后一个不够。减完再把每个 bₖ 除以自己的长度，就得到标准正交基 {q₁, …, qₙ}，满足 qᵢ·qⱼ = 0（i≠j）、‖qᵢ‖ = 1，也就是 QᵀQ = I —— 正好是正交矩阵。",
@@ -1929,7 +1932,7 @@ window.LA_NOTES = {
         "Step one: keep a₁ as b₁. Step two: subtract a₂'s projection onto b₁ — the formula from the previous article.",
         { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
         "What's left is automatically perpendicular to b₁, and one line proves it: b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0.",
-        { desmos: _desmosGramSchmidt(), caption: "b₁=a₁=(2,1) is fixed (red); drag p and q to place the second vector a₂=(p,q) (blue). The dashed grey vector is a₂'s projection onto b₁, (2c,c) with c=(2p+q)/5; the thick green vector is what's left after subtracting it, b₂=(p−2c, q−c). Drag however you like — b₂ always stays perpendicular to b₁. At the starting p=1, q=2 we get b₂=(−0.6, 1.2), whose dot product with (2,1) is exactly 0." },
+        { desmos: _desmosGramSchmidt(), caption: "b₁=a₁=(2,1) is fixed (red); drag p and q to place the second vector a₂=(p,q) (blue). The dashed orange segment with its open endpoint is a₂'s projection onto b₁, (2c,c) with c=(2p+q)/5 — it sits right on the red line; the dashed green segment is that same leftover vector translated to the projection point. The thick green vector is what remains after subtracting the projection, b₂=(p−2c, q−c). Drag however you like — b₂ always stays perpendicular to b₁. At the starting p=1, q=2 we get b₂=(−0.6, 1.2), whose dot product with (2,1) is exactly 0." },
         { h: "Three or more: subtract every earlier direction" },
         { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
         "Each new vector must lose its projection onto <b>all</b> earlier directions, not just the last one. Then divide each bₖ by its own length to get an orthonormal basis {q₁, …, qₙ}: qᵢ·qⱼ = 0 for i≠j and ‖qᵢ‖ = 1, i.e. QᵀQ = I — an orthogonal matrix.",
