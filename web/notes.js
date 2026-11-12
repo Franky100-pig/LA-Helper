@@ -2288,6 +2288,12 @@ window.LA_NOTES = {
         { q: "Gram-Schmidt 会改变这组向量张成的空间吗？",
           a: "不会。每一步只是从 aₖ 里减掉前面 bⱼ 的线性组合，新旧向量可以互相线性表示，所以张成空间完全相同，只是基变正交了。" },
       ],
+      "complex-eigen": [
+        { q: "A = [[0,−1],[1,0]] 的特征值是 ±i，说明这个变换在做什么？",
+          a: "逆时针转 90°。转完之后除了零向量，没有任何向量还留在它原来那条直线上，所以没有实特征值 —— 复特征值正是在说「只有旋转，没有缩放方向」。" },
+        { q: "算出 λ = 2 + 3i 之后，怎么写出实相似的标准块 C？",
+          a: "取它的共轭 λ = 2 − 3i，解 (A − λI)v = 0 得 v = p + iq，则 C = [[2, −3],[3, 2]]。如果坚持用 2 + 3i 算出的向量，就必须配 [[2, 3],[−3, 2]]；两条路都对，但向量和块不能混搭。" },
+      ],
     },
     en: {
       cofactor: [
@@ -2421,6 +2427,12 @@ window.LA_NOTES = {
           a: "b₂ = a₂ − ((a₂·b₁)/(b₁·b₁))b₁. Dot both sides with b₁: a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0." },
         { q: "Does Gram-Schmidt change the span of the vectors?",
           a: "No. Each step only subtracts a linear combination of earlier bⱼ from aₖ, so the old and new lists can be written in terms of each other. The space spanned is identical; only the basis becomes orthogonal." },
+      ],
+      "complex-eigen": [
+        { q: "A = [[0,−1],[1,0]] has eigenvalues ±i. What does that say about the map?",
+          a: "It is a 90° rotation. After a quarter turn no non-zero vector is still on its own line, so there is no real eigenvalue — complex eigenvalues are exactly the statement \"rotation, with no scaling direction\"." },
+        { q: "After finding λ = 2 + 3i, how do you write the real block C?",
+          a: "Use the conjugate λ = 2 − 3i, solve (A − λI)v = 0 for v = p + iq, and set C = [[2, −3],[3, 2]]. If you insist on the vector from 2 + 3i, then you must pair it with [[2, 3],[−3, 2]]. Both routes work; the vector and the block just may not be mixed." },
       ],
     },
   };
