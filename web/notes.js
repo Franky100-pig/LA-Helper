@@ -1089,6 +1089,33 @@ window.LA_NOTES = {
         { tip: "在本页试一下：点底部「试一试」，A 是一行 [1, 1]（uᵀ）、B 是一列 [3; 1]（b），矩阵乘法的结果是 4 = u·b，正是公式的分子；再算 u·u = 2，于是 c = 2、p = (2,2)，和图里 m=1 时一致。" },
       ],
     },
+    {
+      id: "gram-schmidt",
+      title: "Gram-Schmidt：把一组歪基掰正",
+      tag: "线性变换",
+      cat: "transform",
+      lead: "不换空间，只换一组两两垂直的基；做法是从每个向量里减掉它在前面那些方向上的投影。",
+      blocks: [
+        { h: "为什么要把基掰正" },
+        "斜基照样能张成同一个空间，但算坐标得解方程。正交基里坐标直接是点积：cᵢ = (v·bᵢ)/(bᵢ·bᵢ)。Gram-Schmidt 就是把任意一组线性无关的向量，逐个掰成正交基，<b>而且张成的空间一点不变</b>。",
+        { h: "两个向量的情形（核心全在这）" },
+        "第一步照抄 a₁：b₁ = a₁。第二步从 a₂ 里减掉它在 b₁ 上的投影 —— 就是上一篇那条公式：",
+        { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
+        "减完剩下的部分一定与 b₁ 垂直，一行就能验：b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0。",
+        { desmos: _desmosGramSchmidt(), caption: "红向量 b₁=a₁=(2,1) 固定；拖动 p、q 摆出第二个向量 a₂=(p,q)（蓝）。灰色虚线是 a₂ 在 b₁ 上的投影 (2c,c)，其中 c=(2p+q)/5；绿粗向量就是减掉投影后剩下的 b₂=(p−2c, q−c)。随便怎么拖，b₂ 始终与 b₁ 垂直 —— 初始 p=1、q=2 时 b₂=(−0.6, 1.2)，与 (2,1) 点积正好为 0。" },
+        { h: "三个及以上：每个都要减干净" },
+        { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
+        "新的向量要减掉它在<b>所有</b>前面方向上的投影，只减最后一个不够。减完再把每个 bₖ 除以自己的长度，就得到标准正交基 {q₁, …, qₙ}，满足 qᵢ·qⱼ = 0（i≠j）、‖qᵢ‖ = 1，也就是 QᵀQ = I —— 正好是正交矩阵。",
+        { h: "和 QR 分解的关系" },
+        "把每个 aₖ 按 b₁…bₖ 展开，那些点积系数就是上三角阵 R 的元素，Q 的列是单位化后的 qₖ，于是 <b>A = QR</b>。所以 Gram-Schmidt 不只是概念，它就是 QR 的构造过程；最小二乘里用 QR 解 Ax=b，也比直接算 (AᵀA)⁻¹ 更稳定。",
+        { h: "两个容易踩的点" },
+        { ul: [
+          "<b>顺序有关</b>：换 a₁、a₂ 的顺序会得到不同的正交基，但张成的空间还是同一个。",
+          "别把 b₂ 单位化之后还拿原来的 b₁·b₁ 当分母：要么全程不单位化，要么每步都单位化 —— 那时分母直接是 1，只剩点积。",
+        ] },
+        { tip: "在本页试一下：点底部「试一试」，A 是一行 [2, 1]（b₁ᵀ）、B 是一列 [1; 2]（a₂），结果是 4 = a₂·b₁；再算 b₁·b₁ = 5，于是 b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2)，与 b₁ 点积正好为 0，跟图里的绿向量一致。" },
+      ],
+    },
   ],
 
   en: [
@@ -1889,6 +1916,33 @@ window.LA_NOTES = {
         { tip: "Try it below: A is the single row [1, 1] (uᵀ) and B the single column [3; 1] (b). The product is 4 = u·b, the numerator of the formula. Since u·u = 2, c = 2 and p = (2,2) — matching the figure at m=1." },
       ],
     },
+    {
+      id: "gram-schmidt",
+      title: "Gram-Schmidt: straightening a skewed basis",
+      tag: "Linear transformations",
+      cat: "transform",
+      lead: "Keep the same space, swap in a basis whose vectors are mutually perpendicular — by subtracting each vector's projections onto the ones before it.",
+      blocks: [
+        { h: "Why bother straightening the basis" },
+        "A skewed basis spans the space just fine, but finding coordinates means solving a system. With an orthogonal basis, coordinates are just dot products: cᵢ = (v·bᵢ)/(bᵢ·bᵢ). Gram-Schmidt turns any linearly independent list into an orthogonal one <b>without changing the span</b>.",
+        { h: "The two-vector case (where all the ideas live)" },
+        "Step one: keep a₁ as b₁. Step two: subtract a₂'s projection onto b₁ — the formula from the previous article.",
+        { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
+        "What's left is automatically perpendicular to b₁, and one line proves it: b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0.",
+        { desmos: _desmosGramSchmidt(), caption: "b₁=a₁=(2,1) is fixed (red); drag p and q to place the second vector a₂=(p,q) (blue). The dashed grey vector is a₂'s projection onto b₁, (2c,c) with c=(2p+q)/5; the thick green vector is what's left after subtracting it, b₂=(p−2c, q−c). Drag however you like — b₂ always stays perpendicular to b₁. At the starting p=1, q=2 we get b₂=(−0.6, 1.2), whose dot product with (2,1) is exactly 0." },
+        { h: "Three or more: subtract every earlier direction" },
+        { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
+        "Each new vector must lose its projection onto <b>all</b> earlier directions, not just the last one. Then divide each bₖ by its own length to get an orthonormal basis {q₁, …, qₙ}: qᵢ·qⱼ = 0 for i≠j and ‖qᵢ‖ = 1, i.e. QᵀQ = I — an orthogonal matrix.",
+        { h: "How this becomes QR" },
+        "Expand each aₖ in terms of b₁…bₖ: those dot-product coefficients are the entries of an upper-triangular R, and the columns of Q are the normalised qₖ. That's <b>A = QR</b>. So Gram-Schmidt isn't just a concept — it's the construction of QR. In least squares, solving via QR is also more numerically stable than forming (AᵀA)⁻¹.",
+        { h: "Two easy traps" },
+        { ul: [
+          "<b>Order matters</b>: swapping a₁ and a₂ gives a different orthogonal basis, though the span is unchanged.",
+          "Don't normalise b₂ and keep using the old b₁·b₁ as the denominator. Either never normalise, or normalise at every step — then the denominator is 1 and only the dot product remains.",
+        ] },
+        { tip: "Try it below: A is the single row [2, 1] (b₁ᵀ) and B the single column [1; 2] (a₂). The product is 4 = a₂·b₁; with b₁·b₁ = 5 we get b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2), whose dot product with b₁ is 0 — the green vector in the figure." },
+      ],
+    },
   ],
 };
 
@@ -1922,6 +1976,7 @@ window.LA_NOTES = {
     glossary:     { op: "det" },
     "dot-product": { op: "multiply", A: [["2", "1"]], B: [["1"], ["3"]] },
     projection:   { op: "multiply", A: [["1", "1"]], B: [["3"], ["1"]] },
+    "gram-schmidt": { op: "multiply", A: [["2", "1"]], B: [["1"], ["2"]] },
     practice:     { op: "solve" },
   };
   for (const lang of ["zh", "en"]) {
@@ -2096,6 +2151,12 @@ window.LA_NOTES = {
         { q: "为什么说投影 p 是直线 L 上离 b 最近的点？",
           a: "任取 L 上另一点 x，b − x = e + (p − x)，两段互相垂直，勾股定理给 ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖²，等号只在 x = p 时成立。" },
       ],
+      "gram-schmidt": [
+        { q: "为什么减掉投影之后，剩下的 b₂ 一定与 b₁ 垂直？",
+          a: "b₂ = a₂ − ((a₂·b₁)/(b₁·b₁))b₁，两边点乘 b₁ 得 a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0。" },
+        { q: "Gram-Schmidt 会改变这组向量张成的空间吗？",
+          a: "不会。每一步只是从 aₖ 里减掉前面 bⱼ 的线性组合，新旧向量可以互相线性表示，所以张成空间完全相同，只是基变正交了。" },
+      ],
     },
     en: {
       cofactor: [
@@ -2224,6 +2285,12 @@ window.LA_NOTES = {
         { q: "Why is p the closest point on L to b?",
           a: "For any other x on L, b − x = e + (p − x) with the two pieces perpendicular, so ‖b−x‖² = ‖e‖² + ‖p−x‖² ≥ ‖e‖², with equality only at x = p." },
       ],
+      "gram-schmidt": [
+        { q: "Why is b₂ guaranteed to be perpendicular to b₁?",
+          a: "b₂ = a₂ − ((a₂·b₁)/(b₁·b₁))b₁. Dot both sides with b₁: a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0." },
+        { q: "Does Gram-Schmidt change the span of the vectors?",
+          a: "No. Each step only subtracts a linear combination of earlier bⱼ from aₖ, so the old and new lists can be written in terms of each other. The space spanned is identical; only the basis becomes orthogonal." },
+      ],
     },
   };
   for (const lang of ["zh", "en"]) {
@@ -2311,7 +2378,7 @@ window.LA_NOTES.TOPICS = {
       { t: "线性变换与矩阵表示", id: "transform" },
       { t: "正交矩阵与刚性变换", id: "orthogonal" },
       { t: "正交投影", id: "projection" },
-      { t: "Gram-Schmidt 正交化", id: null },
+      { t: "Gram-Schmidt 正交化", id: "gram-schmidt" },
     ] },
     { g: "特征值与对角化", items: [
       { t: "特征值与特征向量的几何意义", id: "eigen" },
@@ -2364,7 +2431,7 @@ window.LA_NOTES.TOPICS = {
       { t: "Linear maps & their matrices", id: "transform" },
       { t: "Orthogonal matrices & rigid motions", id: "orthogonal" },
       { t: "Orthogonal projection", id: "projection" },
-      { t: "Gram-Schmidt orthogonalization", id: null },
+      { t: "Gram-Schmidt orthogonalization", id: "gram-schmidt" },
     ] },
     { g: "Eigenvalues & diagonalization", items: [
       { t: "Geometry of eigenvalues & eigenvectors", id: "eigen" },
