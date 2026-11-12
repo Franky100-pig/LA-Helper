@@ -302,7 +302,10 @@ function _desmosGramSchmidt() {
 // r>1 向外旋，这正是 Aᵏ 的三种命运。
 function _desmosComplexEigen() {
   return {
-    viewport: { xmin: -3, xmax: 3, ymin: -3, ymax: 3 },
+    // 图的宽高比约 1.76:1；Desmos 会严格按 viewport 铺满容器，所以 x 区间要给
+    // 成 y 区间的 1.76 倍，单位长度才是正方形。否则「转 36.9°」会被横向拉成 55°，
+    // 而这张图讲的就是角度。
+    viewport: { xmin: -3, xmax: 3, ymin: -1.7, ymax: 1.7 },
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("a=0.8", { id: "a", slider: { min: -1.5, max: 1.5, step: 0.05 } }),
