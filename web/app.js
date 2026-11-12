@@ -1376,7 +1376,18 @@ function articleFor(rawOp) {
     const m = (detMethod && detMethod.value) || "row_reduction";
     return EXAMPLES.detArticles[m] || null;
   }
+  // 算出复特征值时改推荐「复特征值」那篇：结果卡里的 λ 会带 i
+  // （引擎吐的是 sympy 的 -I / I，渲染时才变成 i），这里只做一次廉价识别。
+  if (rawOp === "eigen" && hasComplexEigen(lastResult)) {
+    const t = tr("note.complexEigen");
+    return { id: "complex-eigen", title: { zh: t, en: t } };
+  }
   return EXAMPLES.articles[rawOp] || null;
+}
+
+function hasComplexEigen(res) {
+  if (!res || res.type !== "eigen" || !Array.isArray(res.pairs)) return false;
+  return res.pairs.some((p) => /(^|[^A-Za-z])I([^A-Za-z]|$)/.test(String((p && p.value) || "")));
 }
 
 function hideArticlePick() {
