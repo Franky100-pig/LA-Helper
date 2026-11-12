@@ -460,7 +460,7 @@ window.LA_NOTES = {
         { desmos: _desmosEigen(), caption: "矩阵固定为 A = [[2,1],[1,2]]。红 / 绿两条线是特征方向所在：红线上的向量 (1,1) 被 A 一乘只是沿红线拉长 3 倍，绿线上的 (1,-1) 的像仍落在绿线上（长度不变）。灰色向量 (1,0) 的像（蓝）方向变了 —— 它就不是特征向量。" },
         { h: "为什么有些矩阵不能对角化" },
         "当某个特征值的几何重数 &lt; 代数重数时，特征向量不够多、凑不齐一组基，就没法对角化（本页的结果里会直接标出「不可对角化」）。",
-        { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。看懂了「是什么」，想练「怎么算」的话，接着看<a href='#eigen-howto'>《手算特征值与特征向量》</a>那篇。" },
+        { tip: "在本页试一下：用 [[0,-1],[1,0]] 算特征值 —— 你会看到 λ = i / −i，这就是「纯旋转」；再拿 [[2,0],[0,2]] 对比。看懂了「是什么」，想练「怎么算」的话，接着看<a href='#eigen-howto'>《手算特征值与特征向量》</a>那篇；想知道复数特征值怎么变回实矩阵，看<a href='#complex-eigen'>《复特征值：旋转藏在实矩阵里》</a>。" },
       ],
     },
     {
@@ -547,7 +547,7 @@ window.LA_NOTES = {
         ] },
         { h: "什么时候会卡住" },
         { ul: [
-          "<b>解出复数</b>（判别式 &lt; 0）：实平面上没有不动的方向，共轭成对出现 a ± bi，几何上就是「旋转 + 缩放」。",
+          "<b>解出复数</b>（判别式 &lt; 0）：实平面上没有不动的方向，共轭成对出现 a ± bi，几何上就是「旋转 + 缩放」。怎么把它写回实矩阵，见<a href='#complex-eigen'>《复特征值：旋转藏在实矩阵里》</a>。",
           "<b>重根但向量不够</b>：剪切矩阵 [[2, 1], [0, 2]] 的 λ = 2 重了两次，可 A − 2I = [[0, 1], [0, 0]] 只剩一个自由变量，只给出一条直线的特征向量 → 凑不齐一组基，<b>不可对角化</b>。判定方法就是：几何重数 &lt; 代数重数。",
           "<b>出现 λ = 0</b>：矩阵退化（det = 0），它对应的特征向量正好就是零空间的方向。",
           "<b>3×3 往上</b>建议别死拼手算：先用 tr / det 的恒等式卡一遍，或者直接用本页的「特征值」运算核对。",
@@ -1334,7 +1334,7 @@ window.LA_NOTES = {
         { desmos: _desmosEigen(), caption: "The matrix is fixed as A = [[2,1],[1,2]]. The red line y=x and the green line y=-x are the eigendirections: the red vector (1,1) is merely stretched 3x along the red line, and the green vector (1,-1) stays on the green line (unchanged). The grey vector (1,0) has its image pointing elsewhere — it is not an eigenvector." },
         { h: "Why some matrices cannot be diagonalised" },
         "When the geometric multiplicity of some eigenvalue is &lt; its algebraic multiplicity there are not enough eigenvectors to form a basis, so diagonalisation is impossible (this page flags it directly as \"not diagonalisable\").",
-        { tip: "Try it here: compute the eigenvalues of [[0,-1],[1,0]] — you will get λ = i / −i, which is a pure rotation; then contrast it with [[2,0],[0,2]]. Ready to turn the idea into numbers? Continue with <a href='#eigen-howto'>\"Computing eigenvalues and eigenvectors step by step\"</a>." },
+        { tip: "Try it here: compute the eigenvalues of [[0,-1],[1,0]] — you will get λ = i / −i, which is a pure rotation; then contrast it with [[2,0],[0,2]]. Ready to turn the idea into numbers? Continue with <a href='#eigen-howto'>\"Computing eigenvalues and eigenvectors step by step\"</a>. For how a complex pair becomes a real matrix again, see <a href='#complex-eigen'>\"Complex eigenvalues: rotation hiding in a real matrix\"</a>." },
       ],
     },
     {
@@ -1421,7 +1421,7 @@ window.LA_NOTES = {
         ] },
         { h: "Where the method gets stuck" },
         { ul: [
-          "<b>Complex roots</b> (discriminant &lt; 0): no real direction stays fixed. They arrive in conjugate pairs a ± bi, meaning geometrically \"rotate plus scale\".",
+          "<b>Complex roots</b> (discriminant &lt; 0): no real direction stays fixed. They arrive in conjugate pairs a ± bi, meaning geometrically \"rotate plus scale\". To see how that turns back into a real matrix, read <a href='#complex-eigen'>Complex eigenvalues: rotation hiding in a real matrix</a>.",
           "<b>Repeated root, too few vectors:</b> for the shear [[2, 1], [0, 2]] the eigenvalue λ = 2 is repeated, yet A − 2I = [[0, 1], [0, 0]] leaves only one free variable — a single line of eigenvectors. Not enough for a basis, so <b>not diagonalisable</b>. The test is exactly: geometric multiplicity &lt; algebraic multiplicity.",
           "<b>λ = 0 appears:</b> the matrix is singular (det = 0), and its eigenvectors are precisely the directions of the null space.",
           "For <b>3×3 and larger</b>, do not grind by hand — sanity-check with trace/det first, or run the \"Eigenvalues\" operation on this page.",
