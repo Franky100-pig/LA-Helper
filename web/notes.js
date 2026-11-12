@@ -223,6 +223,73 @@ function _desmosChangeBasis() {
   };
 }
 
+// 点积与投影：u=(2,1) 固定，v=(p,q) 可拖。系数 c=(u·v)/(u·u)=(2p+q)/5，
+// 绿色向量 c·u=(2c,c) 就是 v 在 u 方向上的投影；灰色虚线是垂直误差 b−p。
+// 拖 p、q 看 c 跟着变：同向时投影长、垂直时投影缩成 0、反向时投影翻到 u 背后。
+function _desmosDotProduct() {
+  return {
+    viewport: { xmin: -1, xmax: 5, ymin: -2, ymax: 4 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("p=3", { id: "p", slider: { min: -2, max: 4, step: 0.1 } }),
+      _dx("q=1", { id: "q", slider: { min: -2, max: 4, step: 0.1 } }),
+      _dx("c=(2p+q)/5"),
+      _dx("y=0.5x", { id: "guide", color: "#9aa4ae", lineOpacity: 0.12 }),
+      _dx(_seg(0, 0, 2, 1), { id: "u", color: "#c74440", lineWidth: 4 }),
+      _dx("(2,1)", { id: "up", color: "#c74440", pointSize: 9 }),
+      _dx(_seg(0, 0, "p", "q"), { id: "v", color: "#2d70b3", lineWidth: 3 }),
+      _dx("(p,q)", { id: "vp", color: "#2d70b3", pointSize: 9 }),
+      _dx(_seg(0, 0, "2c", "c"), { id: "proj", color: "#388c46", lineWidth: 4 }),
+      _dx("(2c,c)", { id: "pp", color: "#388c46", pointSize: 9 }),
+      _dx(_seg("2c", "c", "p", "q"), { id: "err", color: "#9aa4ae", lineStyle: "DASHED", lineOpacity: 0.35 })
+    ]
+  };
+}
+
+// 正交投影：直线 L 的方向 u=(1,m)，m 可拖；b=(3,1) 固定。
+// c=(u·b)/(u·u)=(3+m)/(1+m²)，p=c·u=(c,cm) 是投影，红虚线 e=b−p 永远与 L 垂直。
+// 拖 m 改变直线斜率：投影点沿 L 滑动，误差方向始终和 L 成直角。
+function _desmosProjection() {
+  return {
+    viewport: { xmin: -2, xmax: 5, ymin: -3, ymax: 4 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("m=1", { id: "m", slider: { min: -2, max: 2, step: 0.1 } }),
+      _dx("c=(3+m)/(1+m^2)"),
+      _dx("y=mx", { id: "L", color: "#9aa4ae", lineOpacity: 0.18 }),
+      _dx(_seg(0, 0, 3, 1), { id: "b", color: "#2d70b3", lineWidth: 3 }),
+      _dx("(3,1)", { id: "bp", color: "#2d70b3", pointSize: 10 }),
+      _dx(_seg(0, 0, "c", "c*m"), { id: "p", color: "#388c46", lineWidth: 4 }),
+      _dx("(c,c*m)", { id: "pp", color: "#388c46", pointSize: 9 }),
+      _dx(_seg("c", "c*m", 3, 1), { id: "e", color: "#c74440", lineWidth: 3, lineStyle: "DASHED" })
+    ]
+  };
+}
+
+// Gram-Schmidt：b₁=a₁=(2,1) 固定，a₂=(p,q) 可拖。
+// c=(a₂·b₁)/(b₁·b₁)=(2p+q)/5，投影是 (2c,c)；减掉它剩下的 b₂=(p−2c,q−c)
+// 就是绿色的新基向量。拖 p、q：b₂ 会跟着转，但始终和 b₁ 垂直 —— 这就是正交化。
+function _desmosGramSchmidt() {
+  return {
+    viewport: { xmin: -3, xmax: 4, ymin: -2, ymax: 4 },
+    options: { expressionsCollapsed: true },
+    expressions: [
+      _dx("p=1", { id: "p", slider: { min: -3, max: 4, step: 0.1 } }),
+      _dx("q=2", { id: "q", slider: { min: -3, max: 4, step: 0.1 } }),
+      _dx("c=(2p+q)/5"),
+      _dx("y=0.5x", { id: "guide", color: "#9aa4ae", lineOpacity: 0.12 }),
+      _dx(_seg(0, 0, 2, 1), { id: "b1", color: "#c74440", lineWidth: 4 }),
+      _dx("(2,1)", { id: "b1p", color: "#c74440", pointSize: 9 }),
+      _dx(_seg(0, 0, "p", "q"), { id: "a2", color: "#2d70b3", lineWidth: 3 }),
+      _dx("(p,q)", { id: "a2p", color: "#2d70b3", pointSize: 9 }),
+      _dx(_seg(0, 0, "2c", "c"), { id: "proj", color: "#9aa4ae", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.4 }),
+      _dx(_seg("2c", "c", "p", "q"), { id: "b2shift", color: "#388c46", lineWidth: 2, lineStyle: "DASHED", lineOpacity: 0.5 }),
+      _dx(_seg(0, 0, "p-2c", "q-c"), { id: "b2", color: "#388c46", lineWidth: 4 }),
+      _dx("(p-2c,q-c)", { id: "b2p", color: "#388c46", pointSize: 9 })
+    ]
+  };
+}
+
 window.LA_NOTES = {
   zh: [
     {
