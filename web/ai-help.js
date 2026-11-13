@@ -361,6 +361,10 @@ const tr = I18N.t;
     statusEl.textContent = tr("ai.thinking");
     try {
       let lastFatal = "net", lastMsg = "network";
+      // 「平台明确说不能用了」的原因要单独留着：最后一次尝试很可能是
+      // CORS/网络失败（比如 GLM 的预检被平台改坏），那会把真正的
+      // 「HTTP 402 / 530」盖掉，收尾文案就变成误导性的「网络错误」。
+      let lastDownMsg = "";
       for (const a of attempts()) {
         const r = await askOne(a, q);
         if (r.kind === "answer") {
@@ -379,6 +383,7 @@ const tr = I18N.t;
         }
         // 这条线路这次不行：记下来，接下来 5 分钟先跳过它
         markDown(a.provider.id);
+        if (r.fatal === "down") lastDownMsg = r.msg;
         lastFatal = r.fatal;
         lastMsg = r.msg;
       }
@@ -387,10 +392,10 @@ const tr = I18N.t;
         showKeyView(tr("ai.sharedKeyDead", { msg: lastMsg }));
       } else if (lastFatal === "429") {
         statusEl.textContent = tr("ai.sharedRateLimited");
-      } else if (lastFatal === "down") {
-        // 所有线路都「能用但平台不可用」：说清是线路问题 + 最后一条原因，
-        // 而不是笼统归到网络错误（那会引导用户去查自己的网）。
-        statusEl.textContent = tr("ai.allDown", { msg: lastMsg });
+      } else if (lastDownMsg) {
+        // 只要有一条线路明确回了 402/530，就按「线路不可用」收尾 ——
+        // 这比最后那条 CORS/网络失败更接近真相。
+        statusEl.textContent = tr("ai.allDown", { msg: lastDownMsg });
       } else {
         statusEl.textContent = tr("ai.netError", { msg: lastMsg });
       }

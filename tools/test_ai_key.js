@@ -410,6 +410,19 @@ function sfStatusGlmUp(status) {
      `R13 第二次应直接打 GLM，实际：${s.calls[2].url}`);
 }
 
+// 线上真实组合：第一条 530（网关挂），第二条 CORS 直接 fetch 失败。
+// 收尾不能被最后那条网络失败的文案盖掉 —— 用户会去查自己的网。
+{
+  const s = await sendAndSee(async (url) => {
+    if (/siliconflow/.test(url)) return { ok: false, status: 530, json: async () => ({}) };
+    throw new TypeError("Failed to fetch");
+  });
+  const msg = s.els.aiHelpStatus.textContent;
+  ok(/不可用|unavailable/i.test(msg), `R14 应报「线路不可用」，实际：${msg}`);
+  ok(/530/.test(msg), `R14 应带上 530，实际：${msg}`);
+  ok(!/网络错误|Network error/.test(msg), `R14 不该被最后的网络失败盖掉，实际：${msg}`);
+}
+
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
 // Qwen3 系是混合推理模型：不关 enable_thinking 的话，非流式请求可能把
 // 回答写进 reasoning_content、content 为空 → 页面显示「模型没有返回内容」。
