@@ -281,6 +281,12 @@ const tr = I18N.t;
           ? { kind: "status", key: "ai.rateLimited", msg: "" }
           : { kind: "next", fatal: "429", msg: "429", err: null };
       }
+      // 402（余额不足）/ 403（无权限）/ 5xx（含 Cloudflare 530「隧道挂了」）
+      // 都是「这个平台现在不能用」，跟用户的问题无关 —— 换下一条线路，
+      // 不要把平台侧的故障当成整页的失败甩给用户。
+      if (resp.status === 402 || resp.status === 403 || resp.status >= 500) {
+        return { kind: "next", fatal: "down", msg: msg || ("HTTP " + resp.status), err: null };
+      }
       return { kind: "status", key: "ai.error", msg: msg || ("HTTP " + resp.status) };
     }
     const m = data.choices && data.choices[0] && data.choices[0].message;
@@ -321,6 +327,10 @@ const tr = I18N.t;
         showKeyView(tr("ai.sharedKeyDead", { msg: lastMsg }));
       } else if (lastFatal === "429") {
         statusEl.textContent = tr("ai.sharedRateLimited");
+      } else if (lastFatal === "down") {
+        // 所有线路都「能用但平台不可用」：说清是线路问题 + 最后一条原因，
+        // 而不是笼统归到网络错误（那会引导用户去查自己的网）。
+        statusEl.textContent = tr("ai.allDown", { msg: lastMsg });
       } else {
         statusEl.textContent = tr("ai.netError", { msg: lastMsg });
       }

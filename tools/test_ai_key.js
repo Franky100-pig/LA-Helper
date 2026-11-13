@@ -326,7 +326,11 @@ function sfStatusGlmUp(status) {
 }
 // 所有线路都是「平台不可用」→ 收尾文案要说清是线路问题，并带上最后一条原因
 {
-  const s = await sendAndSee(responder(402));
+  // 平台没给 error.message（Cloudflare 这类 text/plain 错误就是这样）时，
+  // 文案里要能退回状态码，否则用户只看到一句「暂时不可用」无从判断。
+  const s = await sendAndSee(async () => ({
+    ok: false, status: 402, json: async () => ({}),
+  }));
   const msg = s.els.aiHelpStatus.textContent;
   ok(/不可用|unavailable/i.test(msg), `R10 全部线路挂掉应说「暂时不可用」，实际：${msg}`);
   ok(/402/.test(msg), `R10 文案里要带上最后一条原因（402），实际：${msg}`);
