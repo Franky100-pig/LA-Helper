@@ -37,7 +37,8 @@ function makeEl(id) {
  * sharedKey 用来测两种模式（启用 / 未启用），因为 SHARED_KEY 是源码里的常量。
  */
 function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
-               sharedKeyEndless = "", stored = null, fetchImpl = null } = {}) {
+               sharedKeyEndless = "", stored = null, fetchImpl = null,
+               httpsPage = false } = {}) {
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
@@ -82,6 +83,9 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
     },
   };
   sandbox.globalThis = sandbox;
+  // 只有测「https 页面拦 http 内网接口」时才挂 location；平时不挂，
+  // 让 typeof location === \"undefined\" 的浏览器外环境也照常跑。
+  if (httpsPage) sandbox.location = { protocol: "https:" };
   vm.createContext(sandbox);
 
   vm.runInContext(fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"), sandbox, { filename: "i18n.js" });
@@ -462,6 +466,27 @@ function sfStatusGlmUp(status) {
   ok(/192\.168\.1\.143/.test(s.calls[0] && s.calls[0].url),
      `R17 填局域网 Key 后应打到 192.168.1.143，实际：${s.calls[0] && s.calls[0].url}`);
   eq(s.els.aiHelpAnswer.textContent, "lan ok", "R17 能解析 Responses API 的回答");
+}
+
+// ==== 结构性故障要说清，别让用户去查自己的网 ==============================
+// 2026-11-13 实测：群友公网网关 service.makers.moe 会正常返回答案，
+// 但响应里没有 Access-Control-Allow-Origin、OPTIONS 预检是 501 ——
+// curl/CLI 能用，浏览器 fetch 必然 TypeError。这句话必须出现在页面上。
+{
+  const s = await sendAndSee(async () => { throw new TypeError("Failed to fetch"); });
+  const msg = s.els.aiHelpStatus.textContent;
+  ok(/CORS|跨域/.test(msg), `R18 网络类失败要提示 CORS 可能性，实际：${msg}`);
+}
+// https 页面 + http 局域网端点 = 混合内容，浏览器直接拦（不是网络坏了）
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "", httpsPage: true,
+                   fetchImpl: async () => { throw new TypeError("Failed to fetch"); } });
+  s.els.aiHelpKeyIn.value = "sk-omlx-VL8i0qDsznTmkD9Tv8HR";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  const msg = s.els.aiHelpStatus.textContent;
+  ok(/混合内容|mixed content/i.test(msg),
+     `R19 https 页面调 http 内网应说混合内容，实际：${msg}`);
 }
 
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
