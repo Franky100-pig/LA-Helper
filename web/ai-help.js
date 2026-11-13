@@ -74,8 +74,22 @@ const tr = I18N.t;
   // 回退：智谱 open.bigmodel.cn（GLM-4-Flash；2026-10 预检被平台改坏，
   // 修好前只对「自己填了 GLM Key」的用户真正可用）
   const SHARED_KEY_GLM = "ad05fe8940a849849b24a01e70b031bc.D0WSOEaNzjKc6phP";
+  // 国际线路：endless（群友共享的 OpenAI Responses API 网关）。
+  // 只暴露 /responses，不走 chat/completions，所以请求体与解析都不同于上面两家。
+  // 同为「群共享 Key」，随时可能失效/限流；介意就填自己的。
+  const SHARED_KEY_ENDLESS = "sk-endless-e5jxn1LcTxz8Ej0x67zRJRVM8UtyW8QRihc_4OQnoXQ";
 
   const PROVIDERS = [
+    {
+      id: "endless",
+      endpoint: "https://service.makers.moe/responses",
+      model: "endless",
+      sharedKey: SHARED_KEY_ENDLESS,
+      // OpenAI Responses API：body 用 input 数组，回答在 output[].content[].text。
+      // 放在第一位：它是国际网络下唯一能直连的一条（另外两家都在国内）。
+      api: "responses",
+      extra: null,
+    },
     {
       id: "siliconflow",
       endpoint: "https://api.siliconflow.cn/v1/chat/completions",
@@ -83,6 +97,7 @@ const tr = I18N.t;
       sharedKey: SHARED_KEY,
       // Qwen3 系是混合推理模型：显式关掉思考模式，否则非流式请求可能把
       // 回答写进 reasoning_content、content 反而为空
+      api: "chat",
       extra: { enable_thinking: false },
     },
     {
@@ -90,6 +105,7 @@ const tr = I18N.t;
       endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
       model: "glm-4-flash",
       sharedKey: SHARED_KEY_GLM,
+      api: "chat",
       extra: null,
     },
   ];
@@ -108,7 +124,7 @@ const tr = I18N.t;
   const sharedNote = el("aiHelpSharedNote");
 
   // 任一平台还挂着公共 Key，就提示「你可以直接用，也可以换成自己的」
-  const anyShared = !!(SHARED_KEY || SHARED_KEY_GLM);
+  const anyShared = !!(SHARED_KEY || SHARED_KEY_GLM || SHARED_KEY_ENDLESS);
   if (sharedNote) {
     sharedNote.hidden = !anyShared;
     if (anyShared) sharedNote.textContent = tr("ai.sharedNote");
@@ -136,9 +152,13 @@ const tr = I18N.t;
   /** 用户是否填了自己的 Key（决定保存/更换按钮的语义）。 */
   function hasOwnKey() { return !!(memKey || readStore()); }
 
-  // 自有 Key 按前缀路由：SiliconFlow 是 sk-…，GLM 是 id.secret 形态
+  // 自有 Key 按前缀路由：endless 是 sk-endless-…（走 Responses API），
+  // SiliconFlow 也是 sk-…，GLM 是 id.secret 形态。
+  // 注意：PROVIDERS 顺序会变，这里必须按 id 取，不能用下标。
+  const byId = (id) => PROVIDERS.find((p) => p.id === id);
   function pickProvider(key) {
-    return key.startsWith("sk-") ? PROVIDERS[0] : PROVIDERS[1];
+    if (key.startsWith("sk-endless-")) return byId("endless");
+    return key.startsWith("sk-") ? byId("siliconflow") : byId("bigmodel");
   }
   // 本次「提问」要依次尝试的 (provider, key) 列表：
   // 有自己的 Key → 只用自己那份（Key 与平台绑定，不跨平台瞎试）；
@@ -242,14 +262,19 @@ const tr = I18N.t;
   async function askOne(attempt, q) {
     const p = attempt.provider;
     let resp;
-    try {
-      resp = await fetch(p.endpoint, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + attempt.key,
-        },
-        body: JSON.stringify(Object.assign({
+    // chat/completions 与 Responses API 的请求体不同：
+    //   chat      → messages + max_tokens
+    //   responses → input（system 与 user 各一项）+ max_output_tokens
+    const body = p.api === "responses"
+      ? Object.assign({
+          model: p.model,
+          input: [
+            { role: "system", content: tr("ai.systemPrompt") },
+            { role: "user", content: q },
+          ],
+          max_output_tokens: 2000,
+        }, p.extra || {})
+      : Object.assign({
           model: p.model,
           messages: [
             { role: "system", content: tr("ai.systemPrompt") },
@@ -260,7 +285,15 @@ const tr = I18N.t;
           // 而带 LaTeX 公式的答案 token 数远超字数（中英都不止），
           // 卡太紧会让回答在半句话处被截断。
           max_tokens: 2000,
-        }, p.extra || {})),
+        }, p.extra || {});
+    try {
+      resp = await fetch(p.endpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer " + attempt.key,
+        },
+        body: JSON.stringify(body),
       });
     } catch (err) {
       // fetch 抛 TypeError 通常是「预检失败 / 网络不通」，不是 Key 的问题
@@ -289,9 +322,23 @@ const tr = I18N.t;
       }
       return { kind: "status", key: "ai.error", msg: msg || ("HTTP " + resp.status) };
     }
-    const m = data.choices && data.choices[0] && data.choices[0].message;
-    // thinking 模型兜底：content 空时看一眼 reasoning_content
-    const text = m && (m.content || m.reasoning_content) || "";
+    // 解析：chat 走 choices[].message.content（thinking 模型兜底看
+    // reasoning_content）；Responses API 走 output[].content[].text，
+    // 其中可能夹着 reasoning 等条目，只取 type=message 里的 output_text。
+    let text = "";
+    if (p.api === "responses") {
+      for (const item of (data && data.output) || []) {
+        if (item && item.type === "message" && Array.isArray(item.content)) {
+          for (const c of item.content) {
+            if (c && c.type === "output_text") text += (c.text || "");
+          }
+        }
+      }
+    } else {
+      const m = data.choices && data.choices[0] && data.choices[0].message;
+      // thinking 模型兜底：content 空时看一眼 reasoning_content
+      text = m && (m.content || m.reasoning_content) || "";
+    }
     return { kind: "answer", text };
   }
 

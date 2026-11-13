@@ -36,7 +36,8 @@ function makeEl(id) {
  * 起一个跑着 ai-help.js 的沙箱。
  * sharedKey 用来测两种模式（启用 / 未启用），因为 SHARED_KEY 是源码里的常量。
  */
-function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret", stored = null, fetchImpl = null } = {}) {
+function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
+               sharedKeyEndless = "", stored = null, fetchImpl = null } = {}) {
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
@@ -96,6 +97,11 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret", 
   src = src.replace(RE_SF, `const SHARED_KEY = ${JSON.stringify(sharedKey)};`);
   if (!RE_GLM.test(src)) throw new Error("没找到 SHARED_KEY_GLM 常量，源码结构变了？");
   src = src.replace(RE_GLM, `const SHARED_KEY_GLM = ${JSON.stringify(sharedKeyGlm)};`);
+  // endless 是第三条线路：默认置空 = 不参与，老用例的「两次尝试」语义不变。
+  const RE_EN = /const SHARED_KEY_ENDLESS = "[^"]*";/;
+  if (RE_EN.test(src)) {
+    src = src.replace(RE_EN, `const SHARED_KEY_ENDLESS = ${JSON.stringify(sharedKeyEndless)};`);
+  }
   // getKey/setKey/... 都关在 initAiHelp 的 IIFE 里，外部看不见。
   // 所以把导出语句**插进 IIFE 内部**（它还在同一层作用域里）。
   const IIFE_END = "  // 启动：已存 Key 就直接进提问页，否则显示填 Key";
@@ -335,6 +341,54 @@ function sfStatusGlmUp(status) {
   ok(/不可用|unavailable/i.test(msg), `R10 全部线路挂掉应说「暂时不可用」，实际：${msg}`);
   ok(/402/.test(msg), `R10 文案里要带上最后一条原因（402），实际：${msg}`);
   ok(!/网络错误|Network error/.test(msg), `R10 不该笼统说成网络错误，实际：${msg}`);
+}
+
+// ==== endless：Responses API 的请求体与解析 ================================
+// 它跟 chat/completions 不是一套协议：input 数组 + max_output_tokens，
+// 回答埋在 output[].content[].text，且 output 里可能夹着 reasoning 条目。
+{
+  const s = boot({
+    sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "sk-endless-test",
+    fetchImpl: async () => ({
+      ok: true, status: 200,
+      json: async () => ({
+        output: [
+          { type: "reasoning", summary: [] },
+          { type: "message", content: [{ type: "output_text", text: "endless ok" }] },
+        ],
+      }),
+    }),
+  });
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 1, "R11 只有 endless 时只发一次请求");
+  ok(/makers\.moe\/responses/.test(s.calls[0].url),
+     `R11 应打到 Responses 端点，实际：${s.calls[0].url}`);
+  const b = JSON.parse(s.calls[0].opts.body);
+  ok(Array.isArray(b.input), "R11 请求体用 input 数组（不是 messages）");
+  eq(b.max_output_tokens, 2000, "R11 用 max_output_tokens");
+  ok(!("messages" in b) && !("max_tokens" in b), "R11 不该同时带 chat 协议的字段");
+  eq(s.els.aiHelpAnswer.textContent, "endless ok",
+     "R11 能从 output[].content[].text 取到回答（跳过 reasoning）");
+}
+// 自己的 Key 按前缀路由：sk-endless- → endless，普通 sk- → SiliconFlow
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "sk-endless-test",
+                   fetchImpl: async () => ({ ok: false, status: 401, json: async () => ({}) }) });
+  s.els.aiHelpKeyIn.value = "sk-endless-mine";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  ok(/makers\.moe/.test(s.calls[0].url),
+     `R12 sk-endless- 前缀应路由到 endless，实际：${s.calls[0].url}`);
+}
+// 加了 endless 之后，普通 sk- 仍必须打到 SiliconFlow（不能因为顺序变了就打错平台）
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "sk-endless-test",
+                   fetchImpl: async () => ({ ok: false, status: 401, json: async () => ({}) }) });
+  s.els.aiHelpKeyIn.value = "sk-mine-sf";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  ok(/siliconflow/.test(s.calls[0].url),
+     `R12b 普通 sk- 仍应路由到 SiliconFlow，实际：${s.calls[0].url}`);
 }
 
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
