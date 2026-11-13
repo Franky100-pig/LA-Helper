@@ -79,6 +79,17 @@ const tr = I18N.t;
   // 同为「群共享 Key」，随时可能失效/限流；介意就填自己的。
   const SHARED_KEY_ENDLESS = "sk-endless-e5jxn1LcTxz8Ej0x67zRJRVM8UtyW8QRihc_4OQnoXQ";
 
+  // 群友给的第二条线路：跑在校园局域网 http://192.168.1.143:8000 的
+  // aoody-oss-120b（同样是 Responses API，但路径带 /v1）。只在用户自己填了
+  // sk-omlx-… 的 Key 时启用 —— 它是内网 http 地址，外网用户根本连不上，
+  // 放进「共享线路」只会让每个人白撞一次超时。IP 换掉时可用 localStorage
+  // 里的 la-ai-omlx-base 覆盖（例如同学换了个端口或开了别的隧道）。
+  let OMLX_BASE = "http://192.168.1.143:8000/v1/responses";
+  try {
+    const saved = localStorage.getItem("la-ai-omlx-base");
+    if (saved) OMLX_BASE = saved;
+  } catch (_) { /* 存储被禁用就用默认值 */ }
+
   const PROVIDERS = [
     {
       id: "endless",
@@ -106,6 +117,15 @@ const tr = I18N.t;
       model: "glm-4-flash",
       sharedKey: SHARED_KEY_GLM,
       api: "chat",
+      extra: null,
+    },
+    {
+      id: "omlx",
+      endpoint: OMLX_BASE,
+      model: "aoody-oss-120b",
+      // 没有公共 Key：只在用户自己粘贴 sk-omlx-… 时才会被 pickProvider 选中。
+      sharedKey: "",
+      api: "responses",
       extra: null,
     },
   ];
@@ -152,12 +172,13 @@ const tr = I18N.t;
   /** 用户是否填了自己的 Key（决定保存/更换按钮的语义）。 */
   function hasOwnKey() { return !!(memKey || readStore()); }
 
-  // 自有 Key 按前缀路由：endless 是 sk-endless-…（走 Responses API），
-  // SiliconFlow 也是 sk-…，GLM 是 id.secret 形态。
+  // 自有 Key 按前缀路由：endless 是 sk-endless-…、群友局域网是 sk-omlx-…
+  // （这两条都走 Responses API），SiliconFlow 是其它 sk-…，GLM 是 id.secret。
   // 注意：PROVIDERS 顺序会变，这里必须按 id 取，不能用下标。
   const byId = (id) => PROVIDERS.find((p) => p.id === id);
   function pickProvider(key) {
     if (key.startsWith("sk-endless-")) return byId("endless");
+    if (key.startsWith("sk-omlx-")) return byId("omlx");
     return key.startsWith("sk-") ? byId("siliconflow") : byId("bigmodel");
   }
   // 本次会话里「刚刚失败过」的线路：5 分钟内先跳过。
@@ -307,7 +328,13 @@ const tr = I18N.t;
         body: JSON.stringify(body),
       });
     } catch (err) {
-      // fetch 抛 TypeError 通常是「预检失败 / 网络不通」，不是 Key 的问题
+      // fetch 抛 TypeError 通常是「预检失败 / 网络不通」，不是 Key 的问题。
+      // 但有一种是能一眼确定的：https 页面请求 http 内网接口会被浏览器
+      // 按「混合内容」直接拦掉；这时候让用户去查网络是纯误导。
+      const httpsPage = typeof location !== "undefined" && location.protocol === "https:";
+      if (httpsPage && /^http:\/\//.test(p.endpoint)) {
+        return { kind: "next", fatal: "net", msg: tr("ai.mixedContent"), err };
+      }
       return { kind: "next", fatal: "net", msg: err.message, err };
     }
     const data = await resp.json().catch(() => ({}));
@@ -365,6 +392,7 @@ const tr = I18N.t;
       // CORS/网络失败（比如 GLM 的预检被平台改坏），那会把真正的
       // 「HTTP 402 / 530」盖掉，收尾文案就变成误导性的「网络错误」。
       let lastDownMsg = "";
+      let sawNetFail = false;
       for (const a of attempts()) {
         const r = await askOne(a, q);
         if (r.kind === "answer") {
@@ -384,6 +412,7 @@ const tr = I18N.t;
         // 这条线路这次不行：记下来，接下来 5 分钟先跳过它
         markDown(a.provider.id);
         if (r.fatal === "down") lastDownMsg = r.msg;
+        if (r.fatal === "net") sawNetFail = true;
         lastFatal = r.fatal;
         lastMsg = r.msg;
       }
@@ -399,6 +428,10 @@ const tr = I18N.t;
       } else {
         statusEl.textContent = tr("ai.netError", { msg: lastMsg });
       }
+      // 出现过 fetch 直接抛错时补一句 CORS 提示：自建/群共享网关常常
+      // curl 能调通、却没有 Access-Control-Allow-Origin，网页直连必然失败。
+      // 不提示的话用户会一直以为是自己网络坏了（或以为代码没接好）。
+      if (sawNetFail) statusEl.textContent += " " + tr("ai.corsHint");
     } finally {
       sendBtn.disabled = false;
       updateCount();
