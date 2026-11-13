@@ -293,6 +293,46 @@ function sfDownGlmUp(sfBehavior) {
   ok(/bigmodel/.test(s.calls[0].url), `R6 目标是 bigmodel，实际：${s.calls[0].url}`);
 }
 
+// ==== 某条线路「不能用」不等于「整个功能坏了」 ============================
+// 2026-11-13 线上实际故障：SiliconFlow 的公共 Key 余额见底（HTTP 402），
+// 而 askOne 把 402 当成终局错误直接 return status，于是整页报
+// 「Something went wrong: HTTP 402」—— 明明下一条线路是好的。
+// 余额不足 / 网关挂掉（Cloudflare 530）/ 5xx 都属于「这个平台现在不能用」，
+// 必须继续试下一条，而不是把错误甩给用户。
+
+// 主力线路返回指定状态码，GLM 正常
+function sfStatusGlmUp(status) {
+  return async (url) => {
+    if (/siliconflow/.test(url)) {
+      return { ok: false, status, json: async () => ({ error: { message: "boom" } }) };
+    }
+    return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "glm ok" } }] }) };
+  };
+}
+{
+  const s = await sendAndSee(sfStatusGlmUp(402));
+  eq(s.calls.length, 2, "R8 主力 402（余额不足）后应继续试下一条");
+  eq(s.els.aiHelpAnswer.textContent, "glm ok", "R8 402 后成功拿到下一条线路的回答");
+  eq(s.els.aiHelpStatus.textContent, "", "R8 不该向用户报错");
+}
+{
+  const s = await sendAndSee(sfStatusGlmUp(530));
+  eq(s.calls.length, 2, "R9 主力 530（网关挂了）后应继续试下一条");
+  eq(s.els.aiHelpAnswer.textContent, "glm ok", "R9 530 后成功拿到下一条线路的回答");
+}
+{
+  const s = await sendAndSee(sfStatusGlmUp(503));
+  eq(s.calls.length, 2, "R9b 主力 503 后应继续试下一条");
+}
+// 所有线路都是「平台不可用」→ 收尾文案要说清是线路问题，并带上最后一条原因
+{
+  const s = await sendAndSee(responder(402));
+  const msg = s.els.aiHelpStatus.textContent;
+  ok(/不可用|unavailable/i.test(msg), `R10 全部线路挂掉应说「暂时不可用」，实际：${msg}`);
+  ok(/402/.test(msg), `R10 文案里要带上最后一条原因（402），实际：${msg}`);
+  ok(!/网络错误|Network error/.test(msg), `R10 不该笼统说成网络错误，实际：${msg}`);
+}
+
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
 // Qwen3 系是混合推理模型：不关 enable_thinking 的话，非流式请求可能把
 // 回答写进 reasoning_content、content 为空 → 页面显示「模型没有返回内容」。
