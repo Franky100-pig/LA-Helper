@@ -1122,6 +1122,7 @@ window.LA_NOTES = {
         { h: "投到子空间：把 u 换成矩阵 A" },
         "如果 L 换成 A 的列空间 Col(A)，同样的垂直条件写成 Aᵀ(b − Ax̂) = 0，也就是正规方程（normal equations）。",
         { formula: "AᵀA x̂ = Aᵀb　⇒　p = A x̂ = A(AᵀA)⁻¹Aᵀ b" },
+        { formula: "P = A(AᵀA)⁻¹Aᵀ,　p = P b,　P² = P,　Pᵀ = P" },
         "P = A(AᵀA)⁻¹Aᵀ 是投影矩阵，满足 <b>P² = P</b>（投一次已经在子空间里，再投不变）与 <b>Pᵀ = P</b>（对称）。若 A 的列本来就正交单位化（QᵀQ = I），公式直接简化成 P = QQᵀ。",
         { h: "三个常见错误" },
         { ul: [
@@ -2236,6 +2237,7 @@ window.LA_NOTES = {
         { h: "Onto a subspace: replace u with a matrix A" },
         "If L becomes Col(A), the same perpendicularity condition reads Aᵀ(b − Ax̂) = 0 — the normal equations.",
         { formula: "AᵀA x̂ = Aᵀb　⇒　p = A x̂ = A(AᵀA)⁻¹Aᵀ b" },
+        { formula: "P = A(AᵀA)⁻¹Aᵀ,　p = P b,　P² = P,　Pᵀ = P" },
         "P = A(AᵀA)⁻¹Aᵀ is the projection matrix, with <b>P² = P</b> (once you're in the subspace, projecting again changes nothing) and <b>Pᵀ = P</b> (it's symmetric). If the columns of A are already orthonormal (QᵀQ = I), this collapses to P = QQᵀ.",
         { h: "Three common mistakes" },
         { ul: [
