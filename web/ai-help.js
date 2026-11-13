@@ -333,7 +333,7 @@ const tr = I18N.t;
       // 按「混合内容」直接拦掉；这时候让用户去查网络是纯误导。
       const httpsPage = typeof location !== "undefined" && location.protocol === "https:";
       if (httpsPage && /^http:\/\//.test(p.endpoint)) {
-        return { kind: "next", fatal: "net", msg: tr("ai.mixedContent"), err };
+        return { kind: "next", fatal: "net", msg: tr("ai.mixedContent"), err, mixed: true };
       }
       return { kind: "next", fatal: "net", msg: err.message, err };
     }
@@ -393,6 +393,7 @@ const tr = I18N.t;
       // 「HTTP 402 / 530」盖掉，收尾文案就变成误导性的「网络错误」。
       let lastDownMsg = "";
       let sawNetFail = false;
+      let sawMixed = false;
       for (const a of attempts()) {
         const r = await askOne(a, q);
         if (r.kind === "answer") {
@@ -413,6 +414,7 @@ const tr = I18N.t;
         markDown(a.provider.id);
         if (r.fatal === "down") lastDownMsg = r.msg;
         if (r.fatal === "net") sawNetFail = true;
+        if (r.mixed) sawMixed = true;
         lastFatal = r.fatal;
         lastMsg = r.msg;
       }
@@ -431,7 +433,9 @@ const tr = I18N.t;
       // 出现过 fetch 直接抛错时补一句 CORS 提示：自建/群共享网关常常
       // curl 能调通、却没有 Access-Control-Allow-Origin，网页直连必然失败。
       // 不提示的话用户会一直以为是自己网络坏了（或以为代码没接好）。
-      if (sawNetFail) statusEl.textContent += " " + tr("ai.corsHint");
+      // 混合内容是浏览器自己的规则，跟网关有没有 CORS 无关 —— 已经点名了
+      // 就不再叠一句 CORS 提示，免得两条互相打架。
+      if (sawNetFail && !sawMixed) statusEl.textContent += " " + tr("ai.corsHint");
     } finally {
       sendBtn.disabled = false;
       updateCount();

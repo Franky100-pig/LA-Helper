@@ -487,6 +487,8 @@ function sfStatusGlmUp(status) {
   const msg = s.els.aiHelpStatus.textContent;
   ok(/混合内容|mixed content/i.test(msg),
      `R19 https 页面调 http 内网应说混合内容，实际：${msg}`);
+  ok(!/Access-Control-Allow-Origin/.test(msg),
+     `R19 混合内容已被点名时别再叠 CORS 提示，实际：${msg}`);
 }
 
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
