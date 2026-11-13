@@ -83,6 +83,9 @@
     "orthogonal",
     "projection",
     "gram-schmidt",
+    "orthonormal-basis",
+    "orthogonal-complement",
+    "four-spaces",
     "rank",
     "nullity",
     "rank-nullity",
@@ -97,6 +100,9 @@
     "similar",
     "diagonalize",
     "complex-eigen",
+    "least-squares",
+    "qr-decomposition",
+    "svd",
   ];
 
   /** 路径上 id 的下一篇；路径尽头或不在路径上时返回 null。 */
