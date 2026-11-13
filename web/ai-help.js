@@ -160,14 +160,25 @@ const tr = I18N.t;
     if (key.startsWith("sk-endless-")) return byId("endless");
     return key.startsWith("sk-") ? byId("siliconflow") : byId("bigmodel");
   }
+  // 本次会话里「刚刚失败过」的线路：5 分钟内先跳过。
+  // 没有它的话，每问一句都要先撞一遍死掉的网关（endless 530、余额 402 各
+  // 浪费一个来回），用户会以为「AI 在发呆」。过期后自动重新尝试，
+  // 免得平台恢复了还被记仇；全部都在冷却里时也照样全试一遍。
+  const DOWN_TTL = 5 * 60 * 1000;
+  const downUntil = Object.create(null);
+  function markDown(id) { downUntil[id] = Date.now() + DOWN_TTL; }
+  function isDown(p) { return (downUntil[p.id] || 0) > Date.now(); }
+
   // 本次「提问」要依次尝试的 (provider, key) 列表：
   // 有自己的 Key → 只用自己那份（Key 与平台绑定，不跨平台瞎试）；
   // 没有则按顺序试每个还有公共 Key 的平台，一个挂了自动换下一个。
   function attempts() {
     const own = memKey || readStore();
     if (own) return [{ provider: pickProvider(own), key: own, own: true }];
-    return PROVIDERS.filter((p) => p.sharedKey)
-                    .map((p) => ({ provider: p, key: p.sharedKey, own: false }));
+    const shared = PROVIDERS.filter((p) => p.sharedKey);
+    const fresh = shared.filter((p) => !isDown(p));
+    return (fresh.length ? fresh : shared)
+      .map((p) => ({ provider: p, key: p.sharedKey, own: false }));
   }
   // 「现在有没有可用的 Key」——取第一条尝试的 Key；决定发送按钮是否可点
   function getKey() {
@@ -366,6 +377,8 @@ const tr = I18N.t;
           showKeyView(tr(r.key, { msg: r.msg }));
           return;
         }
+        // 这条线路这次不行：记下来，接下来 5 分钟先跳过它
+        markDown(a.provider.id);
         lastFatal = r.fatal;
         lastMsg = r.msg;
       }

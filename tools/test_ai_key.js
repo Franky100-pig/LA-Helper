@@ -391,6 +391,25 @@ function sfStatusGlmUp(status) {
      `R12b 普通 sk- 仍应路由到 SiliconFlow，实际：${s.calls[0].url}`);
 }
 
+// ==== 挂掉的线路要「记仇」5 分钟，别每问一句都先撞一遍 ====================
+{
+  const s = boot({
+    sharedKey: "sk-public", sharedKeyGlm: "glmid.glmsecret", sharedKeyEndless: "",
+    fetchImpl: async (url) => {
+      if (/siliconflow/.test(url)) {
+        return { ok: false, status: 402, json: async () => ({}) };
+      }
+      return { ok: true, status: 200, json: async () => ({ choices: [{ message: { content: "glm ok" } }] }) };
+    },
+  });
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 2, "R13 第一次提问：SF 402 → 回退到 GLM（2 次请求）");
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 3, "R13 第二次提问应跳过刚挂的 SF（只多 1 次请求）");
+  ok(/bigmodel/.test(s.calls[2].url),
+     `R13 第二次应直接打 GLM，实际：${s.calls[2].url}`);
+}
+
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
 // Qwen3 系是混合推理模型：不关 enable_thinking 的话，非流式请求可能把
 // 回答写进 reasoning_content、content 为空 → 页面显示「模型没有返回内容」。
