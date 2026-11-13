@@ -109,7 +109,7 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
   if (at < 0) throw new Error("找不到 initAiHelp 的插入点");
   src = src.slice(0, at) + `
   globalThis.__t = { getKey, setKey, hasOwnKey, showKeyView, showAskView,
-                      updateCount, SHARED_KEY };
+                      updateCount, SHARED_KEY, pickProvider, attempts, PROVIDERS };
 ` + src.slice(at);
   vm.runInContext(src, sandbox, { filename: "ai-help.js" });
 
@@ -421,6 +421,47 @@ function sfStatusGlmUp(status) {
   ok(/不可用|unavailable/i.test(msg), `R14 应报「线路不可用」，实际：${msg}`);
   ok(/530/.test(msg), `R14 应带上 530，实际：${msg}`);
   ok(!/网络错误|Network error/.test(msg), `R14 不该被最后的网络失败盖掉，实际：${msg}`);
+}
+
+// ==== 群友给的第二条线路（局域网 omlx）必须也能用 ==========================
+// 2026-11-12 群里其实给了两个端点：公网 endless 与局域网 aoody-oss-120b。
+// 之前只接了公网那个；局域网那把 sk-omlx-… 的 Key 因为也以 sk- 开头，
+// 会被 pickProvider 错送到 SiliconFlow（必然 401）。而且它是 http 内网地址，
+// 绝不能放进「共享线路」里让所有外网用户白撞一次。
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "" });
+  const pick = s.t.pickProvider || (() => null);
+  const p = pick("sk-omlx-VL8i0qDsznTmkD9Tv8HR");
+  ok(!!p && p.id === "omlx",
+     `R15 sk-omlx- 前缀应路由到局域网线路，实际：${p ? p.id : "无此 provider"}`);
+  if (p) {
+    ok(/192\.168\.1\.143:8000\/v1\/responses/.test(p.endpoint),
+       `R15 端点应是群友给的 /v1/responses，实际：${p.endpoint}`);
+    eq(p.api, "responses", "R15 与 endless 同属 Responses API");
+    eq(p.model, "aoody-oss-120b", "R15 模型名要与群里给的一致");
+  }
+}
+{
+  const s = boot({ sharedKey: "sk-public", sharedKeyGlm: "glmid.glmsecret",
+                   sharedKeyEndless: "" });
+  const ids = s.t.attempts().map((a) => a.provider.id);
+  ok(!ids.includes("omlx"),
+     `R16 局域网线路不该进共享尝试（外网必然连不上），实际：${ids.join(",")}`);
+}
+{
+  const s = boot({
+    sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "",
+    fetchImpl: async () => ({
+      ok: true, status: 200,
+      json: async () => ({ output: [{ type: "message", content: [{ type: "output_text", text: "lan ok" }] }] }),
+    }),
+  });
+  s.els.aiHelpKeyIn.value = "sk-omlx-VL8i0qDsznTmkD9Tv8HR";
+  s.els.aiHelpSaveKey.fire("click");
+  await s.els.aiHelpSend.fire("click");
+  ok(/192\.168\.1\.143/.test(s.calls[0] && s.calls[0].url),
+     `R17 填局域网 Key 后应打到 192.168.1.143，实际：${s.calls[0] && s.calls[0].url}`);
+  eq(s.els.aiHelpAnswer.textContent, "lan ok", "R17 能解析 Responses API 的回答");
 }
 
 // ==== Qwen3 的思考模式必须显式关掉 ========================================
