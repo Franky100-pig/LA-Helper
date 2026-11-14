@@ -496,17 +496,48 @@ window.LA_NOTES = {
           "每个 λ 都要<b>重新代入、重新行化简</b>，别把第一个 λ 的结果套到第二个上；",
           "最后代回 A·v = λ·v 验一遍，一步乘法就能抓出符号错。"
         ] },
-        { h: "两个「重数」，其实说的是两件事" },
-        "同一个 λ 可能在多项式里出现好几次，例如 (λ − 5)²：作为<b>根</b>重复了 2 次，叫<b>代数重数 AM = 2</b>。而它对应的特征空间有几维（能找出几个线性无关的特征向量），叫<b>几何重数 GM</b>。",
-        { formula: "AM：看多项式里根重复几次　·　GM：dim Nul(A − λI) = n − rank(A − λI)　·　永远 GM ≤ AM" },
-        { ul: [
-          "<b>GM 怎么算</b>：就是 (A − λI)x = 0 里自由变量的个数，也就是零空间的维数。",
-          "把所有 λ 的 GM 加起来，就是你总共能凑出多少个独立特征向量 —— 够 n 个才能对角化。",
-          "<b>GM &lt; AM 会卡住</b>：剪切矩阵 [[2,1],[0,2]] 的 λ = 2 是二重根（AM = 2），但 A − 2I = [[0,1],[0,0]] 只有一个自由变量（GM = 1），方向凑不齐 → <b>不可对角化</b>。这也是「特征值相同却不一定相似」的根源。"
-        ] },
+        { h: "重数怎么数（AM / GM）" },
+        "同一个 λ 可能在多项式里重复出现，也可能对应好几条独立特征方向 —— 它身上带着<b>代数重数 AM</b>（作为特征多项式根的次数）和<b>几何重数 GM</b>（对应特征空间的维数，dim Nul(A − λI)）。这俩怎么算、以及 GM ≤ AM 如何一句话判定对角化，单独写成了一篇：<a href='#mult'>《代数重数 vs 几何重数》</a>。",
         { h: "上三角矩阵：特征值白送" },
         "如果 A 是上三角（或对角）阵，A − λI 还是上三角，行列式就是主对角线直接相乘，所以<b>特征值就是主对角线上那些数</b>，多项式都不用展开。笔记里那个 4×4 例子 det(A − λI) = (5−λ)²(3−λ)(1−λ)，一眼读出 λ = 5（二重）、3、1。",
         { tip: "点下面「试一试 →」会把 A = [[4,1],[2,3]] 灌进计算器，直接算出 λ = 2 和 5；换成 [[2,1],[0,2]] 再跑一次，就能看到那个「二重根却只有一个方向」的剪切矩阵。想练完整手算流程，接着看<a href='#eigen-howto'>《手算特征值与特征向量》</a>。" },
+      ],
+    },
+    {
+      id: "mult",
+      title: "代数重数 vs 几何重数：一个特征值能占几个方向",
+      tag: "重数",
+      cat: "eigen",
+      lead: "同一个特征值，为什么有时能撑起两条独立特征向量、有时只剩一条？区别就藏在两个「重数」里。这篇把代数重数 AM 和几何重数 GM 讲清楚，并说明它俩如何一句话决定矩阵能不能对角化。",
+      blocks: [
+        { h: "一句话定义" },
+        "算出一个特征值 λ 之后，它身上带两个数：",
+        { ul: [
+          "<b>代数重数 AM(λ)</b>：λ 在<b>特征多项式</b>里作为根出现了几次。只看多项式，(λ−5)² 里 5 的 AM = 2。",
+          "<b>几何重数 GM(λ)</b>：λ 对应的<b>特征空间</b>有几维 —— 也就是 Nul(A − λI) 的维数，即你能找到几个线性无关的特征向量。"
+        ] },
+        { formula: "AM(λ) = λ 作为特征多项式根的重复次数" },
+        { formula: "GM(λ) = dim Nul(A − λI) = n − rank(A − λI)" },
+        { h: "一条永远成立的不等式：GM ≤ AM" },
+        "几何重数不会超过代数重数。直觉：AM 是 λ 在多项式里「想要」的份数，GM 是它实际能拿到的独立方向数；求零空间这道工序只会丢方向、不会凭空造方向，所以拿到手 ≤ 想要的。",
+        { ul: [
+          "所有 λ 的 <b>AM 之和恒等于 n</b>（n 次多项式正好 n 个根，按重数计数）—— 恒等式。",
+          "所有 λ 的 <b>GM 之和 ≤ n</b>；当且仅当每个 λ 都满足 GM = AM 时，GM 之和才正好等于 n。"
+        ] },
+        { h: "为什么它决定对角化" },
+        "要对角化，必须凑齐 <b>n 个线性无关的特征向量</b>当 P 的列。而每个 λ 最多只能贡献 GM(λ) 个，于是：",
+        { formula: "可对角化　⟺　对每个 λ 都有 GM(λ) = AM(λ)　⟺　Σ GM(λ) = n" },
+        { tip: "速记：<b>GM 不够，对角化就黄了</b>。只要出现一个 λ 满足 GM &lt; AM，矩阵就不可对角化。" },
+        { h: "例一：GM 真的小于 AM（不可对角化）" },
+        "剪切矩阵 A = [[2, 1], [0, 2]]。特征多项式 det(A − λI) = (2 − λ)²，所以 λ = 2，<b>AM = 2</b>。",
+        "把 λ = 2 代入：A − 2I = [[0, 1], [0, 0]]，方程只有 y = 0，自由变量只有 x 一个 → 特征空间维数 1，<b>GM = 1</b>。",
+        { formula: "AM = 2　>　GM = 1　⇒　不可对角化" },
+        "只找得到一条直线的特征向量 t·(1, 0)，凑不齐一组基 —— 这也是「特征值相同却不一定相似」的根源。",
+        { h: "例二：AM = 2 但 GM 也 = 2（可以对角化）" },
+        "A = [[5, 0], [0, 5]]（纯数量矩阵）。特征多项式 (5 − λ)²，λ = 5，<b>AM = 2</b>。",
+        "A − 5I = [[0, 0], [0, 0]]，零空间是整个 ℝ²，维数 2 → <b>GM = 2</b>。",
+        { formula: "AM = 2　=　GM = 2　⇒　可对角化（它本来就是 5I，当然对角）" },
+        { tip: "点下面「试一试 →」把这个剪切矩阵灌进计算器跑一遍，看结果里 λ = 2 的「重数」标记：AM 2 / GM 1；再换成 [[5,0],[0,5]]，两者就都是 2 了。" },
       ],
     },
     {
@@ -1611,17 +1642,48 @@ window.LA_NOTES = {
           "Substitute each λ <b>afresh</b> and row-reduce again — never reuse the first λ's matrix.",
           "Finally check A·v = λ·v. One multiplication catches almost every sign error."
         ] },
-        { h: "Two multiplicities, two different things" },
-        "A λ can appear more than once in the polynomial, e.g. (λ − 5)²: as a <b>root</b> it is repeated twice, which is the <b>algebraic multiplicity AM = 2</b>. The dimension of the eigenspace it belongs to (how many independent eigenvectors it gives) is the <b>geometric multiplicity GM</b>.",
-        { formula: "AM: how often the root repeats　·　GM: dim Nul(A − λI) = n − rank(A − λI)　·　always GM ≤ AM" },
-        { ul: [
-          "<b>Computing GM</b>: count the free variables in (A − λI)x = 0 — that is the nullity.",
-          "Add up the GM of every λ: that is how many independent eigenvectors you can collect in total. You need n of them to diagonalise.",
-          "<b>GM &lt; AM is where it breaks.</b> The shear [[2,1],[0,2]] has λ = 2 as a double root (AM = 2), but A − 2I = [[0,1],[0,0]] has only one free variable (GM = 1). Not enough directions → <b>not diagonalisable</b>. This is also why \"same eigenvalues\" does not imply \"similar\"."
-        ] },
+        { h: "Multiplicities: AM and GM" },
+        "A λ can repeat in the polynomial, and it can also own several independent eigendirections. It carries two numbers: the <b>algebraic multiplicity AM</b> (how many times it appears as a root) and the <b>geometric multiplicity GM</b> (the dimension of its eigenspace, dim Nul(A − λI)). How to compute them, and how GM ≤ AM decides diagonalisability in one line, is the subject of its own page: <a href='#mult'>\"Algebraic vs geometric multiplicity\"</a>.",
         { h: "Triangular matrices: eigenvalues for free" },
         "If A is upper triangular (or diagonal), so is A − λI, and its determinant is just the product of the diagonal entries. So <b>the eigenvalues are the diagonal entries</b> — no expansion needed. In the 4×4 lecture example det(A − λI) = (5−λ)²(3−λ)(1−λ), you read off λ = 5 (twice), 3, 1 immediately.",
         { tip: "Hit \"Try it →\" below to load A = [[4,1],[2,3]] into the calculator and get λ = 2 and 5 directly; then swap in [[2,1],[0,2]] to meet the shear with a double root but a single eigendirection. For the full hand calculation, see <a href='#eigen-howto'>\"Computing eigenvalues and eigenvectors step by step\"</a>." },
+      ],
+    },
+    {
+      id: "mult",
+      title: "Algebraic vs geometric multiplicity",
+      tag: "Multiplicity",
+      cat: "eigen",
+      lead: "Why can the same eigenvalue sometimes own two independent eigenvectors but only one at other times? It comes down to two multiplicities. This page defines algebraic multiplicity (AM) and geometric multiplicity (GM), and shows how they decide in one line whether a matrix is diagonalisable.",
+      blocks: [
+        { h: "The one-line definitions" },
+        "Once you have found an eigenvalue λ, two numbers describe it:",
+        { ul: [
+          "<b>Algebraic multiplicity AM(λ)</b>: how many times λ appears as a <b>root</b> of the characteristic polynomial. Just read the polynomial — in (λ−5)² the value 5 has AM = 2.",
+          "<b>Geometric multiplicity GM(λ)</b>: the <b>dimension of the eigenspace</b> for λ — i.e. dim Nul(A − λI), the number of independent eigenvectors you can collect."
+        ] },
+        { formula: "AM(λ) = how often λ repeats as a root of the characteristic polynomial" },
+        { formula: "GM(λ) = dim Nul(A − λI) = n − rank(A − λI)" },
+        { h: "One inequality that always holds: GM ≤ AM" },
+        "The geometric multiplicity can never exceed the algebraic one. Intuition: AM is how many copies of λ the polynomial 'asks for'; GM is how many independent directions it actually receives. Solving for the null space can only lose directions, never invent new ones, so what you get ≤ what you asked for.",
+        { ul: [
+          "The <b>sum of all AM values is always n</b> (an n-th degree polynomial has exactly n roots, counted with multiplicity) — an identity.",
+          "The <b>sum of all GM values is ≤ n</b>; it equals n only when every λ satisfies GM = AM."
+        ] },
+        { h: "Why this decides diagonalisability" },
+        "To diagonalise, you must collect <b>n linearly independent eigenvectors</b> for the columns of P. Each λ can contribute at most GM(λ) of them, so:",
+        { formula: "diagonalisable　⟺　GM(λ) = AM(λ) for every λ　⟺　Σ GM(λ) = n" },
+        { tip: "Quick memory hook: <b>if GM falls short, diagonalisation fails.</b> As soon as one λ has GM < AM, the matrix is not diagonalisable." },
+        { h: "Example 1: GM really is smaller than AM (not diagonalisable)" },
+        "The shear A = [[2, 1], [0, 2]]. Its characteristic polynomial is det(A − λI) = (2 − λ)², so λ = 2 with <b>AM = 2</b>.",
+        "Plug in λ = 2: A − 2I = [[0, 1], [0, 0]]; the only equation is y = 0, leaving a single free variable x → the eigenspace has dimension 1, so <b>GM = 1</b>.",
+        { formula: "AM = 2　>　GM = 1　⇒　not diagonalisable" },
+        "Only a single line of eigenvectors t·(1, 0) can be found — not enough for a basis. This is also why 'same eigenvalues' does not imply 'similar'.",
+        { h: "Example 2: AM = 2 and GM = 2 as well (diagonalisable)" },
+        "A = [[5, 0], [0, 5]] (a pure scalar matrix). Characteristic polynomial (5 − λ)², λ = 5, <b>AM = 2</b>.",
+        "A − 5I = [[0, 0], [0, 0]], whose null space is all of ℝ², dimension 2 → <b>GM = 2</b>.",
+        { formula: "AM = 2　=　GM = 2　⇒　diagonalisable (it is already 5I, trivially diagonal)" },
+        { tip: "Hit \"Try it →\" below to load the shear into the calculator: read the multiplicity tag on λ = 2 (AM 2 / GM 1); then swap in [[5,0],[0,5]] and both become 2." },
       ],
     },
     {
@@ -2581,6 +2643,7 @@ window.LA_NOTES = {
     eigen:        { op: "eigen" },
     "eigen-howto": { op: "eigen", A: [["4", "1"], ["2", "3"]] },
     charpoly:     { op: "eigen", A: [["4", "1"], ["2", "3"]] },
+    "mult":       { op: "eigen", A: [["2", "1"], ["0", "2"]] },
     similar:      { op: "eigen", A: [["4", "1"], ["2", "3"]] },
     diagonalize:  { op: "eigen", A: [["1", "1"], ["0", "2"]] },
     adjugate:     { op: "cofactor_matrix" },
@@ -2632,6 +2695,7 @@ window.LA_NOTES = {
     eigen:         6,   // Set 6：特征值与特征向量
     "eigen-howto": 6,
     charpoly:      6,
+    "mult":        7,   // Set 7：相似与对角化（AM/GM 是判定核心）
     similar:       7,   // Set 7：相似与对角化
     diagonalize:   7,
   };
@@ -2825,6 +2889,12 @@ window.LA_NOTES = {
         { q: "奇异值和特征值有什么关系？",
           a: "A 的奇异值是 √(AᵀA 的特征值)。若 A 对称半正定，奇异值就是其特征值；一般矩阵特征值可正可负甚至复数，而奇异值必为非负实数。" },
       ],
+      "mult": [
+        { q: "AM 和 GM 分别是怎么数出来的？",
+          a: "AM(λ) 看特征多项式里 λ 这个根重复了几次；GM(λ) 看 Nul(A − λI) 的维数，也就是 (A − λI)x = 0 里自由变量的个数。GM = n − rank(A − λI)。" },
+        { q: "GM ≤ AM 这个不等式，对角化时怎么用？",
+          a: "要对角化必须每个 λ 都 GM = AM、且 ΣGM = n。只要出现一个 λ 满足 GM < AM，方向就凑不齐 n 个独立特征向量，矩阵就不可对角化——剪切矩阵 [[2,1],[0,2]] 就是这样。" },
+      ],
     },
     en: {
       cofactor: [
@@ -3001,6 +3071,12 @@ window.LA_NOTES = {
         { q: "How are singular values related to eigenvalues?",
           a: "The singular values of A are √(eigenvalues of AᵀA). If A is symmetric positive semidefinite they equal its eigenvalues; in general eigenvalues can be negative or complex while singular values are always non-negative reals." },
       ],
+      "mult": [
+        { q: "How are AM and GM actually counted?",
+          a: "AM(λ) counts how many times λ repeats as a root of the characteristic polynomial; GM(λ) is the dimension of Nul(A − λI), i.e. the number of free variables in (A − λI)x = 0. So GM = n − rank(A − λI)." },
+        { q: "How is the inequality GM ≤ AM used for diagonalisation?",
+          a: "Diagonalisation needs every λ to satisfy GM = AM, so that ΣGM = n. Whenever some λ has GM < AM, you cannot collect n independent eigenvectors and the matrix is not diagonalisable — the shear [[2,1],[0,2]] is exactly this case." },
+      ],
     },
   };
   for (const lang of ["zh", "en"]) {
@@ -3097,7 +3173,8 @@ window.LA_NOTES.TOPICS = {
     ] },
     { g: "特征值与对角化", items: [
       { t: "特征值与特征向量的几何意义", id: "eigen" },
-      { t: "特征方程与 AM / GM", id: "charpoly" },
+      { t: "特征方程", id: "charpoly" },
+      { t: "代数重数 vs 几何重数", id: "mult" },
       { t: "手算特征值与特征向量", id: "eigen-howto" },
       { t: "相似矩阵", id: "similar" },
       { t: "对角化与 Aᵏ", id: "diagonalize" },
@@ -3155,7 +3232,8 @@ window.LA_NOTES.TOPICS = {
     ] },
     { g: "Eigenvalues & diagonalization", items: [
       { t: "Geometry of eigenvalues & eigenvectors", id: "eigen" },
-      { t: "Characteristic equation, AM & GM", id: "charpoly" },
+      { t: "The characteristic equation", id: "charpoly" },
+      { t: "Algebraic vs geometric multiplicity", id: "mult" },
       { t: "Computing eigenvalues & eigenvectors", id: "eigen-howto" },
       { t: "Similar matrices", id: "similar" },
       { t: "Diagonalization & Aᵏ", id: "diagonalize" },

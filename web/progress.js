@@ -96,6 +96,7 @@
     "transform",
     "eigen",
     "charpoly",
+    "mult",
     "eigen-howto",
     "similar",
     "diagonalize",
