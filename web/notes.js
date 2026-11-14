@@ -514,7 +514,7 @@ window.LA_NOTES = {
         "算出一个特征值 λ 之后，它身上带两个数：",
         { ul: [
           "<b>代数重数 AM(λ)</b>：λ 在<b>特征多项式</b>里作为根出现了几次。只看多项式，(λ−5)² 里 5 的 AM = 2。",
-          "<b>几何重数 GM(λ)</b>：λ 对应的<b>特征空间</b>有几维 —— 也就是 Nul(A − λI) 的维数，即你能找到几个线性无关的特征向量。"
+          "<b>几何重数 GM(λ) = 特征空间（eigenspace）的维数</b> —— 也就是 Nul(A − λI) 的维数，即你能找到几个线性无关的特征向量。<b>一句话：GM 就是 λ 对应特征空间的 dimension。</b>实际计算时它等于方程 (A − λI)x = 0 里的<b>自由变量个数</b>（所以 GM = n − rank(A − λI)）。"
         ] },
         { formula: "AM(λ) = λ 作为特征多项式根的重复次数" },
         { formula: "GM(λ) = dim Nul(A − λI) = n − rank(A − λI)" },
@@ -1680,7 +1680,7 @@ window.LA_NOTES = {
         "Once you have found an eigenvalue λ, two numbers describe it:",
         { ul: [
           "<b>Algebraic multiplicity AM(λ)</b>: how many times λ appears as a <b>root</b> of the characteristic polynomial. Just read the polynomial — in (λ−5)² the value 5 has AM = 2.",
-          "<b>Geometric multiplicity GM(λ)</b>: the <b>dimension of the eigenspace</b> for λ — i.e. dim Nul(A − λI), the number of independent eigenvectors you can collect."
+          "<b>Geometric multiplicity GM(λ) = the dimension of the eigenspace</b> for λ — i.e. dim Nul(A − λI), the number of independent eigenvectors you can collect. <b>In one phrase: GM is the dimension of λ's eigenspace.</b> Computationally it is simply the <b>number of free variables</b> in (A − λI)x = 0 (so GM = n − rank(A − λI))."
         ] },
         { formula: "AM(λ) = how often λ repeats as a root of the characteristic polynomial" },
         { formula: "GM(λ) = dim Nul(A − λI) = n − rank(A − λI)" },
