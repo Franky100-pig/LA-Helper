@@ -284,7 +284,7 @@ window.LA_I18N = (function () {
 
       // ---- AI Help 页 ----
       "ai.title": "AI Help · 线代小助手",
-      "ai.tagline": "免费模型直连答疑（endless / Qwen3-8B / GLM-4-Flash）· Key 只存本机",
+      "ai.tagline": "免费模型直连答疑（Pollinations / Qwen3-8B / GLM-4-Flash 多线自动切换）· Key 只存本机",
       "ai.back": "← 返回",
       "ai.keyTitle": "先填 API Key",
       "ai.keyIntro": "首次使用请填入你的 <b>API Key</b>（免费：在 <a href=\"https://cloud.siliconflow.cn\" target=\"_blank\" rel=\"noopener\">cloud.siliconflow.cn</a> 注册即可拿到 <b>sk-</b> 开头的 Key，免费模型可直接用；原有的 <a href=\"https://open.bigmodel.cn\" target=\"_blank\" rel=\"noopener\">open.bigmodel.cn</a> 的 GLM Key 也兼容）。Key 只存在你本机浏览器，不上传任何服务器。",
@@ -306,7 +306,7 @@ window.LA_I18N = (function () {
       "ai.netError": "网络错误：{msg}（若网络正常仍失败，通常是该地址当前不可达，或平台没有开放 CORS）",
       "ai.storageWarn": "注意：当前浏览器无法长期保存 Key（可能是隐私模式或用 file:// 打开）。本次会话内可正常使用，刷新页面后需重新填写。",
       "ai.keyCleared": "已清除本机 Key，请重新填入。",
-      "ai.sharedNote": "已内置一个公共 Key，直接用即可；想用自己申请的，点「更换 Key」。",
+      "ai.sharedNote": "已内置公共 Key，还配了一条免 Key 的备用线路，直接用即可；三家线路会自动切换，想用自己申请的，点「更换 Key」。",
       "ai.sharedKeyDead": "公共 Key 暂时失效了（{msg}）。请填入你自己的免费 Key：cloud.siliconflow.cn → API Keys（sk- 开头），或 open.bigmodel.cn 的 GLM Key。",
       "ai.sharedRateLimited": "公共 Key 的免费额度暂时被打满了。稍等几分钟再试，或填入你自己的 Key。",
       "ai.count": "{n} / 500",
@@ -588,7 +588,7 @@ window.LA_I18N = (function () {
 
       // ---- AI Help page ----
       "ai.title": "AI Help · Linear algebra tutor",
-      "ai.tagline": "Answers via free-tier models (endless / Qwen3-8B / GLM-4-Flash) · your key stays on this device",
+      "ai.tagline": "Answers via free-tier models (Pollinations / Qwen3-8B / GLM-4-Flash, auto-fallback) · your key stays on this device",
       "ai.back": "← Back",
       "ai.keyTitle": "Enter your API key first",
       "ai.keyIntro": "First time here? Paste your <b>API key</b> (free — sign up at <a href=\"https://cloud.siliconflow.cn\" target=\"_blank\" rel=\"noopener\">cloud.siliconflow.cn</a> for an <b>sk-</b> key; the free models work right away. Your existing GLM key from <a href=\"https://open.bigmodel.cn\" target=\"_blank\" rel=\"noopener\">open.bigmodel.cn</a> works too). The key is stored only in this browser and is never uploaded anywhere.",
@@ -610,7 +610,7 @@ window.LA_I18N = (function () {
       "ai.netError": "Network error: {msg} (if your network is fine, the endpoint is usually unreachable or missing CORS headers)",
       "ai.storageWarn": "Note: this browser can't save the key permanently (private mode, or opened via file://). It works for this session, but you'll need to paste it again after a reload.",
       "ai.keyCleared": "Saved key cleared — please paste it again.",
-      "ai.sharedNote": "A shared public key is built in — just start asking. Prefer your own? Press \"Change key\".",
+      "ai.sharedNote": "A shared public key plus a keyless backup route are built in — just start asking. Routes switch over automatically; prefer your own? Press \"Change key\".",
       "ai.sharedKeyDead": "The shared public key stopped working ({msg}). Paste your own free key from cloud.siliconflow.cn → API Keys (starts with sk-), or a GLM key from open.bigmodel.cn.",
       "ai.sharedRateLimited": "The shared key's free quota is temporarily used up. Try again in a few minutes, or paste your own key.",
       "ai.count": "{n} / 500",
