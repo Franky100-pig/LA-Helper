@@ -58,6 +58,10 @@ const tr = I18N.t;
 (function initAiHelp() {
   const KEY_STORE = "la-glm-key";   // 沿用旧名：老用户已存的 GLM Key 不作废
   const MAX = 500;
+  // 多轮对话：保留最近几轮问答作为 context，让用户能连续追问。
+  // 4 轮 = 8 条消息，够连问 3-4 个小问题，又不至于把免费层的上下文撑爆。
+  // 只在内存里，刷新页面即清空（不持久化，避免跨话题串味）。
+  const MAX_TURNS = 4;
 
   // 公共共享 Key（免费模型额度）。
   //
@@ -163,6 +167,9 @@ const tr = I18N.t;
   const answerEl = el("aiHelpAnswer");
   const statusEl = el("aiHelpStatus");
   const sharedNote = el("aiHelpSharedNote");
+  const chatLogEl = el("aiChatLog");
+  const newChatBtn = el("aiNewChat");
+  const ctxHintEl = el("aiContextHint");
 
   // 任一平台还挂着公共 Key，就提示「你可以直接用，也可以换成自己的」
   const anyShared = !!(SHARED_KEY || SHARED_KEY_GLM || SHARED_KEY_ENDLESS);
@@ -228,6 +235,57 @@ const tr = I18N.t;
     return list.length ? list[0].key : "";
   }
 
+  // ---- 多轮对话上下文 ----------------------------------------------------
+  // history 是一串 {role:"user"|"assistant", content} 消息（不含 system）。
+  // 只有成功拿到回答才把「本轮提问 + 回答」成对压进去；失败/换 Key 都不记，
+  // 免得把乱七八糟的失败塞进上下文误导下一轮。
+  const history = [];
+  function pushTurn(q, answer) {
+    history.push({ role: "user", content: q });
+    history.push({ role: "assistant", content: answer });
+    // 只按完整轮次裁，保留最近 MAX_TURNS 轮（偶数条消息），不把一对拆散。
+    const cap = MAX_TURNS * 2;
+    if (history.length > cap) history.splice(0, history.length - cap);
+  }
+  function clearHistory() {
+    history.length = 0;
+    if (chatLogEl) chatLogEl.textContent = "";
+    updateCtxHint();
+  }
+  function updateCtxHint() {
+    if (!ctxHintEl) return;
+    const turns = Math.floor(history.length / 2);
+    ctxHintEl.textContent = turns > 0
+      ? tr("ai.ctxHint", { n: turns, m: MAX_TURNS })
+      : "";
+  }
+  // 把历史渲染成「你 / AI」气泡，用户能看见 AI 记住了什么。
+  // 最后一轮的回答交给下面的 aiHelpAnswer（带 LaTeX 渲染），这里不重复画；
+  // 但最后一轮的提问照画 —— 这样清空输入框后仍看得见「我刚问了什么」。
+  function renderChatLog() {
+    if (!chatLogEl) return;
+    chatLogEl.textContent = "";
+    const lastA = history.length - 2;   // 最后一轮 user 的下标
+    for (let i = 0; i < history.length; i += 2) {
+      const q = history[i], a = history[i + 1];
+      bubble("user", tr("ai.you"), q.content);
+      if (i < lastA) bubble("ai", tr("ai.aiLabel"), a.content);
+    }
+    function bubble(kind, who, text) {
+      const row = document.createElement("div");
+      row.className = "ai-bubble " + kind;
+      const label = document.createElement("span");
+      label.className = "ai-bubble-who";
+      label.textContent = who;
+      const body = document.createElement("span");
+      body.className = "ai-bubble-text";
+      body.textContent = text;
+      row.appendChild(label);
+      row.appendChild(body);
+      chatLogEl.appendChild(row);
+    }
+  }
+
   function showKeyView(msg) {
     keyBox.hidden = false;
     askBox.hidden = true;
@@ -241,6 +299,8 @@ const tr = I18N.t;
     askBox.hidden = false;
     answerEl.textContent = "";
     statusEl.textContent = "";
+    renderChatLog();      // 换 Key 回来时把已有对话重画一遍，不丢上下文
+    updateCtxHint();
     updateCount();
     setTimeout(() => qEl.focus(), 30);
   }
@@ -305,6 +365,18 @@ const tr = I18N.t;
 
   qEl.addEventListener("input", updateCount);
 
+  // 「新话题」：把上下文清零，避免换话题后 AI 还带着上一题的包袱。
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", () => {
+      clearHistory();
+      answerEl.textContent = "";
+      statusEl.textContent = "";
+      qEl.value = "";
+      updateCount();
+      qEl.focus();
+    });
+  }
+
   // 对单个 (provider, key) 发起一次问答。
   // 返回值约定：
   //   { kind: "answer", text }                        成功
@@ -317,22 +389,21 @@ const tr = I18N.t;
     let resp;
     // chat/completions 与 Responses API 的请求体不同：
     //   chat      → messages + max_tokens
-    //   responses → input（system 与 user 各一项）+ max_output_tokens
+    //   responses → input + max_output_tokens
+    // 两者都吃同一种 [system, ...历史问答, 本轮提问] 消息序列 —— 这就是
+    // context window：AI 看得见前几轮，才能回答「那这一步呢」「为什么」。
+    const convo = [
+      { role: "system", content: tr("ai.systemPrompt") },
+    ].concat(history, [{ role: "user", content: q }]);
     const body = p.api === "responses"
       ? Object.assign({
           model: p.model,
-          input: [
-            { role: "system", content: tr("ai.systemPrompt") },
-            { role: "user", content: q },
-          ],
+          input: convo,
           max_output_tokens: 2000,
         }, p.extra || {})
       : Object.assign({
           model: p.model,
-          messages: [
-            { role: "system", content: tr("ai.systemPrompt") },
-            { role: "user", content: q },
-          ],
+          messages: convo,
           temperature: 0.3,
           // 上限要留得比「回答长度」宽松：systemPrompt 允许写到几百字，
           // 而带 LaTeX 公式的答案 token 数远超字数（中英都不止），
@@ -406,7 +477,8 @@ const tr = I18N.t;
     const q = qEl.value.trim();
     if (!q || !getKey()) return;
     sendBtn.disabled = true;
-    answerEl.textContent = "";
+    // 注意：这里不清空 answerEl —— 上一轮回答要留着，等新回答回来再覆盖，
+    // 否则「发送下一问」的瞬间上一轮答案会凭空消失。
     statusEl.textContent = tr("ai.thinking");
     try {
       let lastFatal = "net", lastMsg = "network";
@@ -420,7 +492,13 @@ const tr = I18N.t;
         const r = await askOne(a, q);
         if (r.kind === "answer") {
           statusEl.textContent = "";
-          renderAnswer(r.text || tr("ai.empty"));
+          const text = r.text || tr("ai.empty");
+          // 成功才把这一轮记进上下文（失败的乱码不进 history，免得污染下一问）
+          pushTurn(q, text);
+          renderChatLog();
+          updateCtxHint();
+          qEl.value = "";        // 清空上一句，方便直接写下一个问题
+          renderAnswer(text);
           return;
         }
         if (r.kind === "status") {
@@ -487,15 +565,22 @@ const tr = I18N.t;
 (function initLang() {
   const btn = document.getElementById("langToggle");
   function syncButton() { if (btn) btn.textContent = I18N.toggleLabel(); }
+  // apply() 会把 #aiHelpCount 的文本重填成 i18n 模板（"{n} / 500" 里的 {n} 不会
+  // 被替换，因为它是 data-i18n 而非带变量的 t 调用）。这里按输入长度补一次真实计数。
+  function refreshCount() {
+    const q = document.getElementById("aiHelpQ");
+    const c = document.getElementById("aiHelpCount");
+    if (q && c) c.textContent = I18N.t("ai.count", { n: q.value.length });
+  }
 
   I18N.apply(document);
   syncButton();
+  refreshCount();
 
   if (btn) btn.addEventListener("click", () => { I18N.toggle(); });
 
-  // apply() 会把 #aiHelpCount 重填成 "0 / 500"，这里按当前输入长度再刷一次
   I18N.onChange(() => {
     syncButton();
-    updateCount();
+    refreshCount();
   });
 })();

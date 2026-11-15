@@ -42,7 +42,8 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
-   "aiHelpStatus", "aiHelpSharedNote", "langToggle"].forEach((id) => {
+   "aiHelpStatus", "aiHelpSharedNote", "langToggle",
+   "aiChatLog", "aiNewChat", "aiContextHint"].forEach((id) => {
     els[id] = makeEl(id);
   });
   els.aiHelpQ.value = "why?";
@@ -118,7 +119,8 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
   if (at < 0) throw new Error("找不到 initAiHelp 的插入点");
   src = src.slice(0, at) + `
   globalThis.__t = { getKey, setKey, hasOwnKey, showKeyView, showAskView,
-                      updateCount, SHARED_KEY, pickProvider, attempts, PROVIDERS };
+                      updateCount, SHARED_KEY, pickProvider, attempts, PROVIDERS,
+                      getHistory: () => history.slice(), MAX_TURNS };
 ` + src.slice(at);
   vm.runInContext(src, sandbox, { filename: "ai-help.js" });
 
@@ -413,6 +415,8 @@ function sfStatusGlmUp(status) {
   });
   await s.els.aiHelpSend.fire("click");
   eq(s.calls.length, 2, "R13 第一次提问：SF 402 → 回退到 GLM（2 次请求）");
+  // 发送成功后会清空输入框（方便连续追问），所以第二问要重新填内容
+  s.els.aiHelpQ.value = "why again?";
   await s.els.aiHelpSend.fire("click");
   eq(s.calls.length, 3, "R13 第二次提问应跳过刚挂的 SF（只多 1 次请求）");
   ok(/bigmodel/.test(s.calls[2].url),
@@ -642,6 +646,88 @@ function sfStatusGlmUp(status) {
   // 没有 ask 参数时保持空，不误填
   const s = boot({ sharedKey: "sk-public", search: "?lang=en" });
   eq(s.els.aiHelpQ.value, "why?", "Q3 无 ask 参数时用桩默认的提问内容，不乱填");
+}
+
+// ==== 多轮对话 context window ============================================
+// 需求：能连续追问 3-4 个小问题。做法是把最近几轮问答塞进请求体。
+// 这里钉死「历史真带上」「超轮数会裁剪」「新话题清空」「失败不记入」。
+const echoOk = async () => ({
+  ok: true, status: 200,
+  json: async () => ({ choices: [{ message: { content: "a" } }] }),
+});
+async function chatSeq(n, fetchImpl) {
+  const s = boot({ sharedKey: "sk-public", sharedKeyGlm: "", fetchImpl });
+  for (let i = 0; i < n; i++) {
+    s.els.aiHelpQ.value = "q" + (i + 1);
+    await s.els.aiHelpSend.fire("click");
+  }
+  return s;
+}
+// M1 第一问：只有 system + 当前问题
+{
+  const s = await chatSeq(1, echoOk);
+  const b = JSON.parse(s.calls[0].opts.body);
+  eq(b.messages.length, 2, "M1 第一问只有 system + user 两条");
+  eq(b.messages[0].role, "system", "M1 第一条是 system");
+  eq(b.messages[1].content, "q1", "M1 第二条是当前问题");
+}
+// M2 第二问：带上第一轮的 user + assistant
+{
+  const s = await chatSeq(2, echoOk);
+  const b = JSON.parse(s.calls[1].opts.body);
+  eq(b.messages.length, 4, "M2 第二问 = system + 上轮 Q/A + 当前 Q");
+  eq(b.messages[1].content, "q1", "M2 带上了第一轮提问");
+  eq(b.messages[2].role, "assistant", "M2 带上了第一轮回答");
+  eq(b.messages[2].content, "a", "M2 回答内容原样带回");
+  eq(b.messages[3].content, "q2", "M2 最后一条是当前提问");
+}
+// M3 超过 MAX_TURNS 后裁剪最老的轮次，只留最近 N 轮
+{
+  const probe = boot({ sharedKey: "sk-public" });
+  const MT = probe.t.MAX_TURNS;
+  const s = await chatSeq(MT + 2, echoOk);
+  const b = JSON.parse(s.calls[MT + 1].opts.body);
+  eq(b.messages.length, 1 + MT * 2 + 1,
+     `M3 第 ${MT + 2} 问 = system + ${MT} 轮历史 + 当前`);
+  eq(b.messages[1].content, "q2", "M3 最早的 q1 已被裁掉");
+  eq(b.messages[b.messages.length - 1].content, "q" + (MT + 2), "M3 最后是当前问题");
+}
+// M4 Responses API 的 input 同样要带历史（不只 chat 协议）
+{
+  const s = boot({
+    sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "sk-endless-test",
+    fetchImpl: async () => ({ ok: true, status: 200,
+      json: async () => ({ output: [{ type: "message",
+        content: [{ type: "output_text", text: "ea" }] }] }) }),
+  });
+  s.els.aiHelpQ.value = "q1";
+  await s.els.aiHelpSend.fire("click");
+  s.els.aiHelpQ.value = "q2";
+  await s.els.aiHelpSend.fire("click");
+  const b = JSON.parse(s.calls[1].opts.body);
+  eq(b.input.length, 4, "M4 Responses 的 input 也带上一轮");
+  eq(b.input[2].role, "assistant", "M4 input 里含上一轮回答");
+}
+// M5 「新话题」清空上下文，下一问回到干净状态
+{
+  const s = await chatSeq(2, echoOk);
+  eq(s.t.getHistory().length, 4, "M5 两轮后有 4 条历史");
+  s.els.aiNewChat.fire("click");
+  eq(s.t.getHistory().length, 0, "M5 新话题后历史清空");
+  s.els.aiHelpQ.value = "q3";
+  await s.els.aiHelpSend.fire("click");
+  const b = JSON.parse(s.calls[2].opts.body);
+  eq(b.messages.length, 2, "M5 清空后下一问只剩 system + 当前");
+}
+// M6 全部线路失败时不记入历史（避免把失败污染下一轮）
+{
+  const s = boot({
+    sharedKey: "sk-public", sharedKeyGlm: "", sharedKeyEndless: "",
+    fetchImpl: async () => ({ ok: false, status: 402, json: async () => ({}) }),
+  });
+  s.els.aiHelpQ.value = "q1";
+  await s.els.aiHelpSend.fire("click");
+  eq(s.t.getHistory().length, 0, "M6 失败的回答不进上下文");
 }
 
 console.log(`ai-key: ${pass} 项通过，${fails.length} 项失败`);

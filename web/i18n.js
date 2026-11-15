@@ -312,6 +312,10 @@ window.LA_I18N = (function () {
       "ai.sharedKeyDead": "公共 Key 暂时失效了（{msg}）。请填入你自己的免费 Key：cloud.siliconflow.cn → API Keys（sk- 开头），或 open.bigmodel.cn 的 GLM Key。",
       "ai.sharedRateLimited": "公共 Key 的免费额度暂时被打满了。稍等几分钟再试，或填入你自己的 Key。",
       "ai.count": "{n} / 500",
+      "ai.newChat": "新话题",
+      "ai.ctxHint": "已记住最近 {n}/{m} 轮对话，可继续追问",
+      "ai.you": "你",
+      "ai.aiLabel": "AI",
       "ai.systemPrompt": "你是 LA Helper 的线代学习小助手，面向高中生和大学生。用简洁、准确、循序渐进的中文回答线代问题，尽量给出关键步骤与直觉，必要时用 LaTeX 风格公式（行内 $...$，独立公式 $$...$$）。先给结论，再展开推导；除非用户要求更详细，否则回答控制在 600 字以内。",
 
       // ---- 使用人数页脚 ----
@@ -618,6 +622,10 @@ window.LA_I18N = (function () {
       "ai.sharedKeyDead": "The shared public key stopped working ({msg}). Paste your own free key from cloud.siliconflow.cn → API Keys (starts with sk-), or a GLM key from open.bigmodel.cn.",
       "ai.sharedRateLimited": "The shared key's free quota is temporarily used up. Try again in a few minutes, or paste your own key.",
       "ai.count": "{n} / 500",
+      "ai.newChat": "New topic",
+      "ai.ctxHint": "Remembering the last {n}/{m} turns — keep asking",
+      "ai.you": "You",
+      "ai.aiLabel": "AI",
       "ai.systemPrompt": "You are LA Helper's linear algebra tutor for high-school and university students. Answer in English, concisely and accurately, building up step by step. Give the key steps and the intuition, and use LaTeX-style formulas when they help (inline $...$, display $$...$). Lead with the result, then show the derivation; unless asked for more detail, keep answers under 600 words.",
 
       // ---- usage footer ----

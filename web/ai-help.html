@@ -81,6 +81,9 @@
   }
   .ai-shared-note[hidden] { display: none; }
   .ai-key-box, .ai-ask-box { display: flex; flex-direction: column; gap: 12px; }
+  /* display:flex 会盖掉 hidden 属性自带的 display:none（作者样式优先级更高），
+     不加这条两套 UI 会同时显示。 */
+  .ai-key-box[hidden], .ai-ask-box[hidden] { display: none; }
   .ai-key-row { display: flex; gap: 8px; align-items: center; }
   .grow { flex: 1 1 auto; }
   #aiHelpKeyIn, #aiHelpQ { width: 100%; background: var(--inset); color: var(--text);
@@ -91,6 +94,17 @@
     border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; min-height: 20px;
     font-size: 14px; line-height: 1.6; }
   .ai-answer:empty { display: none; }
+  /* 多轮对话记录：之前的问答气泡，滚动区限制高度，别把输入框挤到屏幕外 */
+  .ai-chatlog { display: flex; flex-direction: column; gap: 8px;
+    max-height: 280px; overflow-y: auto; }
+  .ai-chatlog:empty { display: none; }
+  .ai-bubble { display: flex; gap: 8px; align-items: flex-start;
+    font-size: 13px; line-height: 1.55; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 8px; }
+  .ai-bubble.user { background: var(--panel2); }
+  .ai-bubble.ai { background: var(--inset); }
+  .ai-bubble-who { flex: 0 0 auto; min-width: 1.6em; font-weight: 600; color: var(--muted); }
+  .ai-bubble-text { flex: 1 1 auto; white-space: pre-wrap; word-break: break-word; }
   /* KaTeX 渲染的数学：独立公式居中、可横向滚动；行内公式不换行打断 */
   .ai-math-block { display: block; margin: 10px 0; text-align: center; overflow-x: auto; }
   .ai-answer .katex { text-align: initial; }
@@ -183,6 +197,9 @@
 
     <!-- 已配置 Key：提问框 -->
     <div id="aiHelpAskBox" class="ai-ask-box" hidden>
+      <!-- 对话区：历史轮次气泡（含本轮提问）+ 本次回答，紧挨着读下来最顺 -->
+      <div id="aiChatLog" class="ai-chatlog"></div>
+      <div id="aiHelpAnswer" class="ai-answer"></div>
       <div class="ai-ask-row">
         <textarea id="aiHelpQ" class="grow" maxlength="500" rows="4"
           placeholder="用中文问一个线代问题，例如：为什么 det(AB)=det(A)det(B)？"
@@ -191,10 +208,11 @@
       <div class="ai-ask-foot">
         <span class="hint" id="aiHelpCount" data-i18n="ai.count">0 / 500</span>
         <span class="grow"></span>
+        <button id="aiNewChat" class="ghost" type="button" data-i18n="ai.newChat">新话题</button>
         <button id="aiHelpChangeKey" class="ghost" type="button" data-i18n="ai.changeKey">更换 Key</button>
         <button id="aiHelpSend" class="primary" type="button" data-i18n="ai.send">提问</button>
       </div>
-      <div id="aiHelpAnswer" class="ai-answer"></div>
+      <p class="hint" id="aiContextHint"></p>
       <p class="hint" id="aiHelpStatus"></p>
     </div>
   </div>
