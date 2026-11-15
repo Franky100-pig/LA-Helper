@@ -466,6 +466,18 @@ const tr = I18N.t;
 
   // 启动：已存 Key 就直接进提问页，否则显示填 Key
   if (getKey()) showAskView(); else showKeyView("");
+  // 从讲义「问 AI 助手」跳转过来时，URL 带 ?ask=预填问题：
+  // 填进提问框并聚焦，用户接着写自己的疑问即可（typeof 守卫兼容测试沙箱）。
+  if (typeof location !== "undefined" && location.search) {
+    const m = /[?&]ask=([^&]*)/.exec(location.search);
+    if (m) {
+      try {
+        qEl.value = decodeURIComponent(m[1]).slice(0, MAX);
+        updateCount();
+        setTimeout(() => qEl.focus(), 30);
+      } catch (_) { /* 乱码参数就忽略，不影响正常提问 */ }
+    }
+  }
   updateCount();
 })();
 

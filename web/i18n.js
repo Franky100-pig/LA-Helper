@@ -169,6 +169,8 @@ window.LA_I18N = (function () {
       "learn.start": "从第一篇开始 →",
       "learn.done": "推荐路径已全部读完 ✓",
       "notes.askIssue": "这篇有疑问？提 Issue",
+      "notes.askAi": "这篇有疑问？问 AI 助手",
+      "notes.askAiPre": "我在读《{title}》这篇讲义，有个地方没懂：",
       "notes.issueTitle": "疑问 / 纠错",
       "notes.issueBody": "关于这篇讲义：\n\n",
 
@@ -473,6 +475,8 @@ window.LA_I18N = (function () {
       "learn.start": "Start the path →",
       "learn.done": "Recommended path completed ✓",
       "notes.askIssue": "Stuck? Open an Issue",
+      "notes.askAi": "Questions? Ask the AI tutor",
+      "notes.askAiPre": "I am reading the note \"{title}\" and got stuck on:",
       "notes.issueTitle": "Question / correction",
       "notes.issueBody": "About this article:\n\n",
 

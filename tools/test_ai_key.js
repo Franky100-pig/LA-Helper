@@ -38,7 +38,7 @@ function makeEl(id) {
  */
 function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
                sharedKeyEndless = "", sharedKeyPollinations = "", stored = null,
-               fetchImpl = null, httpsPage = false } = {}) {
+               fetchImpl = null, httpsPage = false, search = "" } = {}) {
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
@@ -83,9 +83,9 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
     },
   };
   sandbox.globalThis = sandbox;
-  // 只有测「https 页面拦 http 内网接口」时才挂 location；平时不挂，
-  // 让 typeof location === \"undefined\" 的浏览器外环境也照常跑。
-  if (httpsPage) sandbox.location = { protocol: "https:" };
+  // 只有测「https 页面拦 http 内网接口」或「?ask= 预填」时才挂 location；
+  // 平时不挂，让 typeof location === \"undefined\" 的浏览器外环境也照常跑。
+  if (httpsPage || search) sandbox.location = { protocol: httpsPage ? "https:" : "http:", search };
   vm.createContext(sandbox);
 
   vm.runInContext(fs.readFileSync(path.join(WEB, "i18n.js"), "utf8"), sandbox, { filename: "i18n.js" });
@@ -621,6 +621,27 @@ function sfStatusGlmUp(status) {
                    fetchImpl: async () => ({ ok: false, status: 401, json: async () => ({}) }) });
   await s.els.aiHelpSend.fire("click");
   eq(s.calls.length, 1, "P4 填了自有 Key 只发一次，不触发兜底");
+}
+
+// ==== 讲义「问 AI 助手」跳转：?ask= 预填到提问框 ==========================
+// 讲义底部按钮把带讲义标题的问题编码进 URL，AI 页启动时要填进 textarea，
+// 用户接着写自己的疑问即可。这决定了「讲义 → AI」这条闭环通不通。
+{
+  const pre = "我在读《特征值与特征向量》这篇讲义，有个地方没懂：";
+  const s = boot({ sharedKey: "sk-public",
+                   search: "?ask=" + encodeURIComponent(pre) });
+  eq(s.els.aiHelpQ.value, pre, "Q1 ?ask= 解码后预填到提问框");
+  eq(s.els.aiHelpSend.disabled, false, "Q1 预填后发送按钮可用");
+}
+{
+  // 乱码 / 非法百分号编码不能让整页崩：忽略即可
+  const s = boot({ sharedKey: "sk-public", search: "?ask=%E4%BD%A0%E5%A5%BD" });
+  ok(s.els.aiHelpQ.value.length > 0, "Q2 正常 UTF-8 编码能预填");
+}
+{
+  // 没有 ask 参数时保持空，不误填
+  const s = boot({ sharedKey: "sk-public", search: "?lang=en" });
+  eq(s.els.aiHelpQ.value, "why?", "Q3 无 ask 参数时用桩默认的提问内容，不乱填");
 }
 
 console.log(`ai-key: ${pass} 项通过，${fails.length} 项失败`);

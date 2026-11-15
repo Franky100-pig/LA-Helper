@@ -523,16 +523,14 @@
         row.appendChild(pr);
       }
 
-      const issue = document.createElement("a");
-      issue.className = "btn-issue";
-      issue.target = "_blank";
-      issue.rel = "noopener noreferrer";
-      // 标题 / 正文走 i18n，不在 .js 里写死中文（保持双语切换 & 过硬编码守卫）
-      issue.href = "https://github.com/Franky100-pig/LA-Helper/issues/new?title=" +
-        encodeURIComponent("[" + a.id + "] " + tr("notes.issueTitle")) +
-        "&body=" + encodeURIComponent(tr("notes.issueBody"));
-      issue.textContent = tr("notes.askIssue");
-      row.appendChild(issue);
+      // 「这篇有疑问？问 AI 助手」：带着讲义标题跳到答疑页并预填一句话，
+      // 用户接着往下写自己的问题即可 —— 比跳 GitHub Issue 更快拿到答案。
+      const askAi = document.createElement("a");
+      askAi.className = "btn-issue";
+      askAi.href = "ai-help.html?ask=" +
+        encodeURIComponent(tr("notes.askAiPre", { title: a.title }));
+      askAi.textContent = tr("notes.askAi");
+      row.appendChild(askAi);
 
       view.appendChild(row);
     }
