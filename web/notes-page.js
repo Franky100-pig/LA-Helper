@@ -72,14 +72,14 @@
     readWatch = null;
   }
 
-  /** 页面是否滑到文末：留 60px 容差，避免字体/图片加载差几个像素打不了勾。 */
+  /** 页面是否滑到文末：坐标从浏览器取，判定交给 progress.js 的可测纯函数。 */
   function atPageBottom() {
     const doc = document.documentElement;
     const body = document.body;
     const scrollTop = window.scrollY || window.pageYOffset || (doc && doc.scrollTop) || 0;
     const viewH = window.innerHeight || (doc && doc.clientHeight) || 0;
     const fullH = Math.max(doc ? doc.scrollHeight : 0, body ? body.scrollHeight : 0);
-    return scrollTop + viewH >= fullH - 60;
+    return LA_PROGRESS.atBottom(scrollTop, viewH, fullH);
   }
 
   /**

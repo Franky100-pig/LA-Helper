@@ -61,7 +61,22 @@
     return best ? { id: best.id, t: best.e.t, zh: best.e.zh, en: best.e.en } : null;
   }
 
-  window.LA_PROGRESS = { isRead: isRead, markRead: markRead, readIds: readIds, lastRead: lastRead };
+  /**
+   * 页面是否滑到文末（留 60px 容差）。抽出来是为了能脱离 DOM 单测边界值：
+   * 讲义的「滑到底才打勾」靠它判定，短讲义（无滚动条）也返回 true。
+   * 参数即浏览器滚动坐标，调用方从 window / documentElement 取好传进来。
+   */
+  function atBottom(scrollY, innerHeight, scrollHeight) {
+    // 内容完全装得下（无滚动条）：一打开就算读完。
+    if (scrollHeight <= innerHeight) return true;
+    // 还在顶部但内容比视口高：无论如何不算读完，别让容差把「略高一屏」误判掉。
+    if (scrollY <= 0) return false;
+    // 有滚动空间且已滚动：留 60px 容差，避免字体/图片加载差几像素打不了勾。
+    return scrollY + innerHeight >= scrollHeight - 60;
+  }
+
+  window.LA_PROGRESS = { isRead: isRead, markRead: markRead, readIds: readIds,
+    lastRead: lastRead, atBottom: atBottom };
 })();
 
 /* ---------------------------------------------------------------------------
