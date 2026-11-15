@@ -410,6 +410,71 @@ window.LA_NOTES = {
       ],
     },
     {
+      id: "linsys",
+      title: "线性方程组与高斯消元",
+      tag: "线性方程组",
+      cat: "matops",
+      lead: "Ax = b 就是一组线性方程。高斯消元是解它的标准流程：用三种行变换把增广矩阵化成阶梯型，再回代出每个未知数。",
+      blocks: [
+        { h: "Ax = b 在说什么" },
+        "m 个方程、n 个未知数写成 A·x = b。把系数和等号右边并成<b>增广矩阵 [A | b]</b>，所有信息都在里面了。",
+        { h: "三种行变换（不改变解集）" },
+        { ul: [
+          "交换两行；",
+          "某一行乘一个非零常数；",
+          "把某一行的倍数加到另一行上。",
+        ] },
+        { h: "高斯消元三步" },
+        { ul: [
+          "① 写增广矩阵 [A | b]；",
+          "② 用行变换把每个主元下方消成 0，得到行阶梯型 REF；",
+          "③ 从最后一行往上回代，解出每个未知数。",
+        ] },
+        { h: "一个完整例子" },
+        "方程组 x + 2y = 5、3x + 4y = 11。增广矩阵 [[1,2,5],[3,4,11]]，第二行减 3×第一行得 [[1,2,5],[0,-2,-4]]，除以 -2 得 [[1,2,5],[0,1,2]]，第一行减 2×第二行得 [[1,0,1],[0,1,2]]（即 RREF），于是 x = 1, y = 2。",
+        { formula: "RREF [[1,0,1],[0,1,2]] ⇒ x = 1, y = 2" },
+        { h: "三种结局" },
+        { ul: [
+          "<b>唯一解</b>：主元列数 = n（未知数个数），无矛盾行；",
+          "<b>无解</b>：出现一行 [0 … 0 | c]（c ≠ 0），系数为 0 但右边非 0，矛盾；等价地 rank(A) < rank([A|b])；",
+          "<b>无穷多解</b>：无矛盾行但主元列数 < n，多出来的变量是<b>自由变量</b>，可任意取值。",
+        ] },
+        { formula: "rank(A) = rank([A|b]) = n ⇒ 唯一解；相等但 < n ⇒ 无穷解；不等 ⇒ 无解" },
+        { tip: "在本页试一下：把增广矩阵 [[1,2,5],[3,4,11]] 灌进计算器，操作选「行最简形 rref」，看阶梯型和回代结果。" },
+      ],
+    },
+    {
+      id: "lindep",
+      title: "线性相关与线性无关",
+      tag: "线性相关",
+      cat: "matops",
+      lead: "一组向量“线性无关”= 谁都不是多余的：除了全零系数，没法把它们凑成零向量。这个概念是秩、基、可逆性的根基。",
+      blocks: [
+        { h: "定义" },
+        "看齐次组合 c₁v₁ + … + cₖvₖ = 0：",
+        { ul: [
+          "只有 c₁ = … = cₖ = 0 这一种解 → <b>线性无关</b>；",
+          "存在不全为 0 的系数也能凑出 0 → <b>线性相关</b>（至少有一个向量能被其余的线性表出）。",
+        ] },
+        { formula: "c₁v₁ + … + cₖvₖ = 0 仅有零解 ⟺ 线性无关" },
+        { h: "用高斯消元快速判" },
+        "把向量并排当列排成矩阵 A，做 rref。主元列的个数 = 独立的向量个数 = rank(A)：",
+        { ul: [
+          "主元列数 = 向量个数 → 线性无关；",
+          "主元列数 < 向量个数 → 线性相关（多出来的列没有主元，可被前面的列表出）。",
+        ] },
+        { h: "几何直觉" },
+        { ul: [
+          "两个向量相关 ⟺ 共线（在同一直线上，一个另一个是倍数）；",
+          "三个向量相关 ⟺ 共面（在 R³ 里塌进同一个平面）；",
+          "n 个向量在 Rⁿ 里独立 ⟺ 它们构成的方阵可逆 ⟺ det ≠ 0。",
+        ] },
+        { h: "为什么重要" },
+        "“独立”是“基”的前提：一组向量既要独立又要张成空间才是基。它也和秩、零空间紧紧绑在一起——这正是 rank-nullity 与可逆性的核心。",
+        { tip: "在本页试一下：把几个向量排成矩阵，操作选「行最简形 rref」，数主元列就能量出这组向量是否独立。" },
+      ],
+    },
+    {
       id: "singular",
       title: "det = 0 为什么就没有逆",
       tag: "可逆性",
@@ -1576,6 +1641,71 @@ window.LA_NOTES = {
       ],
     },
     {
+      id: "linsys",
+      title: "Linear systems & Gaussian elimination",
+      tag: "Linear systems",
+      cat: "matops",
+      lead: "Ax = b is just a set of linear equations. Gaussian elimination is the standard way to solve it: use three row operations to turn the augmented matrix into echelon form, then back-substitute for each unknown.",
+      blocks: [
+        { h: "What Ax = b means" },
+        "m equations in n unknowns, written A·x = b. Glue the coefficients and the right-hand side into the <b>augmented matrix [A | b]</b> and all the information is there.",
+        { h: "Three row operations (they preserve the solution set)" },
+        { ul: [
+          "Swap two rows;",
+          "Multiply a row by a non-zero constant;",
+          "Add a multiple of one row to another row.",
+        ] },
+        { h: "Gaussian elimination in three moves" },
+        { ul: [
+          "① Write the augmented matrix [A | b];",
+          "② Use row operations to zero out below each pivot (the first non-zero entry of a row), reaching row echelon form (REF);",
+          "③ Back-substitute from the last row upward to recover every unknown.",
+        ] },
+        { h: "A full worked example" },
+        "System x + 2y = 5, 3x + 4y = 11. Augmented matrix [[1,2,5],[3,4,11]]; row 2 minus 3×row 1 gives [[1,2,5],[0,-2,-4]]; divide by -2 gives [[1,2,5],[0,1,2]]; row 1 minus 2×row 2 gives the RREF [[1,0,1],[0,1,2]], so x = 1, y = 2.",
+        { formula: "RREF [[1,0,1],[0,1,2]] ⇒ x = 1, y = 2" },
+        { h: "Three possible outcomes" },
+        { ul: [
+          "<b>Unique solution</b>: number of pivot columns = n (the number of unknowns), no contradictory row;",
+          "<b>No solution</b>: a row [0 … 0 | c] with c ≠ 0 appears — coefficients all zero but right side non-zero, a contradiction; equivalently rank(A) < rank([A|b]);",
+          "<b>Infinitely many solutions</b>: no contradictory row but pivot columns < n; the leftover variables are <b>free variables</b> that can take any value.",
+        ] },
+        { formula: "rank(A) = rank([A|b]) = n ⇒ unique; equal but < n ⇒ infinite; unequal ⇒ no solution" },
+        { tip: "Try it here: load the augmented matrix [[1,2,5],[3,4,11]] into the calculator, pick 'Reduced row echelon form (rref)', and watch the echelon form and back-substitution." },
+      ],
+    },
+    {
+      id: "lindep",
+      title: "Linear dependence & independence",
+      tag: "Linear dependence",
+      cat: "matops",
+      lead: "A set of vectors is 'linearly independent' when none is redundant: apart from the all-zero coefficients, you cannot combine them into the zero vector. This idea is the foundation of rank, basis and invertibility.",
+      blocks: [
+        { h: "The definition" },
+        "Look at the homogeneous combination c₁v₁ + … + cₖvₖ = 0:",
+        { ul: [
+          "Only c₁ = … = cₖ = 0 works → <b>linearly independent</b>;",
+          "Some non-all-zero coefficients also give 0 → <b>linearly dependent</b> (at least one vector is a linear combination of the others).",
+        ] },
+        { formula: "c₁v₁ + … + cₖvₖ = 0 has only the zero solution ⟺ linearly independent" },
+        { h: "Test it quickly with Gaussian elimination" },
+        "Lay the vectors side by side as columns of a matrix A and rref it. The number of pivot columns = the number of independent vectors = rank(A):",
+        { ul: [
+          "pivot columns = number of vectors → linearly independent;",
+          "pivot columns < number of vectors → linearly dependent (the extra columns have no pivot and are combinations of earlier ones).",
+        ] },
+        { h: "Geometric intuition" },
+        { ul: [
+          "Two vectors dependent ⟺ collinear (on the same line, one is a multiple of the other);",
+          "Three vectors dependent ⟺ coplanar (they collapse into one plane in R³);",
+          "n vectors in Rⁿ independent ⟺ the square matrix they form is invertible ⟺ det ≠ 0.",
+        ] },
+        { h: "Why it matters" },
+        "Independence is the prerequisite for a 'basis': a set must be independent AND span the space to be a basis. It is also tied tightly to rank and the null space — the heart of rank-nullity and invertibility.",
+        { tip: "Try it here: arrange a few vectors into a matrix, pick 'Reduced row echelon form (rref)', and count the pivot columns to measure whether the set is independent." },
+      ],
+    },
+    {
       id: "singular",
       title: "Why det = 0 means there is no inverse",
       tag: "Invertibility",
@@ -2706,6 +2836,8 @@ window.LA_NOTES = {
     "least-squares": { op: "solve" },
     "qr-decomposition": { op: "rref" },
     "svd":          { op: "eigen" },
+    "linsys":      { op: "rref", A: [["1", "2", "5"], ["3", "4", "11"]] },
+    "lindep":      { op: "rref", A: [["1", "0", "0"], ["0", "1", "0"], ["1", "1", "0"]] },
     practice:     { op: "solve" },
   };
   for (const lang of ["zh", "en"]) {
@@ -2726,7 +2858,9 @@ window.LA_NOTES = {
     adjugate:      1,
     singular:      2,   // Set 2：用 REF 看行列式、提前识别奇异
     "row-reduction": 2,
+    "linsys":       2,   // Set 2：行变换 / 高斯消元
     basis:         3,   // Set 3：线性无关、基与维数
+    "lindep":       3,   // Set 3：线性无关
     vectorspace:   4,   // Set 4：向量空间与子空间判定
     spaces:        5,   // Set 5：三大空间、秩与秩零度
     rank:          5,
@@ -2935,6 +3069,18 @@ window.LA_NOTES = {
         { q: "GM ≤ AM 这个不等式，对角化时怎么用？",
           a: "要对角化必须每个 λ 都 GM = AM、且 ΣGM = n。只要出现一个 λ 满足 GM < AM，方向就凑不齐 n 个独立特征向量，矩阵就不可对角化——剪切矩阵 [[2,1],[0,2]] 就是这样。" },
       ],
+      "linsys": [
+        { q: "高斯消元把方程组化成了什么，再怎么得到解？",
+          a: "先用三种行变换把增广矩阵化成（简化）行阶梯型，再从最后一行往上回代，逐个解出未知数；出现自由变量时对应无穷多解。" },
+        { q: "什么情况下 Ax = b 一定无解？",
+          a: "增广矩阵出现一行 [0 … 0 | c]（c ≠ 0）——前 n 个系数全为 0 但右边非 0，矛盾。等价于 rank(A) < rank([A|b])。" },
+      ],
+      "lindep": [
+        { q: "怎么用矩阵快速判断一组向量是否线性无关？",
+          a: "把它们并排排成矩阵 A（每列一个向量），rref 后数主元列。主元列数 = 向量个数就独立，少一个就相关。" },
+        { q: "两个向量线性相关，几何上是什么意思？",
+          a: "它们共线（在同一直线上，一个另一个是倍数）。推广到三个向量：相关 ⟺ 共面。" },
+      ],
     },
     en: {
       cofactor: [
@@ -3117,6 +3263,18 @@ window.LA_NOTES = {
         { q: "How is the inequality GM ≤ AM used for diagonalisation?",
           a: "Diagonalisation needs every λ to satisfy GM = AM, so that ΣGM = n. Whenever some λ has GM < AM, you cannot collect n independent eigenvectors and the matrix is not diagonalisable — the shear [[2,1],[0,2]] is exactly this case." },
       ],
+      "linsys": [
+        { q: "What does Gaussian elimination reduce the system to, and how do you get the solution?",
+          a: "Use the three row operations to turn the augmented matrix into (reduced) row echelon form, then back-substitute from the last row upward to solve for each unknown; a free variable means infinitely many solutions." },
+        { q: "When is Ax = b guaranteed to have no solution?",
+          a: "When the augmented matrix shows a row [0 … 0 | c] with c ≠ 0 — all coefficients zero but the right side non-zero, a contradiction. Equivalently rank(A) < rank([A|b])." },
+      ],
+      "lindep": [
+        { q: "How do you quickly tell from a matrix whether a set of vectors is linearly independent?",
+          a: "Place them side by side as columns of A, rref, and count pivot columns. Pivot columns = number of vectors ⇒ independent; one short ⇒ dependent." },
+        { q: "Two vectors are linearly dependent — what does that mean geometrically?",
+          a: "They are collinear (on the same line, one is a scalar multiple of the other). For three vectors it generalises to coplanar." },
+      ],
     },
   };
   for (const lang of ["zh", "en"]) {
@@ -3175,8 +3333,8 @@ window.LA_NOTES.TOPICS = {
   zh: [
     { g: "基础与运算", items: [
       { t: "矩阵乘法为什么这样定义", id: "matmul" },
-      { t: "线性方程组与高斯消元", id: null },
-      { t: "线性相关与线性无关", id: null },
+      { t: "线性方程组与高斯消元", id: "linsys" },
+      { t: "线性相关与线性无关", id: "lindep" },
       { t: "点积、叉积与内积", id: "dot-product" },
     ] },
     { g: "行列式", items: [
@@ -3234,8 +3392,8 @@ window.LA_NOTES.TOPICS = {
   en: [
     { g: "Foundations & operations", items: [
       { t: "Why matrix multiplication works this way", id: "matmul" },
-      { t: "Linear systems & Gaussian elimination", id: null },
-      { t: "Linear dependence & independence", id: null },
+      { t: "Linear systems & Gaussian elimination", id: "linsys" },
+      { t: "Linear dependence & independence", id: "lindep" },
       { t: "Dot product, cross product & inner product", id: "dot-product" },
     ] },
     { g: "Determinants", items: [

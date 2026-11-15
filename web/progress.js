@@ -75,6 +75,8 @@
   "use strict";
   const PATH = [
     "matmul",
+    "linsys",
+    "lindep",
     "dot-product",
     "row-reduction",
     "cofactor",
