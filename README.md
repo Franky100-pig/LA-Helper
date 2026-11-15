@@ -1,232 +1,284 @@
-# LA Helper · 线性代数本地学习计算器
+# LA Helper · A Local Linear Algebra Study Calculator
 
-[English](README.en.md) | 中文
+English | [中文](README.zh.md)
 
-一个 **100% 本地运行** 的开源小工具，帮你在学线性代数时"不仅算出结果，还能看懂过程"。
-所有矩阵运算使用 SymPy **精确有理数**，所以 `1/3` 永远不会变成 `0.333`。
+An open-source tool that runs **100% locally**, built so that while studying
+linear algebra you "not only get the answer, but can follow the process".
+Every matrix operation uses SymPy **exact rationals**, so `1/3` never becomes
+`0.333`.
 
-三个版本共用同一个 `core/` 引擎，结果完全一致，按你的使用场景挑一个就行：
+All three editions share the same `core/` engine and produce identical results.
+Just pick the one that fits your workflow:
 
-| 版本 | 适合场景 | 怎么用 |
+| Edition | Best for | How to use |
 |---|---|---|
-| 🖥 **桌面版** | 平时写作业，想双击就开 | 下载 [Releases](https://github.com/Franky100-pig/LA-Helper/releases) 里的安装包，免装 Python、免联网 |
-| 🌐 **网页版** | 已经装着 Python，想改代码 | `python web/app.py`，自动开浏览器 |
-| ☁️ **在线预览版** | 想在同学电脑 / 手机上演示 | 打开 <https://la-helper.app.workbuddy.host>，浏览器里跑真 Python |
+| 🖥 **Desktop** | Everyday homework; double-click and go | Download an installer from [Releases](https://github.com/Franky100-pig/LA-Helper/releases) — no Python, no internet |
+| 🌐 **Web (local)** | You already have Python and want to tweak the code | `python web/app.py` — opens your browser |
+| ☁️ **Online preview** | Demoing on a classmate's laptop or a phone | Open <https://la-helper.app.workbuddy.host> — real Python running in the browser |
 
-![网页版界面：用代数余子式展开算 det(A)，勾了 Show steps，右侧逐步列出推导过程](docs/c8bd96e3a83024eb39aaea06607c4541.png)
+![The web app computing det(A) by cofactor expansion, with Show steps on so every step is listed on the right](docs/c8bd96e3a83024eb39aaea06607c4541.png)
 
-## 功能
-- **界面与推导步骤都能中英切换**（不只是按钮 —— 每一步说明、每一条报错、讲义推荐标题都跟着界面语言走）
-- 矩阵输入 / 展示、转置、加减、**标量乘**
-- **矩阵乘法**（自动维度校验，输入上限 16×16）
-- **方阵求逆**（Gauss-Jordan，带步骤）
-- **左逆 / 右逆**（满列秩 / 满行秩时给出；不满秩时说明原因）
-- **Moore-Penrose 伪逆**（通用）
-- **LU 分解**（含部分主元，PA = LU，带步骤）
-- **增广矩阵求解**（[A|b] → RREF，判定唯一解 / 无解 / 无穷多解 + 零空间基）
-- **REF 行阶梯形 与 Gauss-Jordan RREF 最简行阶梯形可视化导学**：逐行展示标准初等行变换（如 $R_2 \leftarrow R_2 - 2R_1$），每步带中间矩阵快照、主元与改动行高亮，支持单步播放
-- **特征值 / 特征向量 与 特征多项式因式分解**：逐步展示特征矩阵 $A - \lambda I$、展开特征多项式 $p(\lambda) = \det(A - \lambda I) = 0$、因式分解、代数重数 (AM)、特征子空间方程求解、几何重数 (GM) 与特征向量基
-- **矩阵对角化 $A = P D P^{-1}$**：自动判定对角化条件（几何重数与代数重数对比），构造特征向量阵 $P$、特征值对角阵 $D$ 与 $P^{-1}$，并在特征值亏损时说明原因
-- **线性变换 $T(x) = A x$**：逐行点积展开每个输出分量，配合讲义理解标准矩阵、核与像
-- **行列式、秩、伴随矩阵**（余子式展开与行变换双算法）
-- 所有运算可**开关"显示步骤"**、可**切换小数显示**
-- **导出 PDF 步骤**（网页版 / 在线预览版）：算完点「导出 PDF」，在打印对话框里把目标选成
-  「存储为 PDF」，就得到一张**只有结果 + 推导步骤**的浅色 A4 文档 —— 排版自动转成浅色、
-  输入区与页脚一律不打印、步骤和矩阵不会被分页切断。不依赖任何第三方库，离线也能用
-- **单步播放 / 主元高亮**（网页版 / 在线预览版）：逐步模式下主元格描框、被改的行淡色高亮，
-  支持自动播放与手动单步；导出 PDF 始终是完整推导（详见下方「单步播放与主元高亮」）
-- **从图片导入矩阵**（桌面版 + 网页版 / 在线预览版）：拍一张矩阵照片（或截图），用
-  Google Gemini 视觉模型识别成数字，自动填进编辑网格，自己再核对一下即可（识别错了也能手动改）
-- **每个运算都有示例，一键载入**（三端都有）：选好运算点「载入示例」，矩阵自动填好并
-  **直接算给你看** —— 不用先自己想该填什么数、再翻下拉框、再选左右操作数。
-  另有三个一键上手场景（为什么这个矩阵没有逆 / 用余子式算行列式 / 解一个方程组）
-- **算完推荐对应讲义**（网页版 / 在线预览版在结果下方，桌面版给一个跳转按钮）：
-  「想知道为什么？读这篇」—— 直接链到讲义页里最相关的那一篇，
-  把「算」和「懂」缝在一起
-- **记住本机的进度**（三端都有）：矩阵、运算、开关、表达式都存在本机，
-  关掉窗口明天回来还在，不用从头再填。设置里可以一键清空。
-  桌面端存在 `~/.la_helper_settings.json`（本来就因为存 API Key 而是 0600），
-  网页端存在 `localStorage`；都只在本机，不上传、不同步、没有账号
+## Features
+- **Interface *and* derivations in both languages** — not just the buttons: every
+  step description, every error message and every recommended-article title follows
+  the interface language
+- Matrix input / display, transpose, addition, subtraction, **scalar multiplication**
+- **Matrix multiplication** (automatic dimension checking, up to 16×16)
+- **Square-matrix inverse** (Gauss-Jordan, with steps)
+- **Left / right inverse** (given when full column / row rank; explains why when it is not)
+- **Moore-Penrose pseudo-inverse** (general)
+- **LU decomposition** (with partial pivoting, PA = LU, with steps)
+- **Augmented-matrix solve** ([A|b] → RREF; unique / no solution / infinitely many, plus a null-space basis)
+- **REF and Step-by-Step Gauss-Jordan RREF Visualizer**: Line-by-line elementary row operations (e.g. $R_2 \leftarrow R_2 - 2R_1$), intermediate matrix snapshots, pivot and row highlighting, with interactive playback
+- **Eigenvalues / Eigenvectors & Step-by-Step Characteristic Polynomial Factoring**: Derives $A - \lambda I$, expanded $p(\lambda) = \det(A - \lambda I) = 0$, factored form, algebraic multiplicity (AM), eigenspace equation solving, and geometric multiplicity (GM) basis vectors
+- **Matrix Diagonalization $A = P D P^{-1}$**: Automated diagonalizability testing ($\sum GM = n$ vs $AM$), modal matrix $P$ and diagonal matrix $D$ construction, $P^{-1}$ verification, and detailed defect explanation when non-diagonalizable
+- **Linear Transformation $T(x) = A x$**: Row-by-row dot-product breakdown of each output component, with a companion note on the standard matrix, kernel and image
+- **Determinant, rank, and adjugate matrix** (row-reduction and cofactor expansion)
+- Every operation can toggle **"show steps"** and **decimal display**
+- **Export the steps to PDF** (web / online preview): after computing, click "Export PDF" and
+  pick "Save as PDF" as the destination in the print dialog. What you get is a light-themed A4
+  sheet containing **only the result and the worked steps** — the palette flips to light
+  automatically, the input panel and footer are excluded, and steps and matrices are never
+  split across pages. No third-party library, works offline
+- **Step-through playback / pivot highlighting** (web / online preview): in step mode the
+  pivot cell gets an outline and modified rows a tinted highlight; supports autoplay and
+  manual stepping. Exported PDFs always contain the full derivation (see
+  "Step-through playback and pivot highlighting" below)
+- **Import a matrix from a photo** (desktop + web / online preview): take a picture of a
+  matrix (or a screenshot), have Google Gemini's vision model read it into numbers, and it
+  is filled into the editor grid — just double-check it afterwards (a misread digit can
+  always be corrected by hand)
+- **A worked example for every operation, one click away** (all editions): pick an
+  operation, press "Load example", and the matrices fill themselves in and **compute
+  immediately** — no need to invent numbers, hunt through the dropdown, and pick operands
+  first. There are also three one-click scenarios ("why this matrix has no inverse" /
+  "determinant by cofactor expansion" / "solve a system of equations")
+- **A related study note after every result** (a link under the result on the web and
+  online preview; a button in the desktop app): "Want to know why? Read this" — jumping
+  straight to the one note that explains what you just did
+- **Remembers your progress on this device** (all editions): matrices, operation, toggles
+  and the expression box are stored locally, so closing the window and coming back
+  tomorrow leaves your work intact. One click clears it. Desktop keeps it in
+  `~/.la_helper_settings.json` (already owner-only `0600` because it holds your API key);
+  the web editions use `localStorage`. Both stay on your machine — never uploaded,
+  never synced, no account.
 
-## 怎么用（两种方式，结果完全一致）
+## How to use it (two ways, identical results)
 
-**① 操作下拉框**（主路径，三端都有）——选「操作 + 左操作数 + 右操作数」，点计算。
+**① Operation dropdown** (the main path, available in all three editions) — choose
+the operation + left operand + right operand, then press Compute.
 
-**② 表达式快捷键**（三端都有）——一行写完，回车即算：
+**② Expression shortcuts** (available in all three editions) — write it on one line,
+press Enter, done:
 
 ```
 inv(A) * B - C        det(A * B)        3 * inv(A)        A^2        A^-1
 ```
 
-点开界面里的「快捷键指南」有完整对照表（每一行都标了它对应的下拉框操作）。
-支持 `+ - *`、`/ 标量`、`^n`、`inv` `det` `rank` `ref` `T`/`transpose` `pinv`
-`lu` `solve` `eigen`（后三个结果不止一项，只能单独使用）。
+Open the "shortcut guide" in the UI for the full table (each row also shows the
+dropdown operation it corresponds to). Supported: `+ - *`, `/ scalar`, `^n`, and
+`inv` `det` `rank` `ref` `T`/`transpose` `pinv` `lu` `solve` `eigen` (the last three
+return more than one item, so they must be used on their own).
 
-> 表达式不是另写一套算法：两条路都经 `engine.dispatch` 走同一个底层实现，
-> 所以结果连计算步骤都逐字节相同。
+> The expression path is not a second implementation: both paths go through
+> `engine.dispatch` into the same underlying code, so even the calculation steps
+> come out byte-for-byte identical.
 
-### 矩阵库与输入
+### Matrix library and input
 
-| 能力 | 网页版 / 在线预览版 | 桌面版 |
+| Capability | Web / online preview | Desktop |
 |---|:--:|:--:|
-| 改行列不丢数据 | ✅ | ✅ |
-| 命名矩阵库（增删改名） | ✅ | ✅ |
-| 表达式快捷键 | ✅ | ✅ |
-| 旁边的小字预览 | ✅ | ✅ |
-| 粘贴识别（一长串数字自动成矩阵） | ✅ | ✅ |
-| 单格快速改错（聚焦全选 / `Esc` 撤销） | ✅ | — |
-| 从图片导入（Gemini 视觉识别） | ✅ | ✅ |
+| Resize without losing data | ✅ | ✅ |
+| Named matrix library (add / rename / delete) | ✅ | ✅ |
+| Expression shortcuts | ✅ | ✅ |
+| Live side preview | ✅ | ✅ |
+| Paste detection (a run of numbers becomes a matrix) | ✅ | ✅ |
+| Quick single-cell editing (focus selects all / `Esc` reverts) | ✅ | — |
+| Import from a photo (Gemini vision) | ✅ | ✅ |
 
-- **命名矩阵**：默认 A、B、C、D 四个空槽，可**新增 / 改名 / 删除**，
-  算式里直接用名字调用。
-- **改行列不丢数据**：把 3×3 改成 3×4，已填的 9 个数字原样保留（多出的格留空，少掉的丢弃）。
-- **粘贴导入**：从 Excel 或任何文本里直接 `Ctrl+V`。
-  - 带换行的表格 → 按它的原始形状导入；
-  - 一串空格分隔的数字 → 按你已经设好的「行」数自动换算出列数（3 行 + 12 个数 → 3×4）；
-  - 单个数字 → 只填当前这一格。
-- **旁边的小字预览**同步显示引擎**实际会用到**的数字，空格自动补的 `0` 用灰字标出，
-  一眼能看出哪些格子还没填。
-- **单格快速改错**：点进格子自动全选，直接输入即替换；按 `Esc` 撤销这一格的改动。
-  回车 / 方向键在格间按行优先移动。
-- 单元格留空按 **0** 计算。
+- **Named matrices**: four empty slots (A, B, C, D) by default; add / rename /
+  delete them and refer to them by name in expressions.
+- **Resize without losing data**: turn a 3×3 into a 3×4 and the nine values you
+  already typed stay in place (new cells are left empty, dropped cells are discarded).
+- **Paste to import**: `Ctrl+V` straight from Excel or any text.
+  - Tabular text with newlines → imported in its original shape;
+  - A whitespace-separated run of numbers → columns are derived from the "rows" you
+    already set (3 rows + 12 numbers → 3×4);
+  - A single number → fills only the current cell.
+- The **live side preview** shows the numbers the engine will *actually* use; `0`s
+  filled in automatically are greyed out, so you can see at a glance which cells are
+  still empty.
+- **Quick single-cell editing**: clicking a cell selects its contents, so typing
+  replaces them; `Esc` reverts that cell. Enter / arrow keys move between cells in
+  row-major order.
+- An empty cell counts as **0**.
 
-- **从图片导入矩阵**（桌面版 / 网页版都支持）：点「从图片导入」，选一张矩阵照片或截图，
-  工具用 Google **Gemini 视觉模型**（免费 tier，`aistudio.google.com` 拿 key）把它识别成数字，
-  自动填进当前正在编辑的网格。**识别完请务必核对**——模型偶尔会看错某个数字，填进网格后你随时能改。
-  - **API Key 只存在你本机**：桌面端写在 `~/.la_helper_settings.json`，网页端存在浏览器
-    `localStorage`，都不上传任何服务器，仅在请求 Google 时直接发给 Gemini。
-  - 解析用的是和桌面端**同一份 Python 代码**（`core.photo.parse_matrix_response`），
-    所以两端识别结果一致；模型返回无法解析时，界面会把原始文本显示出来方便你手动抄。
+- **Import a matrix from a photo** (desktop / web): click "Import from image", pick a
+  photo or screenshot of a matrix, and the tool uses Google's **Gemini vision model**
+  (free tier; get a key at `aistudio.google.com`) to read it into numbers, then fills
+  the grid you are editing. **Always double-check the result** — the model occasionally
+  misreads a digit, and you can edit it in the grid afterwards.
+  - **The API key stays on your own machine**: on desktop it is written to
+    `~/.la_helper_settings.json`, on the web to browser `localStorage`. Nothing is
+    uploaded to any server; it is sent straight to Gemini only when you make the request.
+  - Parsing uses **the same Python code** as the desktop edition
+    (`core.photo.parse_matrix_response`), so both editions read a photo identically;
+    when the model's reply cannot be parsed, the UI shows the raw text so you can copy
+    it by hand.
 
-### 单步播放与主元高亮（网页版 / 在线预览版）
+### Step-through playback and pivot highlighting (web / online preview)
 
-勾选「显示步骤」算出一个**多步推导**的结果后，步骤列表上方会出现一行播放控件
-（只有一步的结果没什么可播的，不会出现）：
+Once a result with a **multi-step derivation** is computed with "Show steps" on, a row
+of playback controls appears above the step list (a one-step result has nothing to
+play, so no controls appear):
 
-- **默认仍是全部展开**——只想通读推导的话，什么都不用点
-- **▶ 播放**：折叠成一次一步，约 1 秒前进一步，走到最后自动停；再点一次从头重播
-- **⏮ ◀ ▶|**：回到第一步 / 上一步 / 下一步，随时手动走；计数器显示「第几步 / 共几步」
-- 逐步模式下，**当前步的主元格会描框、这一步改动的行会淡色高亮**——一眼看出
-  「这步谁是被消元的、主元在哪」
-- **「显示全部步骤」**退出逐步模式，回到完整列表，高亮随之关闭
-- **导出 PDF 不受播放状态影响**：无论停在第几步，导出的永远是完整推导
+- **All steps are still expanded by default** — if you just want to read the whole
+  derivation, you don't have to touch anything
+- **▶ Play**: collapses to one step at a time, advancing about every second, stopping
+  automatically at the last step; press it again to replay from the start
+- **⏮ ◀ ▶|**: back to the first step / previous / next, whenever you want; the counter
+  shows "step n / total"
+- In step-through mode, **the current step's pivot cell gets an outline and the rows it
+  modifies get a tinted highlight** — you can see at a glance which row is being
+  eliminated and where the pivot sits
+- **"Show all steps"** leaves step mode and returns to the full list; the highlighting
+  turns off with it
+- **Exporting PDF ignores the playback state**: no matter which step you stopped on,
+  the exported document always contains the complete derivation
 
 ---
 
-## 🖥 桌面版（推荐日常用）
+## 🖥 Desktop (recommended for daily use)
 
-原生窗口程序，不开浏览器、不连网、不需要装 Python。
+A native window app: no browser, no internet, no Python install required.
 
-### 直接下载
+### Direct download
 
-到 [Releases](https://github.com/Franky100-pig/LA-Helper/releases) 页面下载对应你系统的压缩包：
+Grab the archive for your operating system from the
+[Releases](https://github.com/Franky100-pig/LA-Helper/releases) page:
 
-| 你的系统 | 文件 | 首次打开 |
+| Your OS | File | First launch |
 |---|---|---|
-| macOS（Apple 芯片 / M 系列） | `LA-Helper-macOS-arm64.zip` | 解压后**右键 → 打开**（安装包未做签名，直接双击会被 Gatekeeper 拦） |
-| Windows 10 / 11（64 位） | `LA-Helper-Windows-x64.zip` | 解压后双击 `LA Helper.exe`；SmartScreen 提示时点「更多信息 → 仍要运行」 |
+| macOS (Apple silicon / M-series) | `LA-Helper-macOS-arm64.zip` | Unzip, then **right-click → Open** (the build is unsigned, so a plain double-click is blocked by Gatekeeper) |
+| Windows 10 / 11 (64-bit) | `LA-Helper-Windows-x64.zip` | Unzip and run `LA Helper.exe`; when SmartScreen warns, choose "More info → Run anyway" |
 
-> Intel 芯片的 Mac 用户请直接用下面的「从源码运行」，或自行执行 `bash desktop/build_mac.sh`。
+> Intel-based Mac users should use "Run from source" below, or run
+> `bash desktop/build_mac.sh` themselves.
 
-### 从源码运行
+### Run from source
 
 ```bash
 pip install sympy
 python desktop/app.py
 ```
 
-### 自己打包
+### Build it yourself
 
 ```bash
 bash desktop/build_mac.sh      # macOS → dist/LA Helper.app
 .\desktop\build_win.ps1        # Windows (PowerShell) → dist\LA Helper\LA Helper.exe
 ```
 
-Windows 的 `.exe` **无法在 macOS 上交叉编译**，必须在一台 Windows 上执行脚本。
-如果你没有 Windows 机器，直接推一个 `v*` 标签，本仓库的
-[Release 流水线](.github/workflows/release.yml) 会在 GitHub 上自动构建两个平台的安装包。
+A Windows `.exe` **cannot be cross-compiled on macOS** — the script must run on a
+Windows machine. If you don't have one, just push a `v*` tag and this repository's
+[release pipeline](.github/workflows/release.yml) will build installers for both
+platforms on GitHub.
 
 ---
 
-## 🌐 网页版
+## 🌐 Web edition
 
 ```bash
 pip install -r requirements.txt
-python web/app.py        # 自动打开浏览器到 http://127.0.0.1:8000
+python web/app.py        # opens your browser at http://127.0.0.1:8000
 ```
 
-无需联网、无需账号。可选参数：`--port 8123`、`--no-browser`、`--verbose`。
-端口被占用时会自动顺延到下一个可用端口。
+No internet, no account. Optional flags: `--port 8123`, `--no-browser`, `--verbose`.
+If the port is already taken it automatically moves on to the next free one.
 
-## 输入规则
-单元格只接受**整数、小数、分数**（`1/3`、`-2`、`0.5`、`1e-3`）。
-不认识的字符会直接报错提示，不会静默当变量处理，也不会执行任何表达式
-（例如 `9**9**9` 这类会让服务卡死的输入会被拒绝）。
+## Input rules
+Cells accept **integers, decimals and fractions** (`1/3`, `-2`, `0.5`, `1e-3`).
+Anything unrecognised raises a clear error instead of being silently treated as a
+variable, and no expression is ever executed (an input like `9**9**9`, which would
+hang the service, is rejected).
 
 ---
 
-## 工程结构
+## Project layout
 ```
 la-helper/
-├── core/          # 纯算法层（精确有理数，零 GUI / Web 依赖，全可单测）
-│                  #   engine.py 是唯一分发入口；expr.py 是表达式解析器
-├── web/           # 网页版：app.py 起服务 + index.html / app.js
-├── desktop/       # 桌面版：tkinter GUI + 两个平台的打包脚本
-├── tools/         # build_preview.py：把 core/ 打包成 Pyodide 静态预览
-└── tests/         # pytest，TDD 红绿重构
+├── core/          # pure algorithm layer (exact rationals, zero GUI/web deps, fully unit-tested)
+│                  #   engine.py is the single dispatch entry point; expr.py is the expression parser
+├── web/           # web edition: app.py serves + index.html / app.js
+├── desktop/       # desktop edition: tkinter GUI + packaging scripts for both platforms
+├── tools/         # build_preview.py: bundles core/ into a Pyodide static preview
+└── tests/         # pytest, TDD red-green-refactor
 ```
-- 算法与界面解耦：`core` 只算，`web` / `desktop` 只展示。
-- 数值默认精确分数，勾选"小数显示"可切换为 4 位小数近似。
+- Algorithms and UI are decoupled: `core` only computes, `web` / `desktop` only present.
+- Values are exact fractions by default; tick "decimal display" to switch to
+  4-decimal approximations.
 
-## 测试
+## Tests
 ```bash
 pip install -r requirements-dev.txt
 pytest
 ```
-覆盖：core 各模块、`core.engine` 契约、`core.expr` 表达式（含与下拉框路径的等价性断言、
-以及 `9**9**9` 这类输入的拒绝用例）、输入安全 / 奇异矩阵 / 符号矩阵 / 大矩阵等回归用例。
+Coverage: each `core` module, the `core.engine` contract, `core.expr` expressions
+(including assertions that they are equivalent to the dropdown path, and rejection
+cases such as `9**9**9`), plus regression cases for input safety, singular matrices,
+symbolic matrices and large matrices.
 
-## 安全边界
-网页版只监听 `127.0.0.1`，不是面向公网的服务：不要把它暴露到局域网或反向代理之后。
-矩阵计算全部在本地进程 / 浏览器沙箱内完成，**计算过程不发送任何数据**。
+## Security boundaries
+The web edition only listens on `127.0.0.1`; it is not a service meant for the public
+internet — do not expose it to your LAN or put it behind a reverse proxy. All matrix
+computation happens inside the local process / browser sandbox and **the computation itself
+sends no data**.
 
-**三个例外，前两个由你主动触发、也都能完全避免：**
+**Three exceptions; the first two are triggered by you and are entirely avoidable:**
 
-1. **从图片导入。** 点「从图片导入」时，会把那张图片直接发给你自己配置的
-   Gemini（Google）API 去识别。API Key 只存在本机、只随该请求经
-   `x-goog-api-key` 请求头发给 Google，不经过任何第三方服务器，也不会写进 URL。
-2. **AI Help（网页版）。** 在 AI Help 页提问时，你输入的问题（外加一段固定的人设
-   提示词）会经 `Authorization` 请求头**直连模型服务商的接口**，不经过任何中转服务器。
-   默认优先发往 **SiliconFlow（Qwen 免费模型）** 的 `api.siliconflow.cn`；若该平台
-   不可用，会自动回退到你或页面内置的 **GLM（智谱）** Key，直连 `open.bigmodel.cn`。
-   Key 只存在你本机浏览器的 `localStorage`。
+1. **Importing from a photo.** When you click "Import from image", that image is sent
+   directly to the Gemini (Google) API you configured for recognition. The API key is
+   stored only on your machine and is sent to Google only with that request, through
+   the `x-goog-api-key` header — it never passes through any third-party server and is
+   never written into a URL.
+2. **AI Help (web edition).** When you ask a question on the AI Help page, the question
+   you typed (plus a fixed system prompt) is sent to the GLM (Zhipu) API you configured.
+   The GLM key lives only in your browser's `localStorage` and goes straight to
+   `open.bigmodel.cn` in an `Authorization` header — no intermediary server involved.
 
-   > **关于内置的公共 Key：** 页面预置了一个所有人共用的 SiliconFlow 免费 Key
-   > （Qwen 模型），这样你**不用注册就能直接问**；GLM 那边也留了一个公共回退 Key。
-   > 它们是「公用」的，所以有几条代价：
-   > - 额度是共享的 —— 别人用多了你可能会遇到 429，页面会提示你稍等重试或换自己的 Key；
-   > - 这些 Key 可能随时被回收，也有可能因为网站不支持（如 CORS 预检失败）而突然抱错；
-   > - 任何人都能从页面源码里拿走它们去用，所以随时可能被滥用。
+   > **About the built-in shared key:** the page ships with a public GLM-4-Flash key that
+   > everyone shares, so you can **ask without signing up at all**. Because it is shared, it
+   > comes with a few trade-offs:
+   > - the quota is shared — if others use it up you may hit a 429, and the page will tell you
+   >   to retry in a few minutes or switch to your own key;
+   > - the key can stop working or be reclaimed at any time; it may also be useless if the website
+   >   does not support it suddenly;
+   > - anyone can lift it out of the page source and use it, so it may be abused.
    >
-   > 对应的做法：你在「更换 Key」里填自己的免费 Key 后，
-   > **一直优先用你自己的**，公共 Key 的存在完全不影响你；公共 Key 失效时页面会
-   > 明确提示并引导你去填自己的，不会静默失败。
+   > In practice: once you paste your own free key (get one at open.bigmodel.cn) under
+   > "Change key", **yours always wins** and the shared key stops mattering to you. If the
+   > shared key ever dies, the page says so plainly and walks you through adding your own
+   > rather than failing silently.
    >
-   > 这些 Key 就在前端代码里（纯静态页直连模型 API，Key 必然可见）。它们只是
-   > 「省掉注册这一步」的便利，不是安全边界 —— 介意共享额度就自己填一个。
-3. **使用人数统计（仅网页版页脚）。** 页面底部会显示一个「使用人数」总数，由一个免费的
-   第三方计数器（Abacus）提供。打开网页时只发送一次匿名访问计数——不含矩阵内容、提问
-   或任何个人信息，也不使用 cookie；本机已计过数的浏览器之后只读取总数，不再重复上报。
-   桌面版不含此项；取不到数字时页脚整行不显示。
+   > That key is in the front-end source (a static page talks to GLM directly, so the key is
+   > necessarily visible). It is a convenience that saves you a signup step, not a security
+   > boundary — get your own if you'd rather not share a quota.
+3. **Usage counter (web edition footer only).** A "people who used it" total appears at the
+   bottom of the page, supplied by a free third-party counter (Abacus). Loading the page
+   sends a single anonymous visit count — no matrix content, question, or personal
+   information, and no cookie; a browser that has already been counted only reads the total
+   afterwards. The desktop edition has no such counter, and the footer stays hidden when the
+   number can't be fetched.
 
-不想联网就别点前两个按钮，其余功能依旧完全离线（页脚计数失败时只是不显示）。
+If you would rather not make any network call, simply don't use the first two buttons;
+every other feature remains fully offline.
 
-## 路线图
-- [ ] 更多分解（QR / SVD）、Gram-Schmidt、最小二乘
-- [x] 步骤结构化（每步带矩阵快照与当前主元，支持单步播放 / 高亮）—— 网页版已有播放器与主元高亮；桌面端的播放控件还没做
-- [x] 矩阵从图片导入（Gemini 视觉识别，桌面 + 网页）
-- [x] 每个运算都有示例 + 一键载入（桌面 + 网页）
-- [x] 算完推荐对应讲义（「想知道为什么？读这篇」）
-- [x] 记住本机进度（桌面 + 网页）
-- [ ] 算式深链进 URL（`#op=det&m=…`），一条链接 = 一道题，可直接发给别人
-- [ ] REF 可选"部分主元"策略，默认贴近课本演示
+## Roadmap
+- [ ] More factorisations (QR / SVD), Gram-Schmidt, least squares
+- [x] Structured steps (per-step matrix snapshot and current pivot, with step-through / highlighting) — player and pivot highlighting are live on the web edition; the desktop playback controls are not built yet
+- [x] Import a matrix from a photo (Gemini vision, desktop + web)
+- [x] A worked example per operation, loadable in one click (desktop + web)
+- [x] Related study note after every result ("Want to know why? Read this")
+- [x] Remembers your progress on this device (desktop + web)
+- [ ] Deep-link a computation into the URL (`#op=det&m=…`), so one link = one problem you can send to someone
+- [ ] Optional "partial pivoting" strategy for REF, defaulting to the textbook presentation
