@@ -143,6 +143,8 @@ window.LA_I18N = (function () {
       "notes.practice": "做配套练习 →",
       "notes.quizTitle": "自测：先自己想，再展开看答案",
       "notes.readCount": "已读 {n}/{m} 篇（按推荐路径）",
+      "notes.readHint": "滑到文末自动打勾 ✓",
+      "notes.readDone": "✓ 已读完，进度已保存",
       "notes.next": "下一篇：",
       // 首页「知识点地图」：已读 / 未读 / 待补三种状态 + 筛选
       "notes.mapNav": "知识点地图",
@@ -445,6 +447,8 @@ window.LA_I18N = (function () {
       "notes.practice": "Do the practice set →",
       "notes.quizTitle": "Self-check: think first, then expand for the answer",
       "notes.readCount": "{n}/{m} notes read (recommended path)",
+      "notes.readHint": "Scroll to the end to mark it read ✓",
+      "notes.readDone": "✓ Finished — progress saved",
       "notes.next": "Next: ",
       // Landing-page knowledge map: read / unread / planned states + filters
       "notes.mapNav": "Knowledge map",

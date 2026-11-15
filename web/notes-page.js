@@ -61,6 +61,62 @@
     return "";
   }
 
+  // 滑到底才打勾：当前正在监听的讲义与 scroll 处理器。换文章 / 切语言必须解绑，
+  // 否则旧文章会在新文章的滚动里被误标记。
+  let readWatch = null;   // { id, onScroll, timer }
+
+  function clearReadWatch() {
+    if (!readWatch) return;
+    window.removeEventListener("scroll", readWatch.onScroll);
+    if (readWatch.timer) clearTimeout(readWatch.timer);
+    readWatch = null;
+  }
+
+  /** 页面是否滑到文末：留 60px 容差，避免字体/图片加载差几个像素打不了勾。 */
+  function atPageBottom() {
+    const doc = document.documentElement;
+    const body = document.body;
+    const scrollTop = window.scrollY || window.pageYOffset || (doc && doc.scrollTop) || 0;
+    const viewH = window.innerHeight || (doc && doc.clientHeight) || 0;
+    const fullH = Math.max(doc ? doc.scrollHeight : 0, body ? body.scrollHeight : 0);
+    return scrollTop + viewH >= fullH - 60;
+  }
+
+  /**
+   * 监视当前文章的阅读位置：滑到文末才 markRead。
+   * 短讲义（内容不足一屏、没有滚动条）在下一帧兜底判定一次，否则永远打不了勾。
+   * prog / hint 在打勾时即时更新，不广播只重画本页那两行（广播留给 markRead 自己发）。
+   */
+  function armReadWatch(a, prog, hint) {
+    function finish() {
+      if (!readWatch || readWatch.id !== a.id) return;
+      clearReadWatch();                       // 先卸，保证只打一次勾
+      LA_PROGRESS.markRead(a.id, a.title, titleEn(a.id));   // 内部会广播 la-progress
+      refreshLearnProgress(prog);
+      if (hint) {
+        hint.className = "learn-done";
+        hint.textContent = tr("notes.readDone");
+      }
+      updateReadMarks();                      // 本页侧栏 ✓ 立即刷新（别的页走广播）
+    }
+    function onScroll() {
+      if (atPageBottom()) finish();
+    }
+    const watch = { id: a.id, onScroll: onScroll, timer: null };
+    readWatch = watch;
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // 有些文章一屏就能看完，压根没有 scroll 事件 —— 下一帧主动判一次。
+    watch.timer = setTimeout(onScroll, 60);
+  }
+
+  /** 进度行文本：按当前已读状态现算，读到文末打勾后可即时刷新。 */
+  function refreshLearnProgress(node) {
+    if (!node || !window.LA_PROGRESS) return;
+    const total = window.LA_PROGRESS.PATH.length;
+    const readN = window.LA_PROGRESS.PATH.filter((id) => LA_PROGRESS.isRead(id)).length;
+    node.textContent = tr("notes.readCount", { n: readN, m: total });
+  }
+
   /** 侧栏已读标记：给读过的文章按钮加 ✓。 */
   function updateReadMarks() {
     if (!window.LA_PROGRESS) return;
@@ -314,6 +370,7 @@
   // 右侧：没选文章时显示欢迎卡片 + 知识点地图
   // -------------------------------------------------------------------------
   function renderWelcome() {
+    clearReadWatch();              // 离开文章回目录/地图：不再监听旧文章的滚动
     view.textContent = "";
     const box = document.createElement("div");
     box.className = "welcome compact";
@@ -395,17 +452,29 @@
       view.appendChild(quiz);
     }
 
-    // 自学进度：打开即记已读（纯本地），并显示进度与「下一篇」推荐。
+    // 自学进度：滑到文末才记已读（纯本地，不打开就打勾）。进度与「下一篇」照常显示。
     if (window.LA_PROGRESS) {
-      LA_PROGRESS.markRead(a.id, a.title, titleEn(a.id));
-      updateReadMarks();
+      clearReadWatch();   // 同一篇被重画（切语言）时先卸掉旧监视器，避免重复挂
 
       const prog = document.createElement("p");
       prog.className = "learn-progress";
-      const total = window.LA_PROGRESS.PATH.length;
-      const readN = window.LA_PROGRESS.PATH.filter((id) => LA_PROGRESS.isRead(id)).length;
-      prog.textContent = tr("notes.readCount", { n: readN, m: total });
+      refreshLearnProgress(prog);
       view.appendChild(prog);
+
+      if (LA_PROGRESS.isRead(a.id)) {
+        // 已经读过：直接显示完成态，不再监视滚动
+        const done = document.createElement("p");
+        done.className = "learn-done";
+        done.textContent = tr("notes.readDone");
+        view.appendChild(done);
+      } else {
+        // 未读：提示滑到文末；真正读完的回调见下方 armReadWatch
+        const hint = document.createElement("p");
+        hint.className = "learn-hint";
+        hint.textContent = tr("notes.readHint");
+        view.appendChild(hint);
+        armReadWatch(a, prog, hint);
+      }
 
       const nextId = window.LA_PROGRESS.nextInPath(a.id);
       if (nextId) {
