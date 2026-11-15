@@ -37,8 +37,8 @@ function makeEl(id) {
  * sharedKey 用来测两种模式（启用 / 未启用），因为 SHARED_KEY 是源码里的常量。
  */
 function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
-               sharedKeyEndless = "", stored = null, fetchImpl = null,
-               httpsPage = false } = {}) {
+               sharedKeyEndless = "", sharedKeyPollinations = "", stored = null,
+               fetchImpl = null, httpsPage = false } = {}) {
   const els = {};
   ["aiHelpKeyBox", "aiHelpAskBox", "aiHelpKeyIn", "aiHelpSaveKey", "aiHelpKeyMsg",
    "aiHelpQ", "aiHelpCount", "aiHelpSend", "aiHelpChangeKey", "aiHelpAnswer",
@@ -105,6 +105,11 @@ function boot({ sharedKey = "sk-public-test", sharedKeyGlm = "glmid.glmsecret",
   const RE_EN = /const SHARED_KEY_ENDLESS = "[^"]*";/;
   if (RE_EN.test(src)) {
     src = src.replace(RE_EN, `const SHARED_KEY_ENDLESS = ${JSON.stringify(sharedKeyEndless)};`);
+  }
+  // Pollinations 免 Key 兜底：默认置空 = 不参与，老用例语义不变。
+  const RE_POL = /const SHARED_KEY_POLLINATIONS = "[^"]*";/;
+  if (RE_POL.test(src)) {
+    src = src.replace(RE_POL, `const SHARED_KEY_POLLINATIONS = ${JSON.stringify(sharedKeyPollinations)};`);
   }
   // getKey/setKey/... 都关在 initAiHelp 的 IIFE 里，外部看不见。
   // 所以把导出语句**插进 IIFE 内部**（它还在同一层作用域里）。
@@ -557,6 +562,65 @@ function sfStatusGlmUp(status) {
      "15 两条 prompt 都应提到 600 字/词（与放宽后的上限一致）");
   ok(prompts.every((p) => !/300 字|300 words/.test(p)),
      "15 旧的 300 字说法应已从 prompt 中移除");
+}
+
+// ==== 免 Key 兜底线路 Pollinations（2026-11-15 三家共享线全挂后加入）====
+// 关键：它绝不能带 Authorization 头（带了会被当付费调用回 402/FREE_LIMIT），
+// 且必须能在其它线路全挂时独立把回答接住。
+
+// 只启用 Pollinations：请求不带 Authorization，但仍带 Content-Type + chat 体
+{
+  const s = boot({
+    sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "", sharedKeyPollinations: "public",
+    fetchImpl: async () => ({ ok: true, status: 200,
+      json: async () => ({ choices: [{ message: { content: "poll ok" } }] }) }),
+  });
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 1, "P1 只启用 Pollinations 时只发一次请求");
+  ok(/text\.pollinations\.ai\/openai/.test(s.calls[0].url),
+     `P1 目标是 Pollinations，实际：${s.calls[0].url}`);
+  ok(!("Authorization" in s.calls[0].opts.headers),
+     `P1 免 Key 线路绝不能带 Authorization 头，实际：${JSON.stringify(s.calls[0].opts.headers)}`);
+  eq(s.calls[0].opts.headers["Content-Type"], "application/json", "P1 仍带 Content-Type");
+  const b = JSON.parse(s.calls[0].opts.body);
+  ok(Array.isArray(b.messages) && b.model === "openai", "P1 用 chat 协议 + openai 模型");
+  eq(s.els.aiHelpAnswer.textContent, "poll ok", "P1 能解析回答");
+}
+// 三家有 Key 的线路全挂（402 / 530 / fetch 抛错）→ 自动回退到 Pollinations
+{
+  const s = boot({
+    sharedKey: "sk-sf", sharedKeyGlm: "glmid.secret", sharedKeyEndless: "sk-endless-test",
+    sharedKeyPollinations: "public",
+    fetchImpl: async (url) => {
+      if (/siliconflow/.test(url)) return { ok: false, status: 402, json: async () => ({}) };
+      if (/makers\.moe/.test(url)) return { ok: false, status: 530, json: async () => ({}) };
+      if (/bigmodel/.test(url)) throw new TypeError("Failed to fetch");
+      return { ok: true, status: 200,
+        json: async () => ({ choices: [{ message: { content: "fallback ok" } }] }) };
+    },
+  });
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 4, "P2 前三家各试一次后第 4 次到 Pollinations");
+  ok(/pollinations/.test(s.calls[3].url), `P2 兜底命中 Pollinations，实际：${s.calls[3].url}`);
+  eq(s.els.aiHelpAnswer.textContent, "fallback ok", "P2 全挂时靠兜底拿到回答");
+  eq(s.els.aiHelpStatus.textContent, "", "P2 成功时不报错");
+}
+// 免 Key 线路能独立启用：其它共享 Key 全空时按钮仍可用（getKey 有值）
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "",
+                   sharedKeyPollinations: "public" });
+  ok(!!s.t.getKey(), "P3 只有免 Key 线路时 getKey 仍非空 → 发送按钮可点");
+  eq(s.els.aiHelpAskBox.hidden, false, "P3 直接进入提问页，不要求填 Key");
+  ok(s.t.attempts().some((a) => a.provider.id === "pollinations"),
+     "P3 Pollinations 出现在尝试列表里");
+}
+// 有用户自有 Key 时不该把免 Key 兜底也拉进来（自有 Key 只打对应平台）
+{
+  const s = boot({ sharedKey: "", sharedKeyGlm: "", sharedKeyEndless: "",
+                   sharedKeyPollinations: "public", stored: "sk-mine-sf",
+                   fetchImpl: async () => ({ ok: false, status: 401, json: async () => ({}) }) });
+  await s.els.aiHelpSend.fire("click");
+  eq(s.calls.length, 1, "P4 填了自有 Key 只发一次，不触发兜底");
 }
 
 console.log(`ai-key: ${pass} 项通过，${fails.length} 项失败`);

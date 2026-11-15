@@ -46,11 +46,14 @@ const tr = I18N.t;
 // 纯静态页无后端：浏览器直接 fetch 模型 API，Key 只存本机 localStorage，
 // 不经过任何中转。问题限制 ≤500 字。
 //
-// 为什么有两个 Provider：2026-10 起 open.bigmodel.cn 的 CORS 预检（OPTIONS）
-// 不再返回 Access-Control-* 头（网关/WAF 行为变更，POST 与 Key 都正常），
-// 浏览器直连全部死在预检上 → 报 TypeError: Failed to fetch。所以默认走
-// SiliconFlow（预检实测正常、有免费模型），GLM 留作自动回退：智谱修好后
-// 无需再改代码。
+// 为什么有这么多 Provider（按序尝试，每条挂了自动换下一条）：
+// · endless：群共享国际线路，Responses API；网关常间歇 530。
+// · SiliconFlow：原本的主力，2026-11-15 共享 Key 余额耗尽（402）。
+// · bigmodel(GLM)：2026-10 起 CORS 预检（OPTIONS）不再返回 ACAO 头，
+//   浏览器直连全死在预检上（curl 却正常）；POST 与 Key 本身没坏。
+// · Pollinations：免 Key 兜底，OPTIONS 带 ACAO、浏览器可直连 —— 上面三家
+//   同时不可用时，它是最后一道保险（2026-11-15 加入时唯一真正能用的线路）。
+// 用户自有 Key 优先生效，且只打对应那家平台，不跨平台瞎试。
 // ---------------------------------------------------------------------------
 (function initAiHelp() {
   const KEY_STORE = "la-glm-key";   // 沿用旧名：老用户已存的 GLM Key 不作废
@@ -78,6 +81,12 @@ const tr = I18N.t;
   // 只暴露 /responses，不走 chat/completions，所以请求体与解析都不同于上面两家。
   // 同为「群共享 Key」，随时可能失效/限流；介意就填自己的。
   const SHARED_KEY_ENDLESS = "sk-endless-e5jxn1LcTxz8Ej0x67zRJRVM8UtyW8QRihc_4OQnoXQ";
+  // 免 Key 兜底线路：Pollinations 公共网关（无需注册，OPTIONS 预检带 ACAO，
+  // 浏览器能直连）。值是「启用哨兵」而不是真 Key —— noAuth 线路不会把它当
+  // Bearer 发出去（带了反而触发它的 402/FREE_LIMIT）。置空即可停用此线路。
+  // 2026-11-15：SiliconFlow 共享 Key 余额耗尽(402)、GLM 预检被改坏、endless
+  // 网关 530 —— 三家同时挂掉，它成了浏览器端唯一还能用的免费线路。
+  const SHARED_KEY_POLLINATIONS = "public";
 
   // 群友给的第二条线路：跑在校园局域网 http://192.168.1.143:8000 的
   // aoody-oss-120b（同样是 Responses API，但路径带 /v1）。只在用户自己填了
@@ -116,6 +125,18 @@ const tr = I18N.t;
       endpoint: "https://open.bigmodel.cn/api/paas/v4/chat/completions",
       model: "glm-4-flash",
       sharedKey: SHARED_KEY_GLM,
+      api: "chat",
+      extra: null,
+    },
+    {
+      // 免 Key 兜底：三家有 Key 的线路全挂时的最后一道保险。
+      // noAuth=true → askOne 不发 Authorization 头；model "openai" 实测走
+      // gpt-oss-20b，中文 + LaTeX 答疑质量可用。免费层限流约每 IP 45 秒 1 次。
+      id: "pollinations",
+      endpoint: "https://text.pollinations.ai/openai",
+      model: "openai",
+      sharedKey: SHARED_KEY_POLLINATIONS,
+      noAuth: true,
       api: "chat",
       extra: null,
     },
@@ -319,12 +340,13 @@ const tr = I18N.t;
           max_tokens: 2000,
         }, p.extra || {});
     try {
+      // 免 Key 线路（Pollinations）绝不能带 Authorization：一旦带了，它会
+      // 把这当成付费调用并回 402/FREE_LIMIT（实测）；不带才走免费层。
+      const headers = { "Content-Type": "application/json" };
+      if (!p.noAuth) headers["Authorization"] = "Bearer " + attempt.key;
       resp = await fetch(p.endpoint, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer " + attempt.key,
-        },
+        headers,
         body: JSON.stringify(body),
       });
     } catch (err) {
