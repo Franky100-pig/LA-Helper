@@ -1234,24 +1234,53 @@ window.LA_NOTES = {
       title: "Gram-Schmidt：把一组歪基掰正",
       tag: "线性变换",
       cat: "transform",
-      lead: "不换空间，只换一组两两垂直的基；做法是从每个向量里减掉它在前面那些方向上的投影。",
+      lead: "不换空间，只换一组两两垂直的基；每一步都在做「正交分解」——减掉新向量在已有方向上的投影，只留垂直剩余。",
       blocks: [
         { h: "为什么要把基掰正" },
-        "斜基照样能张成同一个空间，但算坐标得解方程。正交基里坐标直接是点积：cᵢ = (v·bᵢ)/(bᵢ·bᵢ)。Gram-Schmidt 就是把任意一组线性无关的向量，逐个掰成正交基，<b>而且张成的空间一点不变</b>。",
-        { h: "两个向量的情形（核心全在这）" },
-        "第一步照抄 a₁：b₁ = a₁。第二步从 a₂ 里减掉它在 b₁ 上的投影 —— 就是上一篇那条公式：",
-        { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
-        "减完剩下的部分一定与 b₁ 垂直，一行就能验：b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0。",
-        { desmos: _desmosGramSchmidt(), caption: "红向量 b₁=a₁=(2,1) 固定；拖动 p、q 摆出第二个向量 a₂=(p,q)（蓝）。橙色虚线和末端的空心点是 a₂ 在 b₁ 上的投影 (2c,c)，其中 c=(2p+q)/5 —— 它正好落在红向量所在的直线上；绿色虚线是同一段向量平移过去的样子，绿粗向量就是减掉投影后剩下的 b₂=(p−2c, q−c)。随便怎么拖，b₂ 始终与 b₁ 垂直 —— 初始 p=1、q=2 时 b₂=(−0.6, 1.2)，与 (2,1) 点积正好为 0。" },
-        { h: "三个及以上：每个都要减干净" },
-        { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
-        "新的向量要减掉它在<b>所有</b>前面方向上的投影，只减最后一个不够。减完再把每个 bₖ 除以自己的长度，就得到标准正交基 {q₁, …, qₙ}，满足 qᵢ·qⱼ = 0（i≠j）、‖qᵢ‖ = 1，也就是 QᵀQ = I —— 正好是正交矩阵。",
+        "斜基照样张成同一个空间，但求坐标得解线性方程组。正交基里坐标直接是点积——这是正交基最值钱的地方：",
+        { tex: "c_i=\\frac{\\mathbf v\\cdot\\mathbf b_i}{\\mathbf b_i\\cdot\\mathbf b_i}" },
+        "分母只跟 bᵢ 自己有关，所以每个坐标都是独立的一次除法，不用联立。投影、最小二乘、QR、傅里叶系数，全建立在这个便宜上。",
+
+        { h: "先看清一件事：正交分解" },
+        "任意向量都能唯一拆成「落进子空间 W 的部分」加「垂直于 W 的剩余」：",
+        { tex: "\\mathbf a=\\operatorname{proj}_W(\\mathbf a)+\\mathbf a^{\\perp},\\qquad \\mathbf a^{\\perp}\\perp W" },
+        "如果 b₁,…,bₖ 是 W 的一组正交基，投影就是各条方向上的分量直接相加：",
+        { tex: "\\operatorname{proj}_W(\\mathbf a)=\\sum_{j=1}^{k}\\frac{\\mathbf a\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
+        "关键点：这个垂直剩余与 W 里每一条 bⱼ 都正交。Gram-Schmidt 的全部内容，就是<b>把投影部分丢掉，只留垂直剩余</b>。",
+
+        { h: "两个向量：核心全在这" },
+        "第一个没得减，直接照抄；第二个减掉它在 b₁ 上的投影：",
+        { tex: "\\mathbf b_1=\\mathbf a_1,\\qquad \\mathbf b_2=\\mathbf a_2-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}\\,\\mathbf b_1" },
+        "减完一定垂直，一行就能验——分子分母的 (b₁·b₁) 正好约掉：",
+        { tex: "\\mathbf b_1\\cdot\\mathbf b_2=\\mathbf a_2\\cdot\\mathbf b_1-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}(\\mathbf b_1\\cdot\\mathbf b_1)=0" },
+        { desmos: _desmosGramSchmidt(), caption: "红向量 b₁=a₁=(2,1) 固定；拖动 p、q 摆出第二个向量 a₂=(p,q)（蓝）。橙色虚线和末端的空心点是 a₂ 在 b₁ 上的投影 (2c,c)，其中 c=(2p+q)/5；绿色粗向量是减掉投影后剩下的 b₂=(p−2c, q−c)。随便怎么拖，b₂ 始终与 b₁ 垂直——初始 p=1、q=2 时 b₂=(−0.6, 1.2)，与 (2,1) 点积正好为 0。" },
+
+        { h: "三个及以上：每个方向都要减干净" },
+        { tex: "\\mathbf b_k=\\mathbf a_k-\\sum_{j=1}^{k-1}\\frac{\\mathbf a_k\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j\\qquad(k=2,\\dots,n)" },
+        "新向量要减掉它在<b>所有</b>已有方向上的投影，只减最后一个不够。因为 aₖ 与前面线性无关，减完不会变成零向量。",
+
+        { h: "单位化：从正交到标准正交" },
+        "上面得到的 b 只是两两垂直，长度各异。再各自除以自己的长度：",
+        { tex: "\\mathbf q_k=\\frac{\\mathbf b_k}{\\lVert \\mathbf b_k\\rVert},\\qquad \\mathbf q_i\\cdot\\mathbf q_j=\\delta_{ij}" },
+        "写成矩阵就是 QᵀQ = I，也就是正交矩阵，它的逆等于转置：",
+        { tex: "Q^{\\mathsf T}Q=I_n\\quad\\Longleftrightarrow\\quad Q^{-1}=Q^{\\mathsf T}" },
+
+        { h: "一个完整的三维例子" },
+        "取 a₁=(1,1,0)、a₂=(1,0,1)、a₃=(0,1,1)，按上面的递推走一遍：",
+        { tex: "\\mathbf b_1=(1,1,0)" },
+        { tex: "\\mathbf b_2=(1,0,1)-\\frac{1}{2}(1,1,0)=\\left(\\tfrac12,-\\tfrac12,1\\right)" },
+        { tex: "\\mathbf b_3=(0,1,1)-\\frac{1}{2}(1,1,0)-\\frac{1}{3}\\left(\\tfrac12,-\\tfrac12,1\\right)=\\left(-\\tfrac23,\\tfrac23,\\tfrac23\\right)" },
+        "验算：b₁·b₂ = 0、b₁·b₃ = 0、b₂·b₃ = 0，三个方向两两垂直。再单位化，三条长度分别是 √2、√6/2、2/√3。",
+
         { h: "和 QR 分解的关系" },
-        "把每个 aₖ 按 b₁…bₖ 展开，那些点积系数就是上三角阵 R 的元素，Q 的列是单位化后的 qₖ，于是 <b>A = QR</b>。所以 Gram-Schmidt 不只是概念，它就是 QR 的构造过程；最小二乘里用 QR 解 Ax=b，也比直接算 (AᵀA)⁻¹ 更稳定。",
+        "把每个 aₖ 用 q 表示，系数恰好排成上三角 R，于是：",
+        { tex: "A=QR,\\qquad Q^{\\mathsf T}Q=I_n,\\qquad R_{ik}=\\mathbf q_i\\cdot\\mathbf a_k\\ (i<k)" },
+        "所以 Gram-Schmidt 不是「另一个概念」，它就是 QR 的构造过程。最小二乘用 QR 解也比直接算 (AᵀA)⁻¹ 更稳定。",
+
         { h: "两个容易踩的点" },
         { ul: [
-          "<b>顺序有关</b>：换 a₁、a₂ 的顺序会得到不同的正交基，但张成的空间还是同一个。",
-          "别把 b₂ 单位化之后还拿原来的 b₁·b₁ 当分母：要么全程不单位化，要么每步都单位化 —— 那时分母直接是 1，只剩点积。",
+          "<b>顺序有关</b>：交换 a₁、a₂ 会得到不同的正交基，但张成的空间还是同一个。",
+          "别把 b₂ 单位化之后还拿原来的 b₁·b₁ 当分母：要么全程不单位化，要么每步都单位化——那时分母直接是 1，只剩点积。",
         ] },
         { tip: "在本页试一下：点底部「试一试」，A 是一行 [2, 1]（b₁ᵀ）、B 是一列 [1; 2]（a₂），结果是 4 = a₂·b₁；再算 b₁·b₁ = 5，于是 b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2)，与 b₁ 点积正好为 0，跟图里的绿向量一致。" },
       ],
@@ -2465,24 +2494,53 @@ window.LA_NOTES = {
       title: "Gram-Schmidt: straightening a skewed basis",
       tag: "Linear transformations",
       cat: "transform",
-      lead: "Keep the same space, swap in a basis whose vectors are mutually perpendicular — by subtracting each vector's projections onto the ones before it.",
+      lead: "Keep the same space, swap in a basis whose vectors are mutually perpendicular — each step is an orthogonal decomposition: subtract the projections, keep the perpendicular rest.",
       blocks: [
         { h: "Why bother straightening the basis" },
-        "A skewed basis spans the space just fine, but finding coordinates means solving a system. With an orthogonal basis, coordinates are just dot products: cᵢ = (v·bᵢ)/(bᵢ·bᵢ). Gram-Schmidt turns any linearly independent list into an orthogonal one <b>without changing the span</b>.",
+        "A skewed basis spans the same space, but finding coordinates means solving a linear system. With an orthogonal basis, coordinates are just dot products:",
+        { tex: "c_i=\\frac{\\mathbf v\\cdot\\mathbf b_i}{\\mathbf b_i\\cdot\\mathbf b_i}" },
+        "The denominator depends only on bᵢ, so every coordinate is one independent division — no system to solve. Projection, least squares, QR and Fourier coefficients all live on this convenience.",
+
+        { h: "First, the key fact: orthogonal decomposition" },
+        "Every vector splits uniquely into a part inside a subspace W plus a part perpendicular to it:",
+        { tex: "\\mathbf a=\\operatorname{proj}_W(\\mathbf a)+\\mathbf a^{\\perp},\\qquad \\mathbf a^{\\perp}\\perp W" },
+        "If b₁,…,bₖ form an orthogonal basis of W, the projection is just the sum of the components along those directions:",
+        { tex: "\\operatorname{proj}_W(\\mathbf a)=\\sum_{j=1}^{k}\\frac{\\mathbf a\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
+        "The point: this perpendicular remainder is orthogonal to every bⱼ in W. Gram-Schmidt is exactly <b>throw away the projection, keep the remainder</b>.",
+
         { h: "The two-vector case (where all the ideas live)" },
-        "Step one: keep a₁ as b₁. Step two: subtract a₂'s projection onto b₁ — the formula from the previous article.",
-        { formula: "b₁ = a₁　·　b₂ = a₂ − ((a₂ · b₁) / (b₁ · b₁)) b₁" },
-        "What's left is automatically perpendicular to b₁, and one line proves it: b₁·b₂ = a₂·b₁ − ((a₂·b₁)/(b₁·b₁))(b₁·b₁) = 0.",
-        { desmos: _desmosGramSchmidt(), caption: "b₁=a₁=(2,1) is fixed (red); drag p and q to place the second vector a₂=(p,q) (blue). The dashed orange segment with its open endpoint is a₂'s projection onto b₁, (2c,c) with c=(2p+q)/5 — it sits right on the red line; the dashed green segment is that same leftover vector translated to the projection point. The thick green vector is what remains after subtracting the projection, b₂=(p−2c, q−c). Drag however you like — b₂ always stays perpendicular to b₁. At the starting p=1, q=2 we get b₂=(−0.6, 1.2), whose dot product with (2,1) is exactly 0." },
+        "The first vector has nothing to subtract; the second loses its projection onto b₁:",
+        { tex: "\\mathbf b_1=\\mathbf a_1,\\qquad \\mathbf b_2=\\mathbf a_2-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}\\,\\mathbf b_1" },
+        "What remains is automatically perpendicular, and one line proves it — (b₁·b₁) cancels:",
+        { tex: "\\mathbf b_1\\cdot\\mathbf b_2=\\mathbf a_2\\cdot\\mathbf b_1-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}(\\mathbf b_1\\cdot\\mathbf b_1)=0" },
+        { desmos: _desmosGramSchmidt(), caption: "b₁=a₁=(2,1) is fixed (red); drag p and q to place a₂=(p,q) (blue). The dashed orange segment with its open endpoint is a₂'s projection onto b₁, (2c,c) with c=(2p+q)/5; the thick green vector is what is left after subtracting it, b₂=(p−2c, q−c). Drag however you like — b₂ stays perpendicular to b₁. At the starting p=1, q=2 we get b₂=(−0.6, 1.2), whose dot product with (2,1) is exactly 0." },
+
         { h: "Three or more: subtract every earlier direction" },
-        { formula: "bₖ = aₖ − Σ_{j&lt;k} ((aₖ · bⱼ) / (bⱼ · bⱼ)) bⱼ" },
-        "Each new vector must lose its projection onto <b>all</b> earlier directions, not just the last one. Then divide each bₖ by its own length to get an orthonormal basis {q₁, …, qₙ}: qᵢ·qⱼ = 0 for i≠j and ‖qᵢ‖ = 1, i.e. QᵀQ = I — an orthogonal matrix.",
+        { tex: "\\mathbf b_k=\\mathbf a_k-\\sum_{j=1}^{k-1}\\frac{\\mathbf a_k\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j\\qquad(k=2,\\dots,n)" },
+        "Each new vector must lose its projection onto <b>all</b> earlier directions, not just the last one. Since aₖ is independent of the earlier vectors, it never collapses to zero.",
+
+        { h: "Normalising: from orthogonal to orthonormal" },
+        "The b vectors are perpendicular but have different lengths. Divide each by its own length:",
+        { tex: "\\mathbf q_k=\\frac{\\mathbf b_k}{\\lVert \\mathbf b_k\\rVert},\\qquad \\mathbf q_i\\cdot\\mathbf q_j=\\delta_{ij}" },
+        "In matrix form that is QᵀQ = I — an orthogonal matrix, whose inverse is its transpose:",
+        { tex: "Q^{\\mathsf T}Q=I_n\\quad\\Longleftrightarrow\\quad Q^{-1}=Q^{\\mathsf T}" },
+
+        { h: "A full three-dimensional example" },
+        "Take a₁=(1,1,0), a₂=(1,0,1), a₃=(0,1,1) and run the recursion:",
+        { tex: "\\mathbf b_1=(1,1,0)" },
+        { tex: "\\mathbf b_2=(1,0,1)-\\frac{1}{2}(1,1,0)=\\left(\\tfrac12,-\\tfrac12,1\\right)" },
+        { tex: "\\mathbf b_3=(0,1,1)-\\frac{1}{2}(1,1,0)-\\frac{1}{3}\\left(\\tfrac12,-\\tfrac12,1\\right)=\\left(-\\tfrac23,\\tfrac23,\\tfrac23\\right)" },
+        "Check: b₁·b₂ = 0, b₁·b₃ = 0, b₂·b₃ = 0 — mutually perpendicular. Their lengths are √2, √6/2 and 2/√3, so normalising is straightforward.",
+
         { h: "How this becomes QR" },
-        "Expand each aₖ in terms of b₁…bₖ: those dot-product coefficients are the entries of an upper-triangular R, and the columns of Q are the normalised qₖ. That's <b>A = QR</b>. So Gram-Schmidt isn't just a concept — it's the construction of QR. In least squares, solving via QR is also more numerically stable than forming (AᵀA)⁻¹.",
+        "Expanding each aₖ in terms of the q vectors puts the coefficients in an upper-triangular R:",
+        { tex: "A=QR,\\qquad Q^{\\mathsf T}Q=I_n,\\qquad R_{ik}=\\mathbf q_i\\cdot\\mathbf a_k\\ (i<k)" },
+        "So Gram-Schmidt is not a separate idea — it is the construction of QR. Least squares via QR is also more numerically stable than forming (AᵀA)⁻¹.",
+
         { h: "Two easy traps" },
         { ul: [
-          "<b>Order matters</b>: swapping a₁ and a₂ gives a different orthogonal basis, though the span is unchanged.",
-          "Don't normalise b₂ and keep using the old b₁·b₁ as the denominator. Either never normalise, or normalise at every step — then the denominator is 1 and only the dot product remains.",
+          "<b>Order matters</b>: swapping a₁ and a₂ gives a different orthogonal basis, though the span is the same.",
+          "Don't normalise b₂ and keep using the old b₁·b₁ as the denominator. Either never normalise, or normalise every step — then the denominator is 1 and only the dot product remains.",
         ] },
         { tip: "Try it below: A is the single row [2, 1] (b₁ᵀ) and B the single column [1; 2] (a₂). The product is 4 = a₂·b₁; with b₁·b₁ = 5 we get b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2), whose dot product with b₁ is 0 — the green vector in the figure." },
       ],
@@ -3294,6 +3352,12 @@ window.LA_NOTES.byLang = function (lang) {
   return window.LA_NOTES[lang] || window.LA_NOTES.zh;
 };
 
+/** HTML 属性 / 文本转义：LaTeX 里常有 & < > 等字符，塞进 data-tex 前必须处理。 */
+function _escAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /** 把一篇讲义的 blocks 渲染成 HTML（内容是自己写的静态文案，直接当 HTML 用）。 */
 window.LA_NOTES.blocksHtml = function (blocks) {
   let html = "";
@@ -3302,6 +3366,12 @@ window.LA_NOTES.blocksHtml = function (blocks) {
     if (typeof b === "string") html += "<p>" + b + "</p>";
     else if (b.h) html += "<h4>" + b.h + "</h4>";
     else if (b.ul) html += "<ul>" + b.ul.map((x) => "<li>" + x + "</li>").join("") + "</ul>";
+    // tex：交给 KaTeX 渲染的真实 LaTeX（notes-page.js 扫 [data-tex] 画出来）。
+    // 和 formula 分开：formula 是历史遗留的 Unicode 手写式，直接当 LaTeX 会解析失败。
+    else if (b.tex) {
+      html += "<div class='note-formula note-tex' data-tex=\"" +
+        _escAttr(b.tex) + "\">" + _escAttr(b.tex) + "</div>";
+    }
     else if (b.formula) html += "<div class='note-formula'>" + b.formula + "</div>";
     else if (b.tip) html += "<div class='note-tip'>" + b.tip + "</div>";
     else if (b.desmos) {

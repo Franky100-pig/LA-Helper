@@ -70,12 +70,13 @@ const catList = [...new Set(zh.map((n) => n.cat))];
 check(catList.length > 0, `共 ${catList.length} 个分类：${catList.join(", ")}`);
 
 // ---------------------------------------------------------------------------
-console.log("\n[3] blocksHtml() 渲染 5 种块");
+console.log("\n[3] blocksHtml() 渲染 6 种块");
 const html = NOTES.blocksHtml([
   "段落文本",
   { h: "小标题" },
   { ul: ["一", "二"] },
   { formula: "det(A) = Σⱼ a(i,j)·M(i,j)" },
+  { tex: "b_1=a_1-\\frac{a_2\\cdot b_1}{b_1\\cdot b_1}\\,b_1" },
   { tip: "提示" },
 ]);
 check(html.includes("<p>段落文本</p>"), "字符串 -> <p>");
@@ -83,6 +84,21 @@ check(html.includes("<h4>小标题</h4>"), "{h} -> <h4>");
 check(html.includes("<li>一</li>") && html.includes("<li>二</li>"), "{ul} -> <li>");
 check(html.includes("note-formula"), "{formula} -> .note-formula");
 check(html.includes("note-tip"), "{tip} -> .note-tip");
+
+// { tex } 是交给 KaTeX 的真 LaTeX（与历史遗留的 { formula } 分开，避免误解析）。
+// 必须同时输出 data-tex（notes-page.js 靠它找）和原文（CDN 挂了的降级显示）。
+const texHtml = NOTES.blocksHtml([{ tex: "a=\\frac{1}{2}" }]);
+check(texHtml.includes("note-tex") && texHtml.includes("data-tex"),
+      "{tex} -> .note-tex + data-tex");
+check(texHtml.includes("a=\\frac{1}{2}"), "{tex} 原文保留（KaTeX 不可用时降级显示）");
+// 属性里的 & < > 不转义会把 data-tex 截断，公式就渲染不出来了
+const escHtml = NOTES.blocksHtml([{ tex: "x<y & z" }]);
+check(escHtml.includes("&lt;") && escHtml.includes("&amp;"),
+      "{tex} 里的 & < 做了 HTML 转义");
+// 讲义页必须真的引入 KaTeX，否则 data-tex 永远只是纯文本
+const notesHtmlSrc = fs.readFileSync(path.join(ROOT, "web", "notes.html"), "utf8");
+check(/katex@0\.16\.11/.test(notesHtmlSrc), "notes.html 引入了 KaTeX 0.16.11");
+
 check(NOTES.blocksHtml([]) === "" && NOTES.blocksHtml(undefined) === "", "空/未定义输入返回空串");
 
 // ---------------------------------------------------------------------------

@@ -396,6 +396,29 @@
     I18N.syncDocTitle("notes.label");
   }
 
+  /**
+   * 用 KaTeX 渲染讲义里的 { tex } 块（blocksHtml 输出成 [data-tex] 的 div）。
+   * 两个 CDN 都没加载到时保留 data-tex 里的原始 LaTeX，页面照常可读、不白屏。
+   */
+  function renderTex(root) {
+    const nodes = (root || document).querySelectorAll("[data-tex]");
+    if (!nodes.length) return;
+    const paint = () => {
+      if (!window.katex) return false;
+      for (const n of nodes) {
+        const src = n.getAttribute("data-tex");
+        if (!src) continue;
+        try {
+          window.katex.render(src, n, { throwOnError: false, displayMode: true });
+        } catch (_) { /* 解析失败就留原文 */ }
+      }
+      return true;
+    };
+    // KaTeX 是 defer 脚本，可能比本文件晚执行：先试一次，没成就等 load 再补。
+    if (paint()) return;
+    window.addEventListener("load", paint, { once: true });
+  }
+
   // -------------------------------------------------------------------------
   // 右侧：正文
   // -------------------------------------------------------------------------
@@ -423,6 +446,7 @@
     const body = document.createElement("div");
     body.className = "notes-body";
     body.innerHTML = window.LA_NOTES.blocksHtml(a.blocks);
+    renderTex(body);
 
     view.appendChild(h2);
     view.appendChild(lead);

@@ -11,6 +11,18 @@
 <!-- 讲义交互图（Desmos）：key 在 desmos-config.js 配置；本地预览免 key -->
 <script src="desmos-config.js"></script>
 <script src="desmos.js"></script>
+<!-- 公式渲染：KaTeX（讲义里的 { tex } 块）。优先 jsDelivr，失败时回落国内 npmmirror；
+     两个源共用同一 SRI（dist 产物字节一致）。都加载不到时自动降级为原始文本，不会白屏。 -->
+<link rel="stylesheet" id="katexCss"
+      href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css"
+      integrity="sha384-nB0miv6/jRmo5UMMR1wu3Gz6NLsoTkbqJghGIsx//Rlm+ZU03BU6SQNC66uf4l5+"
+      crossorigin="anonymous" referrerpolicy="no-referrer"
+      onerror="this.onerror=null;this.href='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.css'">
+<script defer
+        src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"
+        integrity="sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg"
+        crossorigin="anonymous" referrerpolicy="no-referrer"
+        onerror="this.onerror=null;var s=document.createElement('script');s.src='https://registry.npmmirror.com/katex/0.16.11/files/dist/katex.min.js';s.integrity='sha384-7zkQWkzuo3B5mTepMUcHkMB5jZaolc2xDwL6VFqjFALcbeS9Ggm/Yr2r3Dy4lfFg';s.crossOrigin='anonymous';document.head.appendChild(s)"></script>
 <script>
   // 尽早确定主题与语言，避免首帧闪一下（与主页同一套 localStorage key）
   (function () {
@@ -144,6 +156,11 @@
   .note-formula { background: var(--inset); border: 1px solid var(--border); border-radius: 8px;
     padding: 10px 12px; margin: 10px 0; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: 13px; overflow-x: auto; white-space: pre-wrap; }
+  /* KaTeX 渲染的公式：居中、正文字体；未渲染（CDN 挂了）时退回等宽原文 */
+  .note-formula.note-tex { font-family: inherit; text-align: center;
+    white-space: normal; font-size: 14px; padding: 12px 14px; }
+  .note-formula.note-tex .katex { font-size: 1.06em; }
+  .note-formula.note-tex .katex-display { margin: 0; }
   .note-tip { background: var(--inset); border-left: 3px solid var(--accent2); border-radius: 6px;
     padding: 10px 12px; margin: 12px 0 4px; font-size: 13px; color: var(--text); }
   a { color: var(--accent); }
