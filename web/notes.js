@@ -336,6 +336,179 @@ function _desmosComplexEigen() {
 window.LA_NOTES = {
   zh: [
     {
+      id: "formulas",
+      title: "公式合集：一张纸装下整门线代",
+      tag: "速查",
+      cat: "cheatsheet",
+      lead: "考前扫一遍用：只列公式，每条下面说明每个符号是什么。不推导、不举例。",
+      blocks: [
+        { h: "1. 矩阵与运算" },
+        { tex: "(AB)_{ij}=\\sum_{k=1}^{n}A_{ik}B_{kj}" },
+        { ul: [
+          "<b>A</b>：m×n 矩阵（m 行 n 列）；<b>B</b>：n×p 矩阵",
+          "<b>(AB)(i,j)</b>：乘积的第 i 行第 j 列元素",
+          "<b>Σ</b>：对 k 从 1 到 n 求和——A 的第 i 行与 B 的第 j 列逐项相乘再相加",
+          "前提：A 的列数 = B 的行数，否则不能相乘",
+        ] },
+        { tex: "(A^{\\mathsf T})_{ij}=A_{ji}" },
+        { ul: [
+          "<b>Aᵀ</b>：转置，行变列、列变行",
+          "<b>A(i,j)</b>：原矩阵第 i 行第 j 列的元素；转置后它跑到 (j,i) 位置",
+          "性质：<b>(AB)ᵀ = BᵀAᵀ</b>（顺序要反过来）",
+        ] },
+
+        { h: "2. 逆矩阵与行列式" },
+        { tex: "A^{-1}=\\frac{1}{\\det A}\\operatorname{adj}(A)\\qquad(\\det A\\neq 0)" },
+        { ul: [
+          "<b>A⁻¹</b>：逆矩阵，满足 A⁻¹A = AA⁻¹ = I",
+          "<b>det A</b>：行列式，一个数；为 0 时逆不存在",
+          "<b>adj(A)</b>：伴随矩阵 = 余子式矩阵的转置",
+        ] },
+        { tex: "\\det(A)=\\sum_{j=1}^{n}(-1)^{i+j}a_{ij}M_{ij}" },
+        { ul: [
+          "<b>i</b>：任选一行（挑 0 最多的那行最省事）",
+          "<b>a(i,j)</b>：第 i 行第 j 列的元素",
+          "<b>M(i,j)</b>：划掉第 i 行、第 j 列后剩下矩阵的行列式（余子式）",
+          "<b>(−1)^(i+j)</b>：代数符号，棋盘格正负交替",
+        ] },
+        { tex: "\\det(AB)=\\det(A)\\det(B),\\qquad \\det(A^{\\mathsf T})=\\det(A)" },
+        { ul: [
+          "<b>det(AB)</b>：乘积的行列式 = 各自行列式相乘（不是相加）",
+          "<b>det(Aᵀ)</b>：转置不改变行列式",
+          "推论：<b>det(A⁻¹) = 1 / det(A)</b>",
+        ] },
+
+        { h: "3. 秩、零度与方程组" },
+        { tex: "\\operatorname{rank}(A)+\\operatorname{nullity}(A)=n" },
+        { ul: [
+          "<b>rank(A)</b>：秩 = 主元个数 = 列空间的维数",
+          "<b>nullity(A)</b>：零度 = 自由变量个数 = dim Nul(A)",
+          "<b>n</b>：列数（也就是未知数个数）",
+        ] },
+        { tex: "\\operatorname{rank}(A)=\\operatorname{rank}([A\\mid \\mathbf b])=n" },
+        { ul: [
+          "<b>[A | b]</b>：增广矩阵（系数矩阵右边拼上常数项）",
+          "这条成立 ⟺ 方程组 <b>A x = b</b> 有唯一解",
+          "两秩相等但 <b>< n</b>：无穷多解；两秩不相等：无解",
+        ] },
+
+        { h: "4. 特征值与对角化" },
+        { tex: "A\\mathbf v=\\lambda\\mathbf v,\\qquad \\det(A-\\lambda I)=0" },
+        { ul: [
+          "<b>λ</b>：特征值，一个数",
+          "<b>v</b>：对应的特征向量，必须是非零向量",
+          "<b>I</b>：单位矩阵；<b>A − λI</b> 叫特征矩阵",
+          "第二个式子就是特征方程，解它得到全部特征值",
+        ] },
+        { tex: "\\operatorname{GM}(\\lambda)=\\dim\\ker(A-\\lambda I)=n-\\operatorname{rank}(A-\\lambda I)" },
+        { ul: [
+          "<b>GM(λ)</b>：几何重数 = 特征空间维数 = 该 λ 能给出几个线性无关的特征向量",
+          "<b>AM(λ)</b>：代数重数 = λ 在特征多项式里作为根出现的次数",
+          "恒有 <b>GM ≤ AM</b>；等号对每个 λ 都成立时才可对角化",
+        ] },
+        { tex: "A=PDP^{-1}" },
+        { ul: [
+          "<b>P</b>：列是 n 个线性无关的特征向量（不要求三角，任意可逆矩阵都行）",
+          "<b>D</b>：对角矩阵，对角元是对应的特征值",
+          "可对角化 ⟺ 每个 λ 都有 GM = AM ⟺ Σ GM = n",
+        ] },
+
+        { h: "5. 相似与换基" },
+        { tex: "B=P^{-1}AP" },
+        { ul: [
+          "<b>A、B</b>：两个 n×n 方阵，此时称它们相似",
+          "<b>P</b>：某个可逆矩阵（不唯一）",
+          "相似不变量：det、trace、rank、特征多项式、特征值",
+        ] },
+        { tex: "[\\mathbf x]_C=P_C^{-1}P_B[\\mathbf x]_B" },
+        { ul: [
+          "<b>[x]_B</b>：向量 x 在基 B 下的坐标",
+          "<b>P_B</b>：把 B 的基向量作为列拼成的矩阵",
+          "<b>P_C⁻¹P_B</b>：从 B 坐标换到 C 坐标的换基矩阵",
+        ] },
+
+        { h: "6. 点积、正交与投影" },
+        { tex: "\\mathbf u\\cdot\\mathbf v=\\lVert\\mathbf u\\rVert\\lVert\\mathbf v\\rVert\\cos\\theta" },
+        { ul: [
+          "<b>u·v</b>：点积 = 对应分量相乘再相加",
+          "<b>‖u‖</b>：长度（范数）= √(u·u)",
+          "<b>θ</b>：两向量夹角；点积为 0 ⟺ 两向量垂直",
+        ] },
+        { tex: "\\operatorname{proj}_{\\mathbf u}\\mathbf v=\\frac{\\mathbf u\\cdot\\mathbf v}{\\mathbf u\\cdot\\mathbf u}\\mathbf u" },
+        { ul: [
+          "<b>proj_u v</b>：v 在 u 方向上的投影向量（与 u 同向）",
+          "分母 <b>u·u</b>：u 的长度平方；u 是单位向量时它等于 1",
+          "垂直剩余：<b>v − proj_u v</b>，与 u 正交",
+        ] },
+        { tex: "\\mathbf a=\\operatorname{proj}_W(\\mathbf a)+\\mathbf a^{\\perp}" },
+        { ul: [
+          "<b>W</b>：子空间；<b>proj_W(a)</b>：a 在 W 里的投影",
+          "<b>a⊥</b>：垂直于 W 的剩余部分",
+          "这就是正交分解：投影 + 垂直剩余，两者正交且唯一",
+        ] },
+
+        { h: "7. Gram-Schmidt 与 QR" },
+        { tex: "\\mathbf b_k=\\mathbf a_k-\\sum_{j=1}^{k-1}\\frac{\\mathbf a_k\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
+        { ul: [
+          "<b>a(k)</b>：原来第 k 个线性无关向量",
+          "<b>b(k)</b>：正交化后的第 k 个向量（两两垂直）",
+          "<b>b(j)·b(j)</b>：分母是 b(j) 自己的长度平方",
+          "第一项照抄：<b>b₁ = a₁</b>",
+        ] },
+        { tex: "\\mathbf q_k=\\frac{\\mathbf b_k}{\\lVert\\mathbf b_k\\rVert}" },
+        { ul: [
+          "<b>q(k)</b>：单位化后的向量，长度为 1",
+          "<b>‖b(k)‖</b>：b(k) 的长度",
+          "结果：q(i)·q(j) = 0（i≠j），且 ‖q(i)‖ = 1",
+        ] },
+        { tex: "A=QR,\\qquad Q^{\\mathsf T}Q=I" },
+        { ul: [
+          "<b>Q</b>：列是标准正交的 q(k)",
+          "<b>R</b>：上三角矩阵，R(i,k) = q(i)·a(k)，对角元 R(k,k) = ‖b(k)‖",
+          "Q 正交 ⟹ Q⁻¹ = Qᵀ",
+        ] },
+
+        { h: "8. 正交矩阵" },
+        { tex: "Q^{\\mathsf T}Q=I\\iff Q^{-1}=Q^{\\mathsf T}" },
+        { ul: [
+          "<b>Q</b>：方阵，列两两正交且长度都为 1",
+          "<b>QᵀQ = I</b>：等价于「列构成一组标准正交基」",
+          "正交变换保长度、保夹角、保内积",
+        ] },
+        { tex: "\\det(Q)=\\pm 1" },
+        { ul: [
+          "<b>det(Q)</b>：只能是 +1 或 −1",
+          "<b>+1</b>：纯旋转（不翻面）；<b>−1</b>：含反射（翻面）",
+          "来历：det(QᵀQ) = det(Q)² = det(I) = 1",
+        ] },
+
+        { h: "9. 最小二乘" },
+        { tex: "A^{\\mathsf T}A\\hat{\\mathbf x}=A^{\\mathsf T}\\mathbf b" },
+        { ul: [
+          "<b>A</b>：m×n 矩阵，通常 m > n（方程比未知数多）",
+          "<b>x̂</b>：最小二乘解（不是精确解）",
+          "<b>AᵀA</b>：正规方程的系数矩阵；可逆时 x̂ = (AᵀA)⁻¹Aᵀb",
+        ] },
+        { tex: "P=A(A^{\\mathsf T}A)^{-1}A^{\\mathsf T}" },
+        { ul: [
+          "<b>P</b>：到 Col(A) 的投影矩阵",
+          "<b>Pb</b>：b 在列空间上的投影；<b>b − Pb</b> 是垂直误差",
+          "性质：<b>P² = P</b>（投影两次等于一次）、<b>Pᵀ = P</b>（对称）",
+        ] },
+
+        { h: "10. SVD" },
+        { tex: "A=U\\Sigma V^{\\mathsf T}" },
+        { ul: [
+          "<b>U</b>：m×m 正交矩阵（左奇异向量）",
+          "<b>V</b>：n×n 正交矩阵（右奇异向量）",
+          "<b>Σ</b>：m×n 对角矩阵，对角元是奇异值 σ(i) ≥ 0",
+          "<b>σ(i)</b>：奇异值 = √(AᵀA 的特征值)",
+        ] },
+
+        { tip: "这里只解决「公式长什么样、符号是什么」；每个式子的来龙去脉在对应讲义里（如 <a href='#gram-schmidt'>Gram-Schmidt</a>、<a href='#eigen'>特征值</a>）。" },
+      ],
+    },
+    {
       id: "cofactor",
       title: "代数余子式到底在干什么",
       tag: "行列式",
@@ -1595,6 +1768,179 @@ window.LA_NOTES = {
   ],
 
   en: [
+    {
+      id: "formulas",
+      title: "Formula sheet: the whole course on one page",
+      tag: "Quick reference",
+      cat: "cheatsheet",
+      lead: "For a last pass before the exam: formulas only, each followed by what every symbol means. No derivations, no worked examples.",
+      blocks: [
+        { h: "1. Matrices and operations" },
+        { tex: "(AB)_{ij}=\\sum_{k=1}^{n}A_{ik}B_{kj}" },
+        { ul: [
+          "<b>A</b>: m×n matrix (m rows, n columns); <b>B</b>: n×p matrix",
+          "<b>(AB)(i,j)</b>: entry in row i, column j of the product",
+          "<b>Σ</b>: sum over k = 1…n — multiply row i of A by column j of B term by term, then add",
+          "Precondition: columns of A = rows of B, otherwise the product is undefined",
+        ] },
+        { tex: "(A^{\\mathsf T})_{ij}=A_{ji}" },
+        { ul: [
+          "<b>Aᵀ</b>: transpose — rows become columns",
+          "<b>A(i,j)</b>: the original entry at row i, column j; after transposing it sits at (j,i)",
+          "Property: <b>(AB)ᵀ = BᵀAᵀ</b> (order reverses)",
+        ] },
+
+        { h: "2. Inverse and determinant" },
+        { tex: "A^{-1}=\\frac{1}{\\det A}\\operatorname{adj}(A)\\qquad(\\det A\\neq 0)" },
+        { ul: [
+          "<b>A⁻¹</b>: inverse, satisfying A⁻¹A = AA⁻¹ = I",
+          "<b>det A</b>: the determinant, a number; if it is 0 the inverse does not exist",
+          "<b>adj(A)</b>: adjugate = transpose of the cofactor matrix",
+        ] },
+        { tex: "\\det(A)=\\sum_{j=1}^{n}(-1)^{i+j}a_{ij}M_{ij}" },
+        { ul: [
+          "<b>i</b>: whichever row you expand along (the one with most zeros is cheapest)",
+          "<b>a(i,j)</b>: the entry in row i, column j",
+          "<b>M(i,j)</b>: determinant of the matrix left after deleting row i and column j (the minor)",
+          "<b>(−1)^(i+j)</b>: the sign, alternating like a checkerboard",
+        ] },
+        { tex: "\\det(AB)=\\det(A)\\det(B),\\qquad \\det(A^{\\mathsf T})=\\det(A)" },
+        { ul: [
+          "<b>det(AB)</b>: determinant of a product = product of determinants (not a sum)",
+          "<b>det(Aᵀ)</b>: transposing does not change the determinant",
+          "Corollary: <b>det(A⁻¹) = 1 / det(A)</b>",
+        ] },
+
+        { h: "3. Rank, nullity and linear systems" },
+        { tex: "\\operatorname{rank}(A)+\\operatorname{nullity}(A)=n" },
+        { ul: [
+          "<b>rank(A)</b>: number of pivots = dimension of the column space",
+          "<b>nullity(A)</b>: number of free variables = dim Nul(A)",
+          "<b>n</b>: number of columns (unknowns)",
+        ] },
+        { tex: "\\operatorname{rank}(A)=\\operatorname{rank}([A\\mid \\mathbf b])=n" },
+        { ul: [
+          "<b>[A | b]</b>: the augmented matrix",
+          "This holds exactly when <b>A x = b</b> has a unique solution",
+          "Equal ranks but <b>< n</b>: infinitely many solutions; unequal ranks: no solution",
+        ] },
+
+        { h: "4. Eigenvalues and diagonalisation" },
+        { tex: "A\\mathbf v=\\lambda\\mathbf v,\\qquad \\det(A-\\lambda I)=0" },
+        { ul: [
+          "<b>λ</b>: an eigenvalue, a number",
+          "<b>v</b>: the matching eigenvector, must be nonzero",
+          "<b>I</b>: identity; <b>A − λI</b> is the eigenmatrix",
+          "The second equation is the characteristic equation — solve it for all λ",
+        ] },
+        { tex: "\\operatorname{GM}(\\lambda)=\\dim\\ker(A-\\lambda I)=n-\\operatorname{rank}(A-\\lambda I)" },
+        { ul: [
+          "<b>GM(λ)</b>: geometric multiplicity = dimension of the eigenspace = how many independent eigenvectors λ gives",
+          "<b>AM(λ)</b>: algebraic multiplicity = how often λ repeats as a root of the characteristic polynomial",
+          "Always <b>GM ≤ AM</b>; diagonalisable only when equality holds for every λ",
+        ] },
+        { tex: "A=PDP^{-1}" },
+        { ul: [
+          "<b>P</b>: columns are n linearly independent eigenvectors (any invertible matrix — no triangular requirement)",
+          "<b>D</b>: diagonal, with the eigenvalues on the diagonal",
+          "Diagonalisable ⟺ GM = AM for every λ ⟺ Σ GM = n",
+        ] },
+
+        { h: "5. Similarity and change of basis" },
+        { tex: "B=P^{-1}AP" },
+        { ul: [
+          "<b>A, B</b>: two n×n matrices, called similar",
+          "<b>P</b>: some invertible matrix (not unique)",
+          "Similarity invariants: det, trace, rank, characteristic polynomial, eigenvalues",
+        ] },
+        { tex: "[\\mathbf x]_C=P_C^{-1}P_B[\\mathbf x]_B" },
+        { ul: [
+          "<b>[x]_B</b>: coordinates of x in basis B",
+          "<b>P_B</b>: matrix whose columns are the basis vectors of B",
+          "<b>P_C⁻¹P_B</b>: the change-of-basis matrix from B-coordinates to C-coordinates",
+        ] },
+
+        { h: "6. Dot product, orthogonality, projection" },
+        { tex: "\\mathbf u\\cdot\\mathbf v=\\lVert\\mathbf u\\rVert\\lVert\\mathbf v\\rVert\\cos\\theta" },
+        { ul: [
+          "<b>u·v</b>: dot product = sum of products of corresponding entries",
+          "<b>‖u‖</b>: length (norm) = √(u·u)",
+          "<b>θ</b>: angle between them; a zero dot product means perpendicular",
+        ] },
+        { tex: "\\operatorname{proj}_{\\mathbf u}\\mathbf v=\\frac{\\mathbf u\\cdot\\mathbf v}{\\mathbf u\\cdot\\mathbf u}\\mathbf u" },
+        { ul: [
+          "<b>proj_u v</b>: the projection of v onto the direction of u (parallel to u)",
+          "Denominator <b>u·u</b>: squared length of u; it is 1 when u is a unit vector",
+          "Perpendicular remainder: <b>v − proj_u v</b>, orthogonal to u",
+        ] },
+        { tex: "\\mathbf a=\\operatorname{proj}_W(\\mathbf a)+\\mathbf a^{\\perp}" },
+        { ul: [
+          "<b>W</b>: a subspace; <b>proj_W(a)</b>: the part of a inside W",
+          "<b>a⊥</b>: the part perpendicular to W",
+          "This is orthogonal decomposition: projection + perpendicular remainder, unique and orthogonal",
+        ] },
+
+        { h: "7. Gram-Schmidt and QR" },
+        { tex: "\\mathbf b_k=\\mathbf a_k-\\sum_{j=1}^{k-1}\\frac{\\mathbf a_k\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
+        { ul: [
+          "<b>a(k)</b>: the original k-th linearly independent vector",
+          "<b>b(k)</b>: the k-th orthogonalised vector (mutually perpendicular)",
+          "<b>b(j)·b(j)</b>: denominator is b(j)'s own squared length",
+          "First one is copied: <b>b₁ = a₁</b>",
+        ] },
+        { tex: "\\mathbf q_k=\\frac{\\mathbf b_k}{\\lVert\\mathbf b_k\\rVert}" },
+        { ul: [
+          "<b>q(k)</b>: the normalised vector, length 1",
+          "<b>‖b(k)‖</b>: length of b(k)",
+          "Result: q(i)·q(j) = 0 for i≠j, and ‖q(i)‖ = 1",
+        ] },
+        { tex: "A=QR,\\qquad Q^{\\mathsf T}Q=I" },
+        { ul: [
+          "<b>Q</b>: columns are the orthonormal q(k)",
+          "<b>R</b>: upper triangular, R(i,k) = q(i)·a(k), diagonal R(k,k) = ‖b(k)‖",
+          "Q orthogonal ⟹ Q⁻¹ = Qᵀ",
+        ] },
+
+        { h: "8. Orthogonal matrices" },
+        { tex: "Q^{\\mathsf T}Q=I\\iff Q^{-1}=Q^{\\mathsf T}" },
+        { ul: [
+          "<b>Q</b>: square, columns mutually orthogonal and of length 1",
+          "<b>QᵀQ = I</b>: equivalent to 'the columns form an orthonormal basis'",
+          "Orthogonal maps preserve length, angle and inner product",
+        ] },
+        { tex: "\\det(Q)=\\pm 1" },
+        { ul: [
+          "<b>det(Q)</b>: only +1 or −1",
+          "<b>+1</b>: pure rotation (no flip); <b>−1</b>: involves a reflection (flips orientation)",
+          "Why: det(QᵀQ) = det(Q)² = det(I) = 1",
+        ] },
+
+        { h: "9. Least squares" },
+        { tex: "A^{\\mathsf T}A\\hat{\\mathbf x}=A^{\\mathsf T}\\mathbf b" },
+        { ul: [
+          "<b>A</b>: m×n with m > n (more equations than unknowns)",
+          "<b>x̂</b>: the least-squares solution (not an exact solution)",
+          "<b>AᵀA</b>: coefficient matrix of the normal equations; when invertible, x̂ = (AᵀA)⁻¹Aᵀb",
+        ] },
+        { tex: "P=A(A^{\\mathsf T}A)^{-1}A^{\\mathsf T}" },
+        { ul: [
+          "<b>P</b>: the projection matrix onto Col(A)",
+          "<b>Pb</b>: projection of b onto the column space; <b>b − Pb</b> is the perpendicular error",
+          "Properties: <b>P² = P</b> (projecting twice is the same) and <b>Pᵀ = P</b> (symmetric)",
+        ] },
+
+        { h: "10. SVD" },
+        { tex: "A=U\\Sigma V^{\\mathsf T}" },
+        { ul: [
+          "<b>U</b>: m×m orthogonal matrix (left singular vectors)",
+          "<b>V</b>: n×n orthogonal matrix (right singular vectors)",
+          "<b>Σ</b>: m×n diagonal, entries are the singular values σ(i) ≥ 0",
+          "<b>σ(i)</b>: singular value = √(eigenvalue of AᵀA)",
+        ] },
+
+        { tip: "This sheet only covers what the formulas look like and what each symbol means. The reasoning lives in the matching notes (e.g. <a href='#gram-schmidt'>Gram-Schmidt</a>, <a href='#eigen'>Eigenvalues</a>)." },
+      ],
+    },
     {
       id: "cofactor",
       title: "What cofactors are actually doing",
@@ -3401,6 +3747,9 @@ window.LA_NOTES.blocksHtml = function (blocks) {
  * ------------------------------------------------------------------------- */
 window.LA_NOTES.TOPICS = {
   zh: [
+    { g: "速查", items: [
+      { t: "公式合集：一张纸装下整门线代", id: "formulas" },
+    ] },
     { g: "基础与运算", items: [
       { t: "矩阵乘法为什么这样定义", id: "matmul" },
       { t: "线性方程组与高斯消元", id: "linsys" },
@@ -3460,6 +3809,9 @@ window.LA_NOTES.TOPICS = {
     ] },
   ],
   en: [
+    { g: "Quick reference", items: [
+      { t: "Formula sheet: the whole course on one page", id: "formulas" },
+    ] },
     { g: "Foundations & operations", items: [
       { t: "Why matrix multiplication works this way", id: "matmul" },
       { t: "Linear systems & Gaussian elimination", id: "linsys" },
