@@ -101,6 +101,21 @@
   .note-item.on { background: var(--panel2); color: var(--accent); font-weight: 500; }
   .note-item .tag { display: block; color: var(--muted); font-size: 12px; font-weight: 400; margin-top: 2px; }
 
+  /* 关键词搜索：常驻左侧，输入即过滤目录 + 右侧出结果列表 */
+  .note-search { position: relative; margin: 0 0 10px; }
+  .note-search-in { width: 100%; font: inherit; font-size: 13px; color: var(--text);
+    background: var(--inset); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 28px 8px 10px; outline: none; transition: border-color .14s ease; }
+  .note-search-in:focus { border-color: var(--accent); }
+  .note-search-in::-webkit-search-cancel-button { display: none; }
+  .note-search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; line-height: 18px; text-align: center; padding: 0;
+    background: var(--panel2); color: var(--muted); border: 1px solid var(--border);
+    border-radius: 6px; cursor: pointer; font-size: 15px; }
+  .note-search-clear:hover { color: var(--accent); border-color: var(--accent); }
+  .note-search-clear[hidden] { display: none; }
+  .search-summary { color: var(--muted); font-size: 12px; margin: 0 0 8px; }
+
   /* 分类视图 */
   .back-btn { display: block; width: 100%; text-align: left; background: none; border: 0;
     color: var(--accent); font: inherit; font-size: 13px; padding: 6px 8px; border-radius: 8px;
@@ -118,6 +133,14 @@
 
   /* 知识点地图：欢迎卡片下方的知识点清单（已写 / 待补 / 已读） */
   .welcome.compact { min-height: 0; padding: 14px 16px 8px; }
+  /* 搜索结果卡片 */
+  .search-hit { display: block; padding: 12px 14px; margin: 8px 0; border: 1px solid var(--border);
+    border-radius: 10px; background: var(--panel2); color: var(--text); text-decoration: none;
+    transition: border-color .14s ease, transform .14s ease; }
+  .search-hit:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .search-hit-title { font-size: 15px; font-weight: 600; display: flex; align-items: center;
+    gap: 8px; flex-wrap: wrap; }
+  .search-hit-lead { margin: 6px 0 0; font-size: 13px; color: var(--muted); }
   .topic-map { margin-top: 4px; }
   .topic-map h3 { margin: 4px 0 6px; font-size: 16px; }
   .topic-map .map-hint, .topic-map .map-stats { font-size: 13px; margin: 4px 0; color: var(--muted); }
@@ -275,6 +298,12 @@
   <aside class="side">
     <button id="backToCats" class="back-btn" type="button" hidden
             data-i18n="notes.backToCats">← 返回分类</button>
+    <div class="note-search">
+      <input id="noteSearchIn" class="note-search-in" type="search" autocomplete="off" spellcheck="false"
+             data-i18n-attrs="placeholder:notes.searchPh,title:notes.searchHint" placeholder="搜索讲义 / 知识点…">
+      <button id="noteSearchClear" class="note-search-clear" type="button" hidden
+              data-i18n-attrs="title:notes.searchClear" title="清除搜索" aria-label="清除搜索">×</button>
+    </div>
     <h3 id="sideTitle" data-i18n="notes.catsTitle">按知识点分类</h3>
     <nav id="noteList" class="note-list"></nav>
   </aside>

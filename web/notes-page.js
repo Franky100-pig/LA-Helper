@@ -21,6 +21,8 @@
   const view = el("noteView");
   const sideTitle = el("sideTitle");
   const backBtn = el("backToCats");
+  const searchIn = el("noteSearchIn");
+  const searchClear = el("noteSearchClear");
   if (!listBox || !view) return;
 
   const articles = () => window.LA_NOTES.byLang(I18N.get());
@@ -597,6 +599,96 @@
   }
 
   // -------------------------------------------------------------------------
+  // 关键词搜索：输入时覆盖右侧为结果列表，左侧目录同步只列命中项；清空恢复原路由。
+  // 搜索是临时覆盖态，不改 hash —— 清空搜索后用户回到原来的位置。
+  // -------------------------------------------------------------------------
+  let searchQuery = "";
+
+  function renderSearch(q) {
+    const hits = window.LA_NOTES.searchArticles(q, I18N.get());
+    clearReadWatch();                         // 离开正文：不再监视旧文章滚动
+
+    // 左侧：只列命中项，方便在结果间快速切换
+    listBox.textContent = "";
+    if (sideTitle) sideTitle.textContent = tr("notes.searchTitle");
+    for (const h of hits) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "note-item";
+      btn.dataset.note = h.id;
+      btn.textContent = h.title;
+      btn.addEventListener("click", () => {
+        // 清空搜索并跳到该篇（走 hash 保留前进/后退）
+        if (searchIn) searchIn.value = "";
+        searchQuery = "";
+        if (searchClear) searchClear.hidden = true;
+        location.hash = h.id;
+      });
+      listBox.appendChild(btn);
+    }
+    updateReadMarks();
+
+    // 右侧：结果列表
+    view.textContent = "";
+    const back = document.createElement("a");
+    back.className = "map-back";
+    back.href = "#map";
+    back.textContent = tr("notes.mapBack");
+    view.appendChild(back);
+
+    const box = document.createElement("div");
+    box.className = "welcome compact";
+    const title = document.createElement("p");
+    title.className = "welcome-title";
+    title.textContent = tr("notes.searchCount", { n: hits.length });
+    const hint = document.createElement("p");
+    hint.className = "welcome-hint";
+    hint.textContent = hits.length ? tr("notes.searchHint") : tr("notes.searchEmpty");
+    box.appendChild(title);
+    box.appendChild(hint);
+    view.appendChild(box);
+
+    for (const h of hits) {
+      const card = document.createElement("a");
+      card.className = "search-hit";
+      card.href = "#" + h.id;
+      card.addEventListener("click", () => {
+        if (searchIn) searchIn.value = "";
+        searchQuery = "";
+        if (searchClear) searchClear.hidden = true;
+      });
+      const ht = document.createElement("div");
+      ht.className = "search-hit-title";
+      ht.textContent = h.title;
+      const tag = document.createElement("span");
+      tag.className = "badge";
+      tag.textContent = h.tag;
+      ht.appendChild(tag);
+      const lead = document.createElement("p");
+      lead.className = "search-hit-lead";
+      lead.innerHTML = h.lead;
+      card.appendChild(ht);
+      card.appendChild(lead);
+      view.appendChild(card);
+    }
+    renderTex(view);                              // 结果摘要里的行内数学也渲染
+  }
+
+  function onSearchInput() {
+    const q = (searchIn ? searchIn.value : "").trim();
+    searchQuery = q;
+    if (searchClear) searchClear.hidden = !q;
+    if (q) renderSearch(q);
+    else route();                             // 清空：回到当前 hash 对应的视图
+  }
+
+  function clearSearch() {
+    if (searchIn) searchIn.value = "";
+    searchQuery = "";
+    if (searchClear) searchClear.hidden = true;
+  }
+
+  // -------------------------------------------------------------------------
   // 路由
   // -------------------------------------------------------------------------
   // 记住上一次的视图 key：只有 hash 真的变化（打开新文章 / 回目录 / 开地图 /
@@ -604,6 +696,8 @@
   let lastRouteKey = null;
 
   function route() {
+    // 任何真正的路由动作（换 hash / 前进后退）都退出搜索覆盖态
+    if (searchQuery) clearSearch();
     const raw = decodeURIComponent((location.hash || "").replace(/^#/, ""));
 
     // 换视图就滚回顶部，保证「每次看文章都从开头显示」，不会卡在上一篇的滚动位置
@@ -677,6 +771,24 @@
     route();
     syncButton();
 
+    // 关键词搜索：输入即搜，回车跳第一篇，× 清空
+    if (searchIn) {
+      searchIn.addEventListener("input", onSearchInput);
+      searchIn.addEventListener("keydown", (e) => {
+        if (e.key !== "Enter") return;
+        const hits = window.LA_NOTES.searchArticles((searchIn.value || "").trim(), I18N.get());
+        if (hits.length) { clearSearch(); location.hash = hits[0].id; }
+      });
+      searchIn.addEventListener("search", onSearchInput);   // 原生 ×（若浏览器没隐藏）也触发
+    }
+    if (searchClear) {
+      searchClear.addEventListener("click", () => {
+        clearSearch();
+        route();
+        if (searchIn) searchIn.focus();
+      });
+    }
+
     // 进度：初始打一遍 ✓，之后每次 markRead 广播的事件也刷新侧栏与地图
     if (window.LA_PROGRESS) {
       updateReadMarks();
@@ -692,7 +804,8 @@
     I18N.onChange(() => {
       syncButton();
       syncTitle();
-      route();          // 按当前 hash 用新语言重画（目录一起重建）
+      if (searchQuery) renderSearch(searchQuery);   // 搜索态：用新语言重画结果
+      else route();     // 按当前 hash 用新语言重画（目录一起重建）
     });
   })();
 })();

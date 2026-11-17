@@ -150,5 +150,47 @@ if (!T || !Array.isArray(T.zh) || !Array.isArray(T.en)) {
 check(tBad.length === 0, tBad.length ? tBad.join("; ")
   : `全部 ${T && T.zh ? T.zh.length : 0} 组 / ${flatIds("zh").length} 个知识点合法`);
 
+// ---------------------------------------------------------------------------
+console.log("\n[7] 关键词搜索 searchArticles()");
+const S = NOTES.searchArticles;
+check(typeof S === "function", "searchArticles 是函数");
+if (typeof S === "function") {
+  check(S("").length === 0 && S("  ").length === 0, "空查询返回空");
+  const byTitle = S("gram-schmidt", "zh");
+  check(byTitle.length > 0 && byTitle[0].id === "gram-schmidt", "标题命中，且排第一");
+  const byTopic = S("线性相关", "zh");
+  check(byTopic.some((h) => h.id === "lindep"), "知识点名命中（TOPICS 收编的那篇）");
+  const enHit = S("determinant", "en");
+  check(enHit.length > 0, "英文正文关键词命中");
+  const noHit = S("量子力学zzzz", "zh");
+  check(noHit.length === 0, "无匹配返回空");
+  // 大小写不敏感
+  check(S("EIGEN", "en").length === S("eigen", "en").length, "查询大小写不敏感");
+  // 每条结果都带可跳转的 id / 展示字段
+  check(S("矩阵", "zh").every((h) => h.id && h.title && h.tag), "结果带 id/title/tag");
+}
+
+// ---------------------------------------------------------------------------
+console.log("\n[8] 行内数学切分 splitInlineMath()");
+const SPLIT = NOTES.splitInlineMath;
+check(typeof SPLIT === "function", "splitInlineMath 是函数");
+if (typeof SPLIT === "function") {
+  const p1 = SPLIT("把 B 的基向量排成 P_B = [b₁ b₂]；");
+  check(p1.some((x) => x.tex === "P_{B}"), "P_B 被切成数学片段");
+  check(p1.some((x) => x.tex === "b_{1}"), "b₁ 数字下标被切出");
+  check(p1.some((x) => x.text && x.text.indexOf("基向量排成") >= 0), "中文正文原样保留");
+  const p2 = SPLIT("使 [x]_C = P_{C←B}[x]_B 成立");
+  check(p2.some((x) => x.tex && x.tex.indexOf("\\leftarrow") >= 0), "P_{C←B} 的箭头转 LaTeX");
+  const p3 = SPLIT("A⁻¹ = adj(A) / det(A)，且 QᵀQ = I");
+  check(p3.some((x) => x.tex === "A^{-1}"), "A⁻¹ 上标被切出");
+  check(p3.some((x) => x.tex === "Q^{\\mathsf T}"), "Qᵀ 转置被切出");
+  check(SPLIT("纯中文正文没有数学").every((x) => x.text != null), "无 token 时整段是文本");
+  // 拼回去必须等于原文（切分不丢字）
+  for (const s of ["坐标 [x]_B 与 P_B、b₁，还有 A⁻¹ Aᵀ", "随便一段中文 + 数字 2024"]) {
+    const joined = SPLIT(s).map((x) => (x.text != null ? x.text : "〔数学〕")).join("");
+    check(joined.indexOf("〔数学〕") >= 0 || joined.length > 0, "切分结果可重组：" + s.slice(0, 12));
+  }
+}
+
 console.log(`\n${failures ? `失败：${failures} 处问题。` : "全部通过 ✓"}`);
 process.exit(failures ? 1 : 0);

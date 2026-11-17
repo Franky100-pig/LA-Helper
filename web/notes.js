@@ -3698,6 +3698,85 @@ window.LA_NOTES.byLang = function (lang) {
   return window.LA_NOTES[lang] || window.LA_NOTES.zh;
 };
 
+/**
+ * 行内数学切分：把一段文本切成 [{ text } | { tex }] 片段，只识别明确的数学 token
+ * （坐标 [x]_B、下标 P_B / b₁、上标 A⁻¹ Aᵀ），中文与其它正文原样保留。
+ * 纯函数，不碰 DOM，也不调 KaTeX —— 渲染层拿 tex 片段自己画，便于独立测试。
+ */
+window.LA_NOTES.splitInlineMath = function (text) {
+  const src = String(text == null ? "" : text);
+  // token 正则（按优先级）：坐标 [x]_B → P_{C←B} → P_B → b₁ → A⁻¹/Aᵀ
+  const TOKEN = /\[([A-Za-z][₀₁₂₃₄ₙₖᵢⱼ]?)\]_(\{[A-Za-z]←[A-Za-z]\}|[A-Za-z])|\b([A-Za-z])_\{([A-Za-z]←[A-Za-z])\}|\b([A-Za-z])_([A-Za-z])(?![A-Za-z])|\b([A-Za-zλΣθασΔμ])([₀₁₂₃₄ₙₖᵢⱼₓᵣₘ]+)|\b([A-Za-zλΣθασΔμ])(⁻¹|ᵀ|²|ⁿ|ᵏ)/g;
+  const sub = { "₀":"0","₁":"1","₂":"2","₃":"3","₄":"4","ₙ":"n","ₖ":"k","ᵢ":"i","ⱼ":"j","ₓ":"x","ᵣ":"r","ₘ":"m" };
+  const sup = { "⁻¹":"^{-1}","ᵀ":"^{\\mathsf T}","²":"^2","ⁿ":"^n","ᵏ":"^k" };
+  const parts = [];
+  let last = 0, m;
+  const pushText = (t) => { if (t) { const p = parts[parts.length - 1]; if (p && p.text != null) p.text += t; else parts.push({ text: t }); } };
+  while ((m = TOKEN.exec(src)) !== null) {
+    pushText(src.slice(last, m.index));
+    let tex;
+    if (m[1] !== undefined) {                       // [x]_B / [x]_{C←B}
+      const b = m[2].replace(/[{}]/g, "").replace("←", "\\leftarrow ");
+      tex = "[" + m[1] + "]_" + (m[2].indexOf("←") >= 0 ? "{" + b + "}" : b);
+    } else if (m[3] !== undefined) {                 // P_{C←B}
+      tex = m[3] + "_{" + m[4].replace("←", "\\leftarrow ") + "}";
+    } else if (m[5] !== undefined) {                 // P_B
+      tex = m[5] + "_{" + m[6] + "}";
+    } else if (m[7] !== undefined) {                 // b₁
+      tex = m[7] + "_{" + m[8].split("").map((c) => sub[c] || c).join("") + "}";
+    } else {                                          // A⁻¹ / Aᵀ
+      tex = m[9] + sup[m[10]];
+    }
+    parts.push({ tex: tex });
+    last = m.index + m[0].length;
+  }
+  pushText(src.slice(last));
+  return parts;
+};
+
+/**
+ * 关键词搜索：在标题 / tag / lead / blocks 文本 / 知识点名里找匹配。
+ * 返回 [{ id, title, tag, lead, score }]，按相关度排序（标题命中排前面）。
+ * 纯函数、不碰 DOM，tools/test_notes.js 里直接验证。
+ */
+window.LA_NOTES.searchArticles = function (query, lang) {
+  const q = String(query || "").trim().toLowerCase();
+  if (!q) return [];
+  const list = window.LA_NOTES.byLang(lang);
+  // 知识点名 -> 讲义 id，方便把「地图上的名字」也算进搜索命中
+  const topicName = {};
+  const T = (window.LA_NOTES.TOPICS || {})[lang] || (window.LA_NOTES.TOPICS || {}).zh || [];
+  for (const g of T) for (const it of (g.items || [])) if (it.id) topicName[it.id] = it.t;
+
+  const blocksText = (blocks) => {
+    let t = "";
+    for (const b of blocks || []) {
+      if (typeof b === "string") t += " " + b.replace(/<[^>]*>/g, "");
+      else if (b.h) t += " " + b.h;
+      else if (b.ul) t += " " + b.ul.join(" ");
+      else if (b.formula) t += " " + b.formula;
+      else if (b.tex) t += " " + b.tex;
+      else if (b.tip) t += " " + b.tip;
+    }
+    return t;
+  };
+  const plain = (s) => String(s || "").replace(/<[^>]*>/g, "").toLowerCase();
+  const out = [];
+  for (const a of list) {
+    const title = plain(a.title), tag = plain(a.tag), lead = plain(a.lead);
+    const name = plain(topicName[a.id] || ""), body = blocksText(a.blocks).toLowerCase();
+    let score = 0;
+    if (title.indexOf(q) >= 0) score += 100;
+    if (name.indexOf(q) >= 0) score += 60;
+    if (tag.indexOf(q) >= 0) score += 40;
+    if (lead.indexOf(q) >= 0) score += 20;
+    if (body.indexOf(q) >= 0) score += 10;
+    if (score) out.push({ id: a.id, title: a.title, tag: a.tag, lead: a.lead, score: score });
+  }
+  out.sort((x, y) => y.score - x.score);
+  return out;
+};
+
 /** HTML 属性 / 文本转义：LaTeX 里常有 & < > 等字符，塞进 data-tex 前必须处理。 */
 function _escAttr(s) {
   return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;")
