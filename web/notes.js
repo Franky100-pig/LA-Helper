@@ -15,6 +15,9 @@
 // 写图时记住 Desmos 的两个保留语义：变量名只能是单个字母（x1 会被当成多个变量、
 // 直接报 "Too many variables"），"r=..." 会被当成极坐标方程画出一个圆。
 // 图形数据存到 window.LA_NOTES._desmos，每个 DOM 节点用 data-desmos-idx 指向其中一项。
+// viewport 写「数学范围」，Desmos 会把它整体拉伸铺满约 1.76:1 的容器；讲角度 / 垂直 /
+// 正交的图必须带 squareUnits:true（desmos.js 按容器比例重算横轴），否则 90° 会被画扁。
+// 函数图像（如 charpoly）故意用不等比例，不要加这个开关。
 function _dx(latex, extra) { return Object.assign({ latex: latex }, extra || {}); }
 // 渲染小工具：Desmos 里 bare "polygon(...)" 与参数曲线 "(x(t),y(t)){...}" 都会报警告、实际不画出来；
 // 只有 \operatorname{polygon}(...)（线段/多边形）、点 (x,y)、显式方程才可靠渲染。所以：
@@ -47,6 +50,7 @@ function _desmosGridWarp() {
   }
   return {
     viewport: { xmin: -5, xmax: 5, ymin: -5, ymax: 5 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: exps
   };
@@ -58,6 +62,7 @@ function _desmosGridWarp() {
 function _desmosEigen() {
   return {
     viewport: { xmin: -4, xmax: 4, ymin: -4, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("y=x", { id: "le1", color: "#c74440" }),
@@ -76,6 +81,7 @@ function _desmosEigen() {
 function _desmosSpan() {
   return {
     viewport: { xmin: -4, xmax: 4, ymin: -4, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("a=1", { id: "a", slider: { min: -2, max: 2, step: 0.1 } }),
@@ -94,6 +100,7 @@ function _desmosSpan() {
 function _desmosRotate() {
   return {
     viewport: { xmin: -2.5, xmax: 2.5, ymin: -2.5, ymax: 2.5 },
+    squareUnits: true,
     options: { expressionsCollapsed: true, degreeMode: true },
     expressions: [
       _dx("k=30", { id: "k", slider: { min: 0, max: 360, step: 5 } }),
@@ -114,6 +121,7 @@ function _desmosRotate() {
 function _desmosCollapse() {
   return {
     viewport: { xmin: -1.6, xmax: 3.2, ymin: -2.2, ymax: 2.2 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("b=1", { id: "b", slider: { min: -1.5, max: 1.5, step: 0.1 } }),
@@ -129,6 +137,7 @@ function _desmosCollapse() {
 function _desmosSubspaces() {
   return {
     viewport: { xmin: -3, xmax: 3, ymin: -3, ymax: 3 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("y=x", { id: "col", color: "#4ea1ff" }),
@@ -185,6 +194,7 @@ function _desmosCharPoly() {
 function _desmosMatrixPower() {
   return {
     viewport: { xmin: -1, xmax: 6.5, ymin: -1, ymax: 6.5 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("k=2", { id: "k", slider: { min: 0, max: 2, step: 1 } }),
@@ -208,7 +218,10 @@ function _desmosMatrixPower() {
 function _desmosChangeBasis() {
   var c1 = "p/2+q/2";
   return {
-    viewport: { xmin: -3, xmax: 6, ymin: -4, ymax: 5 },
+    // 高度 6 刚好覆盖滑块 p,q ∈ [-2,4]；宽度交给 desmos.js 按容器比例算，
+    // 这样 b₁=(1,1) 与 b₂=(1,−1) 的直角不再被拉成 59°。
+    viewport: { xmin: -3, xmax: 6, ymin: -2, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("p=3", { id: "p", slider: { min: -2, max: 4, step: 1 } }),
@@ -232,6 +245,7 @@ function _desmosChangeBasis() {
 function _desmosDotProduct() {
   return {
     viewport: { xmin: -1, xmax: 5, ymin: -2, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("p=3", { id: "p", slider: { min: -2, max: 4, step: 0.1 } }),
@@ -255,6 +269,7 @@ function _desmosDotProduct() {
 function _desmosProjection() {
   return {
     viewport: { xmin: -2, xmax: 5, ymin: -3, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("m=1", { id: "m", slider: { min: -2, max: 2, step: 0.1 } }),
@@ -275,6 +290,7 @@ function _desmosProjection() {
 function _desmosGramSchmidt() {
   return {
     viewport: { xmin: -3, xmax: 4, ymin: -2, ymax: 4 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("p=1", { id: "p", slider: { min: -3, max: 4, step: 0.1 } }),
@@ -302,10 +318,10 @@ function _desmosGramSchmidt() {
 // r>1 向外旋，这正是 Aᵏ 的三种命运。
 function _desmosComplexEigen() {
   return {
-    // 图的宽高比约 1.76:1；Desmos 会严格按 viewport 铺满容器，所以 x 区间要给
-    // 成 y 区间的 1.76 倍，单位长度才是正方形。否则「转 36.9°」会被横向拉成 55°，
-    // 而这张图讲的就是角度。
+    // 以前在这里写死 x 范围 6、y 范围 3.4 来凑 1.76:1；窄屏会重新拉歪。
+    // 现在只给高度，desmos.js 按当前容器比例算宽度（704×400 时得到 x≈[-3,3]）。
     viewport: { xmin: -3, xmax: 3, ymin: -1.7, ymax: 1.7 },
+    squareUnits: true,
     options: { expressionsCollapsed: true },
     expressions: [
       _dx("a=0.8", { id: "a", slider: { min: -1.5, max: 1.5, step: 0.05 } }),

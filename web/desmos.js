@@ -48,6 +48,36 @@
       ? window.LA_I18N.t(key) : fallback;
   }
 
+  // Desmos 会把 setMathBounds 给的数学范围直接铺满容器。当数学范围的宽高比
+  // 与容器不一致时，x/y 单位长度就不等 —— 讲旋转、垂直、正交的图会把直角
+  // 画成锐角。squareUnits:true 的图按容器实际宽高比重算横向范围，保持单位
+  // 是正方形；纵向范围（也就是视野的「高度」）不动，内容不会被裁掉。
+  function mathBounds(def, host) {
+    var vp = def && def.viewport;
+    if (!vp) return null;
+    var b = {
+      left: vp.xmin, right: vp.xmax,
+      bottom: vp.ymin, top: vp.ymax
+    };
+    if (!def.squareUnits) return b;
+    var r = host.getBoundingClientRect ? host.getBoundingClientRect() : null;
+    var w = r && r.width, h = r && r.height;
+    if (!w || !h) return b;                       // 隐藏元素：退回写死的范围
+    var ySpan = b.top - b.bottom;
+    var xSpan = ySpan * w / h;
+    var cx = (b.left + b.right) / 2;
+    var cy = (b.bottom + b.top) / 2;
+    return {
+      left: cx - xSpan / 2, right: cx + xSpan / 2,
+      bottom: cy - ySpan / 2, top: cy + ySpan / 2
+    };
+  }
+
+  function applyViewport(calc, def, host) {
+    var b = mathBounds(def, host);
+    if (b) calc.setMathBounds(b);
+  }
+
   // 「↺ 重置示例」：把所有滑块恢复成初始值，并复位视窗。随便拖乱了，一键回到示例。
   function addReset(host, calc, def) {
     var btn = document.createElement("button");
@@ -63,12 +93,7 @@
         delete init.slider;
         calc.setExpression(init);                      // latex 里就是初始值，如 "b=1"
       });
-      if (def.viewport) {
-        calc.setMathBounds({
-          left: def.viewport.xmin, right: def.viewport.xmax,
-          bottom: def.viewport.ymin, top: def.viewport.ymax
-        });
-      }
+      applyViewport(calc, def, host);
       btn.blur();
     });
     host.appendChild(btn);
@@ -102,14 +127,7 @@
         if (expr.slider) { expr.sliderBounds = expr.slider; delete expr.slider; }
         calc.setExpression(expr);
       });
-      if (def.viewport) {
-        calc.setMathBounds({
-          left: def.viewport.xmin,
-          right: def.viewport.xmax,
-          bottom: def.viewport.ymin,
-          top: def.viewport.ymax
-        });
-      }
+      applyViewport(calc, def, host);
       host._desmosCalc = calc;
       addReset(host, calc, def);
     }).catch(function (err) {

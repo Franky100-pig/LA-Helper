@@ -192,5 +192,24 @@ if (typeof SPLIT === "function") {
   }
 }
 
+// ---------------------------------------------------------------------------
+console.log("\n[9] Desmos 角度图用等比例单位");
+// blocksHtml 每次会重建 _desmos 注册表，所以这里只渲染含目标图的那一篇。
+const cbArticle = zh.find((n) => n.id === "change-basis");
+check(!!cbArticle, "找到 change-basis 讲义");
+if (cbArticle) {
+  NOTES.blocksHtml(cbArticle.blocks);
+  const figs = NOTES._desmos || [];
+  const fig = figs.find((f) => (f.expressions || []).some((e) => e.id === "xp") &&
+                              (f.expressions || []).some((e) => e.id === "mid"));
+  check(!!fig, "换基图已注册到 _desmos");
+  if (fig) {
+    check(fig.squareUnits === true, "换基图启用 squareUnits（b₁⊥b₂ 不能被画扁）");
+    const vp = fig.viewport;
+    check(!!vp && Math.abs((vp.ymax - vp.ymin) - 6) < 1e-9,
+      "视野高度为 6，覆盖滑块范围 [-2,4]");
+  }
+}
+
 console.log(`\n${failures ? `失败：${failures} 处问题。` : "全部通过 ✓"}`);
 process.exit(failures ? 1 : 0);
