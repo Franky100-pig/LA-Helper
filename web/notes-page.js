@@ -401,8 +401,8 @@
    * 两个 CDN 都没加载到时保留 data-tex 里的原始 LaTeX，页面照常可读、不白屏。
    */
   function renderTex(root) {
-    const nodes = (root || document).querySelectorAll("[data-tex]");
-    if (!nodes.length) return;
+    const scope = root || document;
+    const nodes = scope.querySelectorAll("[data-tex]");
     const paint = () => {
       if (!window.katex) return false;
       for (const n of nodes) {
@@ -412,11 +412,44 @@
           window.katex.render(src, n, { throwOnError: false, displayMode: true });
         } catch (_) { /* 解析失败就留原文 */ }
       }
+      renderInlineTex(scope);
       return true;
     };
     // KaTeX 是 defer 脚本，可能比本文件晚执行：先试一次，没成就等 load 再补。
     if (paint()) return;
     window.addEventListener("load", paint, { once: true });
+  }
+
+  /**
+   * 行内数学：只处理正文/lead/提示里的文本节点，把明确的数学 token（坐标、下标、
+   * 上标）交给 KaTeX。用 TreeWalker 只碰文本节点，不破坏 HTML 标签、链接和已渲染的
+   * .katex；KaTeX 没加载或解析失败时保留原文。
+   */
+  function renderInlineTex(root) {
+    if (!window.LA_NOTES.splitInlineMath) return;
+    const targets = root.querySelectorAll(".notes-body p, .notes-body li, .lead, .note-tip, .search-hit-lead");
+    targets.forEach((host) => {
+      // 已经有 katex 的段落跳过，避免重画时重复嵌套
+      if (host.querySelector(".katex")) return;
+      const walker = document.createTreeWalker(host, NodeFilter.SHOW_TEXT, null);
+      const texts = [];
+      let t;
+      while ((t = walker.nextNode())) texts.push(t);
+      for (const node of texts) {
+        const parts = window.LA_NOTES.splitInlineMath(node.nodeValue);
+        if (!parts.some((p) => p.tex)) continue;            // 没有数学 token：不动
+        const frag = document.createDocumentFragment();
+        for (const p of parts) {
+          if (p.text != null) { frag.appendChild(document.createTextNode(p.text)); continue; }
+          try {
+            const span = document.createElement("span");
+            window.katex.render(p.tex, span, { throwOnError: false, strict: "ignore" });
+            frag.appendChild(span);
+          } catch (_) { frag.appendChild(document.createTextNode(p.tex)); }
+        }
+        node.parentNode.replaceChild(frag, node);
+      }
+    });
   }
 
   // -------------------------------------------------------------------------

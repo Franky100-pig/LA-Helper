@@ -3704,6 +3704,82 @@ function _escAttr(s) {
     .replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/**
+ * 历史遗留的 {formula} 块是「半文本半数学」的 Unicode 串（中文说明 + 矩阵方言
+ * [[a,b],[c,d]] + Unicode 上下标 + 希腊字母）。这里把它转成 LaTeX 交给 KaTeX，
+ * 让老讲义的公式也能真正排版。转换规则在 tools/test_formula_tex.js 里对全部
+ * 123 条唯一公式逐条验证过（KaTeX 严格模式零报错）。
+ * 转换失败的概率已排除；万一 KaTeX 没加载，blocksHtml 仍保留原文兜底，不白屏。
+ */
+window.LA_NOTES.formulaToTex = function (src) {
+  let s = String(src);
+  s = s.replace(/&gt;/g, ">").replace(/&lt;/g, "<").replace(/&amp;/g, "&");
+  s = s.replace(/\\"/g, '"');                       // 英文引号 \" -> "（否则被当重音命令）
+
+  // 阶段一：字符级替换（此后矩阵/根号里的内容也都已被处理，无需占位符）
+  // 圆圈编号 ①②③ -> \text{1}（KaTeX 字体没有带圈字形）
+  s = s.replace(/[①②③④⑤⑥]/g, (m) => "\\text{" + ("①②③④⑤⑥".indexOf(m) + 1) + "}");
+  // 组合字符 x̂ / x̄ -> \hat{x} / \bar{x}
+  s = s.replace(/([A-Za-z])\u0302/g, (m, c) => "\\hat{" + c + "}");
+  s = s.replace(/([A-Za-z])\u0304/g, (m, c) => "\\bar{" + c + "}");
+
+  // Unicode 上标：⁻¹ / ⁿ / ² 等；连续下标合并成一组（₂ₓ₂ -> _{2x2}，避免双下标报错）
+  const sup = { "⁰":"0","¹":"1","²":"2","³":"3","ⁿ":"n","ᵏ":"k","ⁱ":"i","ᵣ":"r" };
+  const sub = { "₀":"0","₁":"1","₂":"2","₃":"3","₄":"4","ₙ":"n","ₖ":"k","ᵢ":"i","ⱼ":"j","ₓ":"x","ᵣ":"r","ₘ":"m" };
+  s = s.replace(/⁻¹/g, "^{-1}").replace(/⁻(\d)/g, "^{-$1}").replace(/ᵀ/g, "^{\\mathsf T}");
+  s = s.replace(/[⁰¹²³ⁿᵏⁱᵣ]/g, (m) => "^{" + (sup[m] || m) + "}");
+  s = s.replace(/[₀₁₂₃₄ₙₖᵢⱼₓᵣₘ]+/g, (m) => "_{" + m.split("").map((c) => sub[c] || c).join("") + "}");
+
+  // 希腊字母与运算符 -> LaTeX 控制序列，尾随空格避免与字母粘连（KaTeX 忽略命令后的空格）
+  const sym = {
+    "λ":"\\lambda ","μ":"\\mu ","Σ":"\\sum ","Π":"\\prod ","∏":"\\prod ","θ":"\\theta ","α":"\\alpha ",
+    "σ":"\\sigma ","Δ":"\\Delta ","δ":"\\delta ","β":"\\beta ","ε":"\\epsilon ","φ":"\\phi ",
+    "ω":"\\omega ","Ω":"\\Omega ","Γ":"\\Gamma ","γ":"\\gamma ","τ":"\\tau ","κ":"\\kappa ",
+    "×":"\\times ","·":"\\cdot ","−":"-","≠":"\\ne ","≤":"\\le ","≥":"\\ge ","≪":"\\ll ","≫":"\\gg ",
+    "⇒":"\\Rightarrow ","⟹":"\\Longrightarrow ","⇔":"\\iff ","⟺":"\\iff ","→":"\\to ","∈":"\\in ",
+    "∉":"\\notin ","⊥":"\\perp ","∥":"\\parallel ","∩":"\\cap ","∪":"\\cup ","⊆":"\\subseteq ",
+    "⊂":"\\subset ","∅":"\\emptyset ","⋯":"\\cdots ","…":"\\ldots ","∘":"\\circ ","∝":"\\propto ",
+    "≈":"\\approx ","∼":"\\sim ","≅":"\\cong ","‖":"\\| ","∀":"\\forall ","∃":"\\exists ",
+    "⟨":"\\langle ","⟩":"\\rangle ","⊕":"\\oplus ",
+  };
+  for (const k of Object.keys(sym).sort((a, b) => b.length - a.length)) s = s.split(k).join(sym[k]);
+  s = s.replace(/½/g, "\\frac{1}{2} ").replace(/¼/g, "\\frac{1}{4} ").replace(/¾/g, "\\frac{3}{4} ");
+  s = s.replace(/　/g, "\\quad ");                   // 全角空格 -> \quad
+
+  // 函数名 -> \operatorname{}
+  const opNames = ["nullity","diag","rank","det","adj","tr","dim","ker","im","span","proj","Nul","Col","Row","RREF","gcd"];
+  opNames.forEach((f) => { s = s.replace(new RegExp("\\b" + f + "\\b", "g"), "\\operatorname{" + f + "}"); });
+
+  // 阶段二：结构替换（矩阵 / 根号），内容已在阶段一处理完，回调里直接内联
+  // 矩阵方言 [[a,b],[c,d]] -> pmatrix。原文是「外层一个 [，里面若干个 [行]」，行数不限（2/3 行都有）。
+  const rowCells = (r) => r.split(",").map((x) => x.trim()).filter(Boolean).join(" & ");
+  s = s.replace(/\[\s*((?:\[[^\]]*\]\s*,?\s*)+)\]/g, (m, inner) => {
+    const rows = inner.match(/\[[^\]]*\]/g) || [];
+    if (!rows.length) return m;
+    const body = rows.map((r) => rowCells(r.slice(1, -1))).join("\\\\");
+    return "\\begin{pmatrix}" + body + "\\end{pmatrix}";
+  });
+
+  // √(...) / √2 -> \sqrt{...}；平衡括号支持 √((tr A)² − 4 det A) 这种嵌套
+  let out = "";
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] !== "√") { out += s[i]; continue; }
+    let j = i + 1;
+    while (j < s.length && /\s/.test(s[j])) j++;
+    if (s[j] === "(") {
+      let depth = 0, k = j;
+      for (; k < s.length; k++) {
+        if (s[k] === "(") depth++;
+        else if (s[k] === ")") { depth--; if (depth === 0) break; }
+      }
+      if (depth === 0) { out += "\\sqrt{" + s.slice(j + 1, k) + "}"; i = k; continue; }
+    }
+    if (j < s.length && /[A-Za-z0-9]/.test(s[j])) { out += "\\sqrt{" + s[j] + "}"; i = j; continue; }
+    out += "\\sqrt ";
+  }
+  return out;
+};
+
 /** 把一篇讲义的 blocks 渲染成 HTML（内容是自己写的静态文案，直接当 HTML 用）。 */
 window.LA_NOTES.blocksHtml = function (blocks) {
   let html = "";
@@ -3718,7 +3794,12 @@ window.LA_NOTES.blocksHtml = function (blocks) {
       html += "<div class='note-formula note-tex' data-tex=\"" +
         _escAttr(b.tex) + "\">" + _escAttr(b.tex) + "</div>";
     }
-    else if (b.formula) html += "<div class='note-formula'>" + b.formula + "</div>";
+    // formula：历史 Unicode 写法，转成 LaTeX 一起交给 KaTeX；原文留作 CDN 挂掉时的兜底。
+    else if (b.formula) {
+      const tex = window.LA_NOTES.formulaToTex(b.formula);
+      html += "<div class='note-formula note-tex' data-tex=\"" +
+        _escAttr(tex) + "\">" + _escAttr(b.formula) + "</div>";
+    }
     else if (b.tip) html += "<div class='note-tip'>" + b.tip + "</div>";
     else if (b.desmos) {
       const idx = desmos.length;

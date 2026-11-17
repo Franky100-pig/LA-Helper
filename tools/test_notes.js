@@ -150,6 +150,5 @@ if (!T || !Array.isArray(T.zh) || !Array.isArray(T.en)) {
 check(tBad.length === 0, tBad.length ? tBad.join("; ")
   : `全部 ${T && T.zh ? T.zh.length : 0} 组 / ${flatIds("zh").length} 个知识点合法`);
 
-// ---------------------------------------------------------------------------
 console.log(`\n${failures ? `失败：${failures} 处问题。` : "全部通过 ✓"}`);
 process.exit(failures ? 1 : 0);

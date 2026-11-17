@@ -39,7 +39,7 @@ fi
 
 echo "== JS 守卫（与 ci.yml 同序）=="
 for s in check_i18n check_no_hardcoded_zh test_no_hardcoded_zh test_notes \
-         test_counter test_export test_onboarding test_step_player \
+         test_formula_tex test_counter test_export test_onboarding test_step_player \
          test_read_progress test_bridge_fallback test_ai_key; do
   run "$s.js" "$NODE" "tools/$s.js"
 done

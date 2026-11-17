@@ -31,6 +31,7 @@ jobs:
           node tools/check_no_hardcoded_zh.js
           node tools/test_no_hardcoded_zh.js
           node tools/test_notes.js
+          node tools/test_formula_tex.js
           node tools/test_counter.js
           node tools/test_export.js
           node tools/test_onboarding.js
