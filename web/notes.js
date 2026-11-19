@@ -393,6 +393,12 @@ window.LA_NOTES = {
           "<b>det(Aᵀ)</b>：转置不改变行列式",
           "推论：<b>det(A⁻¹) = 1 / det(A)</b>",
         ] },
+        { tex: "|\\det A|=\\text{面积/体积的缩放倍数},\\qquad \\operatorname{sign}(\\det A)=\\text{定向是否翻面}" },
+        { tex: "x_j=\\frac{\\det(A_j)}{\\det(A)},\\qquad A_j=\\text{A 的第 j 列换成 b}" },
+        { ul: [
+          "<b>|det A|</b>：把单位正方形/立方体放大或压缩的倍数；det = 0 就是压扁",
+          "<b>Aⱼ</b>：Cramer 法则里把第 j <b>列</b>换成常数向量 b 的矩阵（要求 det(A) ≠ 0）",
+        ] },
 
         { h: "3. 秩、零度与方程组" },
         { tex: "\\operatorname{rank}(A)+\\operatorname{nullity}(A)=n" },
@@ -577,6 +583,69 @@ window.LA_NOTES = {
         { h: "为什么大矩阵必须用行变换" },
         "代数余子式展开要算 n! 项（3 阶 6 项、6 阶 720 项、10 阶 360 多万项）；行变换只需要大约 n³ 次运算。所以：<b>小矩阵用代数余子式理解原理，大矩阵用行变换去算</b>。两种算法的结果必然相同。",
         { tip: "在本页试一下：同一个矩阵先选「行变换法」算一次，再切「代数余子式展开」算一次。数值必然一样，但步骤风格完全不同。" },
+      ],
+    },
+    {
+      id: "det-geometry",
+      title: "行列式的几何意义：面积与体积的缩放因子",
+      tag: "行列式",
+      cat: "det",
+      lead: "det(A) 的绝对值是面积/体积被放大或压缩的倍数，正负号告诉你「定向」有没有被翻面。",
+      blocks: [
+        { h: "先看最小例子：长方形" },
+        "把 A 的两列想成单位正方形的两条边被送到哪里。A = [[2,0],[0,3]] 把 (1,0) 拉到 (2,0)、把 (0,1) 拉到 (0,3)，单位正方形变成 2×3 的长方形：面积从 1 变成 6。所以 det(A) = 2×3 − 0×0 = 6，正好就是面积倍数。",
+        { tex: "A=\\begin{bmatrix}2&0\\\\0&3\\end{bmatrix}\\Longrightarrow \\det A=6" },
+        { h: "正负号是什么：有没有翻面" },
+        "B = [[0,1],[1,0]] 把 (1,0) 与 (0,1) 对调，正方形还是面积 1，但整个平面像被翻了一面。于是 det(B) = −1：绝对值是面积倍数，负号记录「左右手性被反转」。",
+        { ul: [
+          "|det(A)| &gt; 1：面积被放大；|det(A)| &lt; 1：面积被压缩。",
+          "det(A) &gt; 0：定向没变；det(A) &lt; 0：定向翻面。",
+          "det(A) = 0：面积塌成 0 —— 正方形被压成线段或点。",
+        ] },
+        { h: "为什么叉积那套公式就是 det" },
+        "二维里，u、v 张成的平行四边形面积是 ‖u‖‖v‖|sin θ|；带上方向（有向面积）就是行列式。",
+        { tex: "\\det\\begin{bmatrix}u_1&v_1\\\\u_2&v_2\\end{bmatrix}=u_1v_2-u_2v_1=\\sin\\theta\\,\\lVert u\\rVert\\lVert v\\rVert" },
+        "这就是「行乘列再相减」的几何来源，不是硬背的口诀。",
+        { h: "三维：单位立方体的有向体积" },
+        "三列 a₁、a₂、a₃ 是单位立方体三条边被送到的位置，det(A) = a₁ · (a₂ × a₃)：先算后两条边张成的平行四边形面积（叉积），再乘第一条边在法向上的投影（点积）。",
+        { tex: "A=\\begin{bmatrix}\\mathbf a_1&\\mathbf a_2&\\mathbf a_3\\end{bmatrix},\\qquad \\det A=\\mathbf a_1\\cdot(\\mathbf a_2\\times\\mathbf a_3)" },
+        { h: "和前面几篇接上" },
+        { ul: [
+          "det = 0 ⟺ 列向量共线/共面 ⟺ 体积塌成 0，这就是<a href='#singular'>《det = 0 为什么没有逆》</a>的几何版。",
+          "行变换里「倍加不变」= 剪切平行四边形，底和高没变，面积不变；「交换两行」= 翻面，所以变号。见<a href='#row-reduction'>《为什么行列式能用行变换来算》</a>。",
+        ] },
+        { tip: "在本页试一下：把 A = [[2,0],[0,3]] 填进计算器算 det，再把第二列改成 [0,1] 观察面积从 6 变成 2；把两列改成一样，面积立刻塌成 0。" },
+      ],
+    },
+    {
+      id: "cramer",
+      title: "Cramer 法则：把未知数一个个换成行列式",
+      tag: "行列式",
+      cat: "det",
+      lead: "当 A 是 n×n 且 det(A) ≠ 0 时，第 j 个未知数 = 「把 A 的第 j 列换成 b 后的行列式」除以 det(A)。",
+      blocks: [
+        { h: "最小例子：两方程两未知数" },
+        "解 2x + y = 5、x + 3y = 6。系数矩阵 A = [[2,1],[1,3]]，det(A) = 6 − 1 = 5。",
+        { h: "求 x：把第 1 列换成 b" },
+        { tex: "x=\\frac{\\det\\begin{bmatrix}5&1\\\\6&3\\end{bmatrix}}{\\det A}=\\frac{15-6}{5}=\\frac95" },
+        { h: "求 y：把第 2 列换成 b" },
+        { tex: "y=\\frac{\\det\\begin{bmatrix}2&5\\\\1&6\\end{bmatrix}}{\\det A}=\\frac{12-5}{5}=\\frac75" },
+        "验算：2·(9/5) + 7/5 = 5，9/5 + 3·(7/5) = 6。两个方程都过。",
+        { h: "为什么「换第 j 列」会给出 xⱼ" },
+        "把 Ax = b 按列写成 x₁a₁ + ⋯ + xₙaₙ = b。把第 j 列换成 b 后，那一列变成 x₁a₁ + ⋯ + xₙaₙ；行列式对某一列的倍加不变，所有 i ≠ j 的项都可以消掉，只剩 xⱼ·det(A)。",
+        { tex: "\\det(A_j)=\\det(A\\text{ 的第 }j\\text{ 列换成 }b)=x_j\\det(A)" },
+        { h: "什么时候用，什么时候别用" },
+        { ul: [
+          "<b>适合</b>：2×2、3×3 的手算，或符号推导（比如证明逆矩阵公式）。",
+          "<b>不适合</b>：大矩阵。算 n+1 个行列式比一次高斯消元慢得多；数值上也更容易放大误差。",
+          "<b>前提</b>：det(A) ≠ 0，也就是唯一解。det = 0 时分母为零，Cramer 法则直接失效。",
+        ] },
+        { h: "两个常见错误" },
+        { ul: [
+          "「换列」搞成「换行」：xⱼ 对应的是第 j <b>列</b>，因为列向量才参与 x₁a₁+⋯ 的组合。",
+          "忘了除以 det(A)：分子只是 det(A_j)，还必须除以原矩阵的行列式。",
+        ] },
+        { tip: "在本页试一下：把 A = [[2,1],[1,3]] 填进计算器算 det 得 5；再把 [[5,1],[6,3]] 和 [[2,5],[1,6]] 也各算一次，就是上面两个分子。" },
       ],
     },
     {
@@ -778,6 +847,10 @@ window.LA_NOTES = {
           "所有 λ 的 <b>AM 之和恒等于 n</b>（n 次多项式正好 n 个根，按重数计数）—— 恒等式。",
           "所有 λ 的 <b>GM 之和 ≤ n</b>；当且仅当每个 λ 都满足 GM = AM 时，GM 之和才正好等于 n。"
         ] },
+        { h: "为什么 GM ≤ AM：换一组基就看懂了" },
+        "取 λ 的 GM 个线性无关特征向量 v₁,…,v_g，把它们补成 ℝⁿ 的一组基。在这组基下，A 的矩阵长成块上三角：左上角是 g 个 λ，左下角全是 0。",
+        { tex: "\\widetilde A=\\begin{bmatrix}\\lambda I_g&*\\\\0&B\\end{bmatrix}" },
+        "因为 det(tI − Ã) = (t − λ)^g · det(tI − B)，所以 t = λ 作为特征多项式的根至少出现 g 次。也就是说 AM(λ) ≥ g = GM(λ)。这个证明不用 Jordan 形，只要「把特征向量先放进基里」。",
         { h: "为什么它决定对角化" },
         "要对角化，必须凑齐 <b>n 个线性无关的特征向量</b>当 P 的列。而每个 λ 最多只能贡献 GM(λ) 个，于是：",
         { formula: "可对角化　⟺　对每个 λ 都有 GM(λ) = AM(λ)　⟺　Σ GM(λ) = n" },
@@ -1437,6 +1510,11 @@ window.LA_NOTES = {
         { tex: "\\operatorname{proj}_W(\\mathbf a)=\\sum_{j=1}^{k}\\frac{\\mathbf a\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
         "关键点：这个垂直剩余与 W 里每一条 bⱼ 都正交。Gram-Schmidt 的全部内容，就是<b>把投影部分丢掉，只留垂直剩余</b>。",
 
+        { h: "先给一个最干净的例子" },
+        "取 a₁=(1,0,0)、a₂=(1,1,0)、a₃=(1,1,1)。第一条照抄：b₁=(1,0,0)。第二条减掉在 b₁ 上的 1 倍投影，得 b₂=(0,1,0)。第三条减掉在 b₁ 上的 1 倍、再减掉在 b₂ 上的 1 倍投影，得 b₃=(0,0,1)。",
+        { tex: "\\mathbf b_1=(1,0,0),\\quad \\mathbf b_2=(1,1,0)-(1,0,0)=(0,1,0),\\quad \\mathbf b_3=(1,1,1)-(1,0,0)-(0,1,0)=(0,0,1)" },
+        "看出来了吗？本来歪着的三条向量，减掉「已经有的方向」后正好变成标准基 e₁,e₂,e₃。后面带分数的例子只是同样动作换了个数，不是新规则。",
+
         { h: "两个向量：核心全在这" },
         "第一个没得减，直接照抄；第二个减掉它在 b₁ 上的投影：",
         { tex: "\\mathbf b_1=\\mathbf a_1,\\qquad \\mathbf b_2=\\mathbf a_2-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}\\,\\mathbf b_1" },
@@ -1471,7 +1549,7 @@ window.LA_NOTES = {
           "<b>顺序有关</b>：交换 a₁、a₂ 会得到不同的正交基，但张成的空间还是同一个。",
           "别把 b₂ 单位化之后还拿原来的 b₁·b₁ 当分母：要么全程不单位化，要么每步都单位化——那时分母直接是 1，只剩点积。",
         ] },
-        { tip: "在本页试一下：点底部「试一试」，A 是一行 [2, 1]（b₁ᵀ）、B 是一列 [1; 2]（a₂），结果是 4 = a₂·b₁；再算 b₁·b₁ = 5，于是 b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2)，与 b₁ 点积正好为 0，跟图里的绿向量一致。" },
+        { tip: "在本页试一下：点底部「试一试」会载入 A = [[2,1],[1,2]] 并直接跑 Gram-Schmidt，得到 b₁=(2,1)、b₂=(−3/5, 6/5)，以及单位化后的 q₁=(2,1)/√5、q₂=(−1,2)/√5；和图里 a₂=(1,2) 的结果完全一致。" },
       ],
     },
     {
@@ -1666,7 +1744,7 @@ window.LA_NOTES = {
           "正交集不等于基：R³ 里两个互相垂直的向量只张成一个平面，还得补第三个。",
           "把零向量放进正交集，线性无关的结论立刻失效。",
         ] },
-        { tip: "在本页试一下：把 Q̃ = [[1,1],[1,−1]] 填进计算器算「逆矩阵」，得到的是 Q̃ᵀ/2；两列各除以 √2 之后，逆矩阵才严格等于转置。想看正交分解怎么用来求补集，接着读<a href='#orthogonal-complement'>《正交补集》</a>。" },
+        { tip: "在本页试一下：点底部「试一试」会载入 A = [[1,2],[1,0]] 并直接给出 Q = (1/√2)[[1,1],[1,−1]]、R = [[√2, √2],[0, √2]]；和 Set 9 第 6 题是同一个矩阵。" },
       ],
     },
     {
@@ -1676,6 +1754,11 @@ window.LA_NOTES = {
       cat: "decomp",
       lead: "A·x = b 经常无解。别硬解，改成让误差向量最短 —— 几何上就是把 b 投影到 Col(A) 上。",
       blocks: [
+        { h: "先看只有一列：一次投影就够了" },
+        "把同一个数 c 分别当成两个测量值，A = [[1],[1]]、b = (1,3)。A 的列空间是直线 y=x，而 b 不在上面。最近点是 (2,2)，所以 ĉ = 2，误差 e = (−1,1) 与 (1,1) 点积为 0 —— 垂直，所以最近。",
+        { tex: "A=\\begin{bmatrix}1\\\\1\\end{bmatrix},\\quad b=\\begin{bmatrix}1\\\\3\\end{bmatrix},\\quad \\hat c=2,\\quad e=(-1,1),\\quad A^{\\mathsf T}e=0" },
+        "最小二乘的全部逻辑就这一句：<b>误差必须垂直于 A 的列空间</b>。下面三点拟合只是把「一条直线」换成「一个平面」。",
+
         { h: "先接受「无解」是常态" },
         "方程比未知数多（m &gt; n）、或者数据本身带噪声时，b 通常不在 Col(A) 里。例如用直线 y = c₀ + c₁x 拟合三点 (0,1)、(1,2)、(2,2)：",
         { formula: "A = [[1,0],[1,1],[1,2]],　b = (1,2,2),　A·x = b" },
@@ -1709,6 +1792,11 @@ window.LA_NOTES = {
       cat: "decomp",
       lead: "把 A 的列逐个正交化，最后得到的就是 A = QR：Q 的列标准正交，R 是上三角。它不是新算法，只是 Gram-Schmidt 的矩阵版本。",
       blocks: [
+        { h: "30 秒直觉版：几乎不用算的一次" },
+        "先拿 A = [[1,1],[0,1]]。第一列 a₁=(1,0) 已经是单位向量，所以 q₁=(1,0)；第二列 a₂=(1,1) 去掉在 q₁ 方向上的 1 份，剩下 (0,1)，归一化得 q₂=(0,1)。于是 Q=I，剩下的数据全在 R 里：",
+        { tex: "A=\\begin{bmatrix}1&1\\\\0&1\\end{bmatrix}=I\\cdot\\begin{bmatrix}1&1\\\\0&1\\end{bmatrix}=QR" },
+        "这一眼能看出 QR 在干什么：<b>Q 把坐标轴掰正，R 记录每根原列用了多少「新轴 + 旧轴」</b>。下面带根号的例子只是轴原本不水平而已。",
+
         { h: "分解里各是什么" },
         "设 A 是 m×n、列线性无关。thin QR 写成",
         { formula: "A = QR,　QᵀQ = Iₙ,　R 是 n×n 上三角且对角元 &gt; 0" },
@@ -1825,6 +1913,12 @@ window.LA_NOTES = {
           "<b>det(AB)</b>: determinant of a product = product of determinants (not a sum)",
           "<b>det(Aᵀ)</b>: transposing does not change the determinant",
           "Corollary: <b>det(A⁻¹) = 1 / det(A)</b>",
+        ] },
+        { tex: "|\\det A|=\\text{area / volume scale factor},\\qquad \\operatorname{sign}(\\det A)=\\text{orientation flip or not}" },
+        { tex: "x_j=\\frac{\\det(A_j)}{\\det(A)},\\qquad A_j=\\text{A with column }j\\text{ replaced by }b" },
+        { ul: [
+          "<b>|det A|</b>: how much the unit square / cube is stretched or compressed; det = 0 means collapsed",
+          "<b>Aⱼ</b>: in Cramer's rule, A with column <b>j</b> replaced by the constant vector b (requires det(A) ≠ 0)",
         ] },
 
         { h: "3. Rank, nullity and linear systems" },
@@ -2010,6 +2104,68 @@ window.LA_NOTES = {
         { h: "Why bigger matrices have to use row operations" },
         "Cofactor expansion needs n! terms (6 for 3×3, 720 for 6×6, over 3.6 million for 10×10); row reduction needs roughly n³ operations. So: <b>use cofactors to understand the idea, use row operations to actually compute</b>. The two methods must agree.",
         { tip: "Try it here: run the same matrix with \"Row reduction (recommended)\", then switch to \"Cofactor expansion\". The value is identical — only the style of the steps differs." },
+      ],
+    },
+    {
+      id: "det-geometry",
+      title: "Determinants geometrically: area and volume scaling",
+      tag: "Determinant",
+      cat: "det",
+      lead: "|det(A)| is the factor by which area or volume is scaled; the sign tells you whether orientation was flipped.",
+      blocks: [
+        { h: "The smallest example: a rectangle" },
+        "Think of the columns of A as the two sides of the unit square after the transformation. A = [[2,0],[0,3]] sends (1,0) to (2,0) and (0,1) to (0,3), so the unit square becomes a 2×3 rectangle: area 1 → 6. And det(A) = 2·3 − 0·0 = 6, exactly the area factor.",
+        { tex: "A=\\begin{bmatrix}2&0\\\\0&3\\end{bmatrix}\\Longrightarrow \\det A=6" },
+        { h: "What the sign means: flipping" },
+        "B = [[0,1],[1,0]] swaps the two sides. The area is still 1, but the plane has been turned over, like swapping a left glove for a right glove. Hence det(B) = −1.",
+        { ul: [
+          "|det(A)| &gt; 1: area is stretched; |det(A)| &lt; 1: area is compressed.",
+          "det(A) &gt; 0: orientation preserved; det(A) &lt; 0: orientation reversed.",
+          "det(A) = 0: area collapses to zero — the square becomes a segment or a point.",
+        ] },
+        { h: "Why the 2×2 formula is signed area" },
+        "The parallelogram spanned by u and v has area |u||v||sin θ|. With orientation kept, that is exactly the determinant:",
+        { tex: "\\det\\begin{bmatrix}u_1&v_1\\\\u_2&v_2\\end{bmatrix}=u_1v_2-u_2v_1=\\sin\\theta\\,\\lVert u\\rVert\\lVert v\\rVert" },
+        { h: "Three dimensions: signed volume" },
+        "The three columns a₁, a₂, a₃ are the edges of the unit cube after the transformation. The determinant is the triple product:",
+        { tex: "A=\\begin{bmatrix}\\mathbf a_1&\\mathbf a_2&\\mathbf a_3\\end{bmatrix},\\qquad \\det A=\\mathbf a_1\\cdot(\\mathbf a_2\\times\\mathbf a_3)" },
+        { h: "Connect it to the earlier notes" },
+        { ul: [
+          "det = 0 means dependent columns and zero volume — the geometric version of <a href='#singular'>\"Why det = 0 means no inverse\"</a>.",
+          "Adding a multiple of one row shears a parallelogram without changing base or height, so det is unchanged; swapping two rows flips orientation, so det changes sign. See <a href='#row-reduction'>\"Why row operations compute det\"</a>.",
+        ] },
+        { tip: "Try it here: compute det of A = [[2,0],[0,3]]. Change the second column to (0,1) and watch the area factor drop from 6 to 2; make the two columns equal and it collapses to 0." },
+      ],
+    },
+    {
+      id: "cramer",
+      title: "Cramer's rule: replace one column at a time",
+      tag: "Determinant",
+      cat: "det",
+      lead: "For n×n A with det(A) ≠ 0, the j-th unknown is: replace column j of A by b, take that determinant, divide by det(A).",
+      blocks: [
+        { h: "The smallest example: two equations" },
+        "Solve 2x + y = 5 and x + 3y = 6. The coefficient matrix is A = [[2,1],[1,3]], with det(A) = 6 − 1 = 5.",
+        { h: "For x: replace column 1 by b" },
+        { tex: "x=\\frac{\\det\\begin{bmatrix}5&1\\\\6&3\\end{bmatrix}}{\\det A}=\\frac{15-6}{5}=\\frac95" },
+        { h: "For y: replace column 2 by b" },
+        { tex: "y=\\frac{\\det\\begin{bmatrix}2&5\\\\1&6\\end{bmatrix}}{\\det A}=\\frac{12-5}{5}=\\frac75" },
+        "Check: 2·(9/5) + 7/5 = 5 and 9/5 + 3·(7/5) = 6.",
+        { h: "Why replacing column j gives xⱼ" },
+        "Write Ax = b column-by-column as x₁a₁ + ⋯ + xₙaₙ = b. After replacing column j by b, that column equals the same linear combination. A determinant is unchanged when you add multiples of other columns to one column, so every term with i ≠ j disappears and only xⱼ·det(A) remains:",
+        { tex: "\\det(A_j)=\\det(A\\text{ with column }j\\text{ replaced by }b)=x_j\\det(A)" },
+        { h: "When to use it — and when not to" },
+        { ul: [
+          "<b>Good for</b>: hand work in 2×2 or 3×3, and symbolic proofs such as the inverse formula.",
+          "<b>Bad for</b>: large matrices. Computing n+1 determinants is much slower than one elimination, and less stable numerically.",
+          "<b>Requirement</b>: det(A) ≠ 0, i.e. a unique solution. With det(A) = 0 the denominator vanishes and Cramer's rule fails.",
+        ] },
+        { h: "Two common mistakes" },
+        { ul: [
+          "Replacing a row instead of a column: xⱼ belongs to column j because columns take part in x₁a₁ + ⋯.",
+          "Forgetting to divide by det(A): the numerator is only det(A_j).",
+        ] },
+        { tip: "Try it here: compute det([[2,1],[1,3]]) = 5, then det([[5,1],[6,3]]) = 9 and det([[2,5],[1,6]]) = 7 — those are the two numerators above." },
       ],
     },
     {
@@ -2211,6 +2367,10 @@ window.LA_NOTES = {
           "The <b>sum of all AM values is always n</b> (an n-th degree polynomial has exactly n roots, counted with multiplicity) — an identity.",
           "The <b>sum of all GM values is ≤ n</b>; it equals n only when every λ satisfies GM = AM."
         ] },
+        { h: "Why GM ≤ AM: just change basis" },
+        "Pick GM independent eigenvectors v₁,…,v_g of λ and extend them to a basis of Rⁿ. In that basis A becomes block upper-triangular: g copies of λ in the top-left block, zeros below.",
+        { tex: "\\widetilde A=\\begin{bmatrix}\\lambda I_g&*\\\\0&B\\end{bmatrix}" },
+        "Then det(tI − Ã) = (t − λ)^g · det(tI − B), so t = λ occurs at least g times as a root. Hence AM(λ) ≥ g = GM(λ). No Jordan form needed — just put eigenvectors first in the basis.",
         { h: "Why this decides diagonalisability" },
         "To diagonalise, you must collect <b>n linearly independent eigenvectors</b> for the columns of P. Each λ can contribute at most GM(λ) of them, so:",
         { formula: "diagonalisable　⟺　GM(λ) = AM(λ) for every λ　⟺　Σ GM(λ) = n" },
@@ -2870,6 +3030,11 @@ window.LA_NOTES = {
         { tex: "\\operatorname{proj}_W(\\mathbf a)=\\sum_{j=1}^{k}\\frac{\\mathbf a\\cdot\\mathbf b_j}{\\mathbf b_j\\cdot\\mathbf b_j}\\,\\mathbf b_j" },
         "The point: this perpendicular remainder is orthogonal to every bⱼ in W. Gram-Schmidt is exactly <b>throw away the projection, keep the remainder</b>.",
 
+        { h: "The cleanest possible example first" },
+        "Take a₁=(1,0,0), a₂=(1,1,0), a₃=(1,1,1). Keep the first vector: b₁=(1,0,0). Subtract a₂'s projection onto b₁ (one copy of b₁) to get b₂=(0,1,0). Subtract a₃'s projections onto b₁ and b₂ (one copy of each) to get b₃=(0,0,1).",
+        { tex: "\\mathbf b_1=(1,0,0),\\quad \\mathbf b_2=(1,1,0)-(1,0,0)=(0,1,0),\\quad \\mathbf b_3=(1,1,1)-(1,0,0)-(0,1,0)=(0,0,1)" },
+        "Three skewed vectors become the standard basis e₁,e₂,e₃ once you remove the directions already present. The fractional examples below are the same operation with different numbers, not a new rule.",
+
         { h: "The two-vector case (where all the ideas live)" },
         "The first vector has nothing to subtract; the second loses its projection onto b₁:",
         { tex: "\\mathbf b_1=\\mathbf a_1,\\qquad \\mathbf b_2=\\mathbf a_2-\\frac{\\mathbf a_2\\cdot\\mathbf b_1}{\\mathbf b_1\\cdot\\mathbf b_1}\\,\\mathbf b_1" },
@@ -2904,7 +3069,7 @@ window.LA_NOTES = {
           "<b>Order matters</b>: swapping a₁ and a₂ gives a different orthogonal basis, though the span is the same.",
           "Don't normalise b₂ and keep using the old b₁·b₁ as the denominator. Either never normalise, or normalise every step — then the denominator is 1 and only the dot product remains.",
         ] },
-        { tip: "Try it below: A is the single row [2, 1] (b₁ᵀ) and B the single column [1; 2] (a₂). The product is 4 = a₂·b₁; with b₁·b₁ = 5 we get b₂ = (1,2) − (4/5)(2,1) = (−0.6, 1.2), whose dot product with b₁ is 0 — the green vector in the figure." },
+        { tip: "Try it below: A = [[2,1],[1,2]] runs Gram-Schmidt directly, giving b₁=(2,1), b₂=(−3/5, 6/5), and q₁=(2,1)/√5, q₂=(−1,2)/√5 — the same computation as the figure." },
       ],
     },
     {
@@ -3109,6 +3274,11 @@ window.LA_NOTES = {
       cat: "decomp",
       lead: "A·x = b is often inconsistent. Instead of forcing a solution, minimise the error vector — geometrically, project b onto Col(A).",
       blocks: [
+        { h: "One column first: a single projection" },
+        "Suppose one number c is measured twice: A = [[1],[1]], b = (1,3). Col(A) is the line y=x, and b is not on it. The nearest point is (2,2), so ĉ = 2 and the error e = (−1,1) has dot product 0 with (1,1) — perpendicular, hence closest.",
+        { tex: "A=\\begin{bmatrix}1\\\\1\\end{bmatrix},\\quad b=\\begin{bmatrix}1\\\\3\\end{bmatrix},\\quad \\hat c=2,\\quad e=(-1,1),\\quad A^{\\mathsf T}e=0" },
+        "That is the whole logic of least squares: <b>the error must be perpendicular to Col(A)</b>. The three-point fit below just replaces a line by a plane.",
+
         { h: "Accept that \"no solution\" is normal" },
         "With more equations than unknowns (m &gt; n), or with noisy data, b usually is not in Col(A). Fit the line y = c₀ + c₁x to the three points (0,1), (1,2), (2,2):",
         { formula: "A = [[1,0],[1,1],[1,2]],　b = (1,2,2),　A·x = b" },
@@ -3142,6 +3312,11 @@ window.LA_NOTES = {
       cat: "decomp",
       lead: "Orthogonalise the columns of A one at a time and you have A = QR: Q has orthonormal columns, R is upper triangular. It is not a new algorithm, just the matrix form of Gram-Schmidt.",
       blocks: [
+        { h: "A 30-second intuition first" },
+        "Take A = [[1,1],[0,1]]. The first column a₁=(1,0) is already a unit vector, so q₁=(1,0). The second column a₂=(1,1) loses its one copy of q₁ and leaves (0,1), so q₂=(0,1). Hence Q=I and all the remaining data sit in R:",
+        { tex: "A=\\begin{bmatrix}1&1\\\\0&1\\end{bmatrix}=I\\cdot\\begin{bmatrix}1&1\\\\0&1\\end{bmatrix}=QR" },
+        "That is the whole idea: <b>Q straightens the coordinate axes, R records how much of each new axis and earlier axis every original column used</b>. The radicals below only appear because the original axes were not horizontal.",
+
         { h: "What is in the decomposition" },
         "Let A be m×n with independent columns. The thin QR is",
         { formula: "A = QR,　QᵀQ = Iₙ,　R is n×n upper triangular with diagonal &gt; 0" },
@@ -3170,7 +3345,7 @@ window.LA_NOTES = {
           "Assuming Q is square: in the thin QR it is m×n, with QᵀQ = I but <b>not</b> Q Qᵀ = I (that product is the projection matrix P).",
           "Thinking the signs of R's diagonal are arbitrary: flipping the sign of qₖ cancels out, so we simply agree to take them positive; what matters is that none is zero.",
         ] },
-        { tip: "Try it here: run \"Inverse\" on Q̃ = [[1,1],[1,−1]] and you get Q̃ᵀ/2; dividing both columns by √2 makes it a genuine orthogonal matrix whose inverse equals its transpose." },
+        { tip: "Try it below: A = [[1,2],[1,0]] gives Q = (1/√2)[[1,1],[1,−1]] and R = [[√2, √2],[0, √2]] — the same matrix as Set 9, Problem 6." },
       ],
     },
     {
@@ -3227,12 +3402,14 @@ window.LA_NOTES = {
   const TRY = {
     cofactor:      { op: "cofactor_matrix" },
     "row-reduction": { op: "rref" },
+    "det-geometry": { op: "det", A: [["2", "0"], ["0", "3"]] },
+    cramer:        { op: "solve", A: [["2", "1"], ["1", "3"]], B: [["5"], ["6"]] },
     matmul:       { op: "multiply" },
     singular:     { op: "det", A: [["1", "2"], ["2", "4"]] },
     rank:         { op: "rank" },
     eigen:        { op: "eigen" },
     "eigen-howto": { op: "eigen", A: [["4", "1"], ["2", "3"]] },
-    charpoly:     { op: "eigen", A: [["4", "1"], ["2", "3"]] },
+    charpoly:     { op: "charpoly", A: [["4", "1"], ["2", "3"]] },
     "mult":       { op: "eigen", A: [["2", "1"], ["0", "2"]] },
     similar:      { op: "eigen", A: [["4", "1"], ["2", "3"]] },
     diagonalize:  { op: "eigen", A: [["1", "1"], ["0", "2"]] },
@@ -3248,13 +3425,13 @@ window.LA_NOTES = {
     glossary:     { op: "det" },
     "dot-product": { op: "multiply", A: [["2", "1"]], B: [["1"], ["3"]] },
     projection:   { op: "multiply", A: [["1", "1"]], B: [["3"], ["1"]] },
-    "gram-schmidt": { op: "multiply", A: [["2", "1"]], B: [["1"], ["2"]] },
+    "gram-schmidt": { op: "gram_schmidt", A: [["2", "1"], ["1", "2"]] },
     "complex-eigen": { op: "eigen", A: [["0", "-1"], ["1", "0"]] },
     "four-spaces":   { op: "rref" },
     "orthogonal-complement": { op: "rref" },
     "orthonormal-basis": { op: "inverse", A: [["1", "1"], ["1", "-1"]] },
     "least-squares": { op: "solve" },
-    "qr-decomposition": { op: "rref" },
+    "qr-decomposition": { op: "qr", A: [["1", "2"], ["1", "0"]] },
     "svd":          { op: "eigen" },
     "linsys":      { op: "rref", A: [["1", "2", "5"], ["3", "4", "11"]] },
     "lindep":      { op: "rref", A: [["1", "0", "0"], ["0", "1", "0"], ["1", "1", "0"]] },
@@ -3278,6 +3455,8 @@ window.LA_NOTES = {
     adjugate:      1,
     singular:      2,   // Set 2：用 REF 看行列式、提前识别奇异
     "row-reduction": 2,
+    "det-geometry": 9,   // Set 9：行列式几何意义（面积 / 定向）
+    cramer:        9,   // Set 9：Cramer 法则
     "linsys":       2,   // Set 2：行变换 / 高斯消元
     basis:         3,   // Set 3：线性无关、基与维数
     "lindep":       3,   // Set 3：线性无关
@@ -3292,6 +3471,9 @@ window.LA_NOTES = {
     "mult":        7,   // Set 7：相似与对角化（AM/GM 是判定核心）
     similar:       7,   // Set 7：相似与对角化
     diagonalize:   7,
+    "gram-schmidt": 9,   // Set 9：Gram-Schmidt 与 QR
+    "qr-decomposition": 9,
+    "least-squares": 9,
   };
   for (const lang of ["zh", "en"]) {
     for (const a of window.LA_NOTES[lang]) {
@@ -3320,6 +3502,18 @@ window.LA_NOTES = {
           a: "变号。每交换一次乘一个 −1，所以 det = (−1)^s ×（化成三角阵后的主元乘积），s 是交换次数。" },
         { q: "为什么行化简能用来算行列式？",
           a: "三种初等行变换对 det 的影响都是已知的：换行变号、某行乘 c 则 det 乘 c、倍加不变。化成三角阵后 det 就是主对角线乘积，反推回去即可。" },
+      ],
+      "det-geometry": [
+        { q: "A = [[2,0],[0,3]] 的行列式为什么等于 6？",
+          a: "两列分别把单位正方形拉长 2 倍和 3 倍，面积从 1 变成 6；det 就是面积缩放因子。" },
+        { q: "det(A) = −1 说明矩阵做了什么？",
+          a: "面积（体积）大小不变，但定向被翻面了，比如交换二维的两条坐标轴。" },
+      ],
+      cramer: [
+        { q: "求 xⱼ 时为什么换第 j 列而不是第 j 行？",
+          a: "Ax = b 按列看是 x₁a₁ + ⋯ + xₙaₙ = b，第 j 列才对应未知数 xⱼ；行列式对列的倍加不变，其余项会被消掉。" },
+        { q: "Cramer 法则什么时候不能用？",
+          a: "det(A) = 0 时不能用：分母为零，而且方程组要么无解、要么无穷多解，本来就没有唯一解。" },
       ],
       matmul: [
         { q: "(AB) 的第 i 行第 j 列是什么？",
@@ -3514,6 +3708,18 @@ window.LA_NOTES = {
           a: "It changes sign. Each swap multiplies by −1, so det = (−1)^s × (product of pivots after reduction), with s the number of swaps." },
         { q: "Why can row reduction compute a determinant?",
           a: "All three row operations have known effects: a swap flips the sign, scaling a row by c scales det by c, and adding a multiple of one row to another changes nothing. Reduce to triangular form, where det is the diagonal product, then undo the bookkeeping." },
+      ],
+      "det-geometry": [
+        { q: "Why is det([[2,0],[0,3]]) = 6?",
+          a: "The two columns stretch the unit square by 2 and 3, so its area goes from 1 to 6. The determinant is the area-scale factor." },
+        { q: "What does det(A) = −1 tell you?",
+          a: "Area/volume magnitude is unchanged, but orientation is flipped — for example, the two coordinate axes were swapped." },
+      ],
+      cramer: [
+        { q: "Why replace column j to find xⱼ?",
+          a: "Ax = b means x₁a₁ + ⋯ + xₙaₙ = b column-by-column, so column j belongs to xⱼ. Determinants ignore added multiples of other columns, leaving only xⱼ·det(A)." },
+        { q: "When does Cramer's rule fail?",
+          a: "When det(A) = 0: the denominator vanishes, and the system has either no solution or infinitely many, so there is no unique xⱼ to compute." },
       ],
       matmul: [
         { q: "What is the (i, j) entry of AB?",
@@ -3935,8 +4141,8 @@ window.LA_NOTES.TOPICS = {
     { g: "行列式", items: [
       { t: "代数余子式与按行展开", id: "cofactor" },
       { t: "用行变换算行列式", id: "row-reduction" },
-      { t: "行列式的几何意义（面积 / 体积）", id: null },
-      { t: "Cramer 法则", id: null },
+      { t: "行列式的几何意义（面积 / 体积）", id: "det-geometry" },
+      { t: "Cramer 法则", id: "cramer" },
     ] },
     { g: "向量空间与基", items: [
       { t: "向量空间与子空间", id: "vectorspace" },
@@ -3972,7 +4178,7 @@ window.LA_NOTES.TOPICS = {
       { t: "相似矩阵", id: "similar" },
       { t: "对角化与 Aᵏ", id: "diagonalize" },
       { t: "复特征值与旋转", id: "complex-eigen" },
-      { t: "GM ≤ AM 的证明 / Jordan 形", id: null },
+      { t: "Jordan 形（进阶；GM ≤ AM 证明见重数篇）", id: null },
     ] },
     { g: "进阶分解", items: [
       { t: "最小二乘", id: "least-squares" },
@@ -3997,8 +4203,8 @@ window.LA_NOTES.TOPICS = {
     { g: "Determinants", items: [
       { t: "Cofactors & Laplace expansion", id: "cofactor" },
       { t: "Computing det by row reduction", id: "row-reduction" },
-      { t: "Geometric meaning of det (area / volume)", id: null },
-      { t: "Cramer's rule", id: null },
+      { t: "Geometric meaning of det (area / volume)", id: "det-geometry" },
+      { t: "Cramer's rule", id: "cramer" },
     ] },
     { g: "Vector spaces & bases", items: [
       { t: "Vector spaces & subspaces", id: "vectorspace" },
@@ -4034,7 +4240,7 @@ window.LA_NOTES.TOPICS = {
       { t: "Similar matrices", id: "similar" },
       { t: "Diagonalization & Aᵏ", id: "diagonalize" },
       { t: "Complex eigenvalues & rotations", id: "complex-eigen" },
-      { t: "Proof of GM ≤ AM / Jordan form", id: null },
+      { t: "Jordan form (advanced; the GM ≤ AM proof is in the multiplicity note)", id: null },
     ] },
     { g: "Advanced decompositions", items: [
       { t: "Least squares", id: "least-squares" },

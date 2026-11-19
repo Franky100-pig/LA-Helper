@@ -94,6 +94,8 @@
     "lindep",
     "dot-product",
     "row-reduction",
+    "det-geometry",
+    "cramer",
     "cofactor",
     "adjugate",
     "singular",
