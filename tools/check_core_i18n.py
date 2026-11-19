@@ -151,6 +151,8 @@ PROBES = [
     {"op": "eigen", "A": A3, "showSteps": True},
     {"op": "diagonalize", "A": A3, "showSteps": True},
     {"op": "charpoly", "A": A3, "showSteps": True},
+    {"op": "gram_schmidt", "A": [["2", "1"], ["1", "2"]], "showSteps": True},
+    {"op": "qr", "A": [["1", "2"], ["1", "0"]], "showSteps": True},
     {"op": "transform", "A": [["2", "1"], ["1", "-1"]], "B": [["3"], ["1"]],
      "showSteps": True},
     {"op": "transform", "A": [["2", "1"], ["1", "-1"]],

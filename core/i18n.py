@@ -534,6 +534,47 @@ MESSAGES = {
         "zh": "特征值 / 特征向量的几何意义",
         "en": "The geometry of eigenvalues and eigenvectors",
     },
+    "note.charpoly": {
+        "zh": "特征方程：特征值是怎么「算」出来的",
+        "en": "The characteristic equation: where eigenvalues come from",
+    },
+    # --- ortho.py: Gram-Schmidt / QR -----------------------------------------
+    "err.ortho.too_many_columns": {
+        "zh": "列数 {n} 不能超过行数 {m}：满列秩 QR 需要每一列都能拿到一个独立方向",
+        "en": "Column count {n} cannot exceed row count {m}: a full-column-rank QR needs one independent direction per column",
+    },
+    "err.ortho.dependent": {
+        "zh": "第 {k} 列减掉前面方向的投影后变成零向量：这一列线性相关，不能形成满列秩 QR",
+        "en": "Column {k} becomes zero after subtracting the earlier projections: it is dependent, so a full-column-rank QR is impossible",
+    },
+    "ortho.step.first": {
+        "zh": "第一列没有要减的方向：b₁ = a₁ = {v}",
+        "en": "Column 1 has nothing to subtract: b₁ = a₁ = {v}",
+    },
+    "ortho.step.next": {
+        "zh": "处理第 {k} 列，先照抄：b{k} = a{k} = {v}",
+        "en": "Column {k}: start with b{k} = a{k} = {v}",
+    },
+    "ortho.step.project": {
+        "zh": "减掉在 q{j} 上的投影（系数 {c}）：b{k} = {v}",
+        "en": "Subtract the projection onto q{j} (coefficient {c}): b{k} = {v}",
+    },
+    "ortho.step.normalize": {
+        "zh": "‖b{k}‖ = {n}，单位化得 q{k} = {v}",
+        "en": "‖b{k}‖ = {n}; normalising gives q{k} = {v}",
+    },
+    "ortho.step.qr_built": {
+        "zh": "Q 的列是标准正交基，R 记录原列在新方向上的坐标：A = QR",
+        "en": "Columns of Q are orthonormal; R records the original columns in those directions: A = QR",
+    },
+    "note.gram_schmidt": {
+        "zh": "Gram-Schmidt：把一组歪基掰正",
+        "en": "Gram-Schmidt: straightening a skewed basis",
+    },
+    "note.qr": {
+        "zh": "QR 分解：把 Gram-Schmidt 写成矩阵",
+        "en": "QR decomposition: Gram-Schmidt written as a matrix",
+    },
     "note.cofactor": {
         "zh": "代数余子式到底在干什么",
         "en": "What cofactors are actually doing",

@@ -1,7 +1,7 @@
 """Dispatch an operation to the core modules; produce a JSON-friendly result."""
 from .matrix import Matrix
 from . import i18n
-from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod, transform as transform_mod
+from . import ops, inverse as inv_mod, lu as lu_mod, solve, det_rank, eigen as eig_mod, transform as transform_mod, ortho
 
 # Hard upper bound on input size: exact arithmetic on a 100x100 would happily
 # burn the (single-threaded) server for minutes.
@@ -212,6 +212,16 @@ def compute(op, A_data, B_data=None, show_steps=True, allow_symbols=False):
             info = eig_mod.characteristic_polynomial(A, record_steps=show_steps)
             return {"ok": True, "type": "charpoly", "poly": info["poly_str"],
                     "factored": info["factored_str"], "steps": info["steps"]}
+        elif op == "gram_schmidt":
+            info = ortho.gram_schmidt(A, record_steps=show_steps)
+            return {"ok": True, "type": "gram_schmidt",
+                    "B": _mat(info["B"]), "Q": _mat(info["Q"]),
+                    "steps": info["steps"]}
+        elif op == "qr":
+            info = ortho.qr(A, record_steps=show_steps)
+            return {"ok": True, "type": "qr",
+                    "Q": _mat(info["Q"]), "R": _mat(info["R"]),
+                    "steps": info["steps"]}
         else:
             return {"ok": False, "error": i18n.tr("err.engine.unknown_op", op=op)}
     except Exception as e:

@@ -49,6 +49,9 @@ _FUNCS = {
     "diagonalize": (1, 1, "diagonalize", True),
     "diag":      (1, 1, "diagonalize", True),
     "charpoly":  (1, 1, "charpoly", True),
+    "gram_schmidt": (1, 1, "gram_schmidt", True),
+    "gs":        (1, 1, "gram_schmidt", True),
+    "qr":        (1, 1, "qr", True),
     "transform": (2, 2, "transform", False),
 }
 

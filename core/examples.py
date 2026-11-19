@@ -104,6 +104,18 @@ EXAMPLES = {
     "eigen": {
         "A": [["2", "1"], ["1", "2"]],
     },
+    # p(λ) = λ² − 7λ + 10 = (λ−5)(λ−2): expansion and factoring are both short.
+    "charpoly": {
+        "A": [["4", "1"], ["2", "3"]],
+    },
+    # Matches the Gram-Schmidt note's interactive example a1=(2,1), a2=(1,2).
+    "gram_schmidt": {
+        "A": [["2", "1"], ["1", "2"]],
+    },
+    # Thin QR with clean numbers: Q = (1/√2)[[1,1],[1,−1]], R has √2 on the diagonal.
+    "qr": {
+        "A": [["1", "2"], ["1", "0"]],
+    },
     "diagonalize": {
         "A": [["2", "1"], ["1", "2"]],
     },
@@ -158,6 +170,9 @@ ARTICLES = {
     "cofactor_matrix": ("adjugate", "note.adjugate"),
     "rank": ("rank", "note.rank"),
     "eigen": ("eigen", "note.eigen"),
+    "charpoly": ("charpoly", "note.charpoly"),
+    "gram_schmidt": ("gram-schmidt", "note.gram_schmidt"),
+    "qr": ("qr-decomposition", "note.qr"),
     "transform": ("transform", "note.transform"),
 }
 
