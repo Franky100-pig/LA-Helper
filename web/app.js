@@ -907,6 +907,24 @@ async function renderResult(res) {
     html += `<div class="error">${tr("inverse.none", { note: escapeHtml(res.note) })}</div>`;
   } else if (res.type === "eigen") {
     html += await renderEigen(res);
+  } else if (res.type === "charpoly") {
+    html += "<h3>" + tr("result.charpoly") + "</h3>";
+    html += "<h4>" + tr("result.charpolyPoly") + "</h4><div class='scalar'>" +
+      escapeHtml(fmtCell(res.poly)) + "</div>";
+    if (res.factored && res.factored !== res.poly) {
+      html += "<h4>" + tr("result.charpolyFactored") + "</h4><div class='scalar'>" +
+        escapeHtml(fmtCell(res.factored)) + "</div>";
+    }
+  } else if (res.type === "gram_schmidt") {
+    html += "<h3>" + tr("result.gramSchmidt") + "</h3>";
+    html += "<div class='lu-row'>" +
+      "<div><h4>" + tr("result.orthogonalBasis") + "</h4>" + renderMatrix(res.B) + "</div>" +
+      "<div><h4>" + tr("result.orthonormalQ") + "</h4>" + renderMatrix(res.Q) + "</div></div>";
+  } else if (res.type === "qr") {
+    html += "<h3>" + tr("result.qr") + "</h3>";
+    html += "<div class='lu-row'>" +
+      "<div><h4>" + tr("result.qrQ") + "</h4>" + renderMatrix(res.Q) + "</div>" +
+      "<div><h4>" + tr("result.qrR") + "</h4>" + renderMatrix(res.R) + "</div></div>";
   } else if (res.type === "diagonalize") {
     if (!res.diagonalizable) {
       html += `<h3>${tr("result.diagonalize")}</h3><div class="warning">⚠️ ${escapeHtml(res.note || tr("result.notDiagonalizable"))}</div>`;
@@ -1308,12 +1326,12 @@ function renderStarterChips() {
 // 学生最常点的几个运算，做成一键卡片：载入该运算的内置示例并直接算出来。
 // 复用 loadExampleFor 这条现成路径，不另写输入逻辑。
 
-const QUICK_OPS = ["det", "inverse", "rref", "solve", "eigen", "multiply", "transform", "rank"];
+const QUICK_OPS = ["det", "inverse", "rref", "solve", "eigen", "charpoly", "qr", "multiply", "transform", "rank"];
 // 按钮文案走完整 i18n key（op.<name> 都已在字典里），不拼 "op." + op，
 // 否则静态检查会把 "op." 当成缺失键。
 const QUICK_KEY = {
   det: "op.det", inverse: "op.inverse", rref: "op.rref", solve: "op.solve",
-  eigen: "op.eigen", multiply: "op.multiply", transform: "op.transform", rank: "op.rank",
+  eigen: "op.eigen", charpoly: "op.charpoly", qr: "op.qr", multiply: "op.multiply", transform: "op.transform", rank: "op.rank",
 };
 
 function renderQuickPad() {

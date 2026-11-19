@@ -81,6 +81,9 @@ OPS = [
     ("cofactor_matrix", "余子式矩阵 C & 伴随矩阵 adj(A)"),
     ("rank", "秩 rank(A)"),
     ("eigen", "特征值 / 特征向量"),
+    ("charpoly", "特征多项式 p(λ) = det(A − λI)"),
+    ("gram_schmidt", "Gram-Schmidt 正交化"),
+    ("qr", "QR 分解 A=QR"),
     ("diagonalize", "对角化 A=PDP⁻¹"),
     ("transform", "线性变换 T(x)"),
 ]
@@ -933,6 +936,25 @@ class LAApp:
                     self._write("≈ " + format_math.to_text(p["approx"], True), "mat")
                 for v in p["vectors"]:
                     self._write(format_matrix(v, dec), "mat")
+        elif t == "charpoly":
+            self._write("特征多项式 p(λ) = det(A − λI)", "title")
+            self._write("展开形式", "sub")
+            self._write(res["poly"], "mat")
+            if res.get("factored") and res["factored"] != res["poly"]:
+                self._write("因式分解形式", "sub")
+                self._write(res["factored"], "mat")
+        elif t == "gram_schmidt":
+            self._write("Gram-Schmidt 正交化", "title")
+            self._write("正交基 B（两两垂直）", "sub")
+            self._write(format_matrix(res["B"], dec), "mat")
+            self._write("标准正交基 Q（长度为 1）", "sub")
+            self._write(format_matrix(res["Q"], dec), "mat")
+        elif t == "qr":
+            self._write("QR 分解   A = Q·R", "title")
+            self._write("Q（标准正交列）", "sub")
+            self._write(format_matrix(res["Q"], dec), "mat")
+            self._write("R（上三角矩阵）", "sub")
+            self._write(format_matrix(res["R"], dec), "mat")
         if res.get("steps"):
             self._write("计算步骤", "title")
             for i, s in enumerate(res["steps"], 1):

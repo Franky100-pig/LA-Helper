@@ -92,6 +92,18 @@
     eigen: {
       A: [["2", "1"], ["1", "2"]],
     },
+    // 特征多项式：p(λ)=λ²−7λ+10=(λ−5)(λ−2)，展开和因式分解都短。
+    charpoly: {
+      A: [["4", "1"], ["2", "3"]],
+    },
+    // 和 Gram-Schmidt 讲义里的交互例子一致：a1=(2,1), a2=(1,2)。
+    gram_schmidt: {
+      A: [["2", "1"], ["1", "2"]],
+    },
+    // 干净的 thin QR：Q=(1/√2)[[1,1],[1,−1]]，R 对角元都是 √2。
+    qr: {
+      A: [["1", "2"], ["1", "0"]],
+    },
     // 对角化：A = P·D·P⁻¹
     diagonalize: {
       A: [["2", "1"], ["1", "2"]],
@@ -147,6 +159,9 @@
     cofactor_matrix: { id: "adjugate", title: { zh: "伴随矩阵与求逆公式", en: "The adjugate and the inverse formula" } },
     rank: { id: "rank", title: { zh: "秩到底在说什么", en: "What rank is really saying" } },
     eigen: { id: "eigen", title: { zh: "特征值 / 特征向量的几何意义", en: "The geometry of eigenvalues and eigenvectors" } },
+    charpoly: { id: "charpoly", title: { zh: "特征方程：特征值是怎么「算」出来的", en: "The characteristic equation: where eigenvalues come from" } },
+    gram_schmidt: { id: "gram-schmidt", title: { zh: "Gram-Schmidt：把一组歪基掰正", en: "Gram-Schmidt: straightening a skewed basis" } },
+    qr: { id: "qr-decomposition", title: { zh: "QR 分解：把 Gram-Schmidt 写成矩阵", en: "QR decomposition: Gram-Schmidt written as a matrix" } },
     transform: { id: "transform", title: { zh: "线性变换 T(x)：从函数到矩阵", en: "Linear transformations T(x): from function to matrix" } },
   };
 
